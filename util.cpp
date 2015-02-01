@@ -1,5 +1,16 @@
 #include "util.h"
 
+GLuint
+gen_buffer(GLvoid *data, GLsizei size)
+{
+    GLuint buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    return buffer;
+}
+
 GLuint 
 load_shader(const char *filename, GLenum type)
 {

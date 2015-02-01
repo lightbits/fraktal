@@ -2,6 +2,10 @@
 Pathtracing on the GPU:
     http://is.muni.cz/th/396530/fi_b/Bachelor.pdf
     Describes relevant notation and provides GLSL snippets.
+
+http://blog.hvidtfeldts.net/index.php/2012/10/image-based-lighting/
+http://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf
+http://blog.hvidtfeldts.net/index.php/2015/01/path-tracing-3d-fractals/
 */
 
 #include "GL/glew.h"
@@ -10,63 +14,113 @@ Pathtracing on the GPU:
 #include "config.h"
 #include "matrix.h"
 #include "util.h"
-#include <stdio.h>
 
+#include <stdio.h>
 #include "util.cpp"
 #include "matrix.cpp"
 #define EXIT_FAILURE -1
 #define EXIT_SUCCESS 0
 
-struct Attribs
+#define assert(expression) SDL_assert(expression)
+
+struct Shader
 {
+    GLuint program;
     GLint position;
-    GLint texel;
-    GLint extra1;
-    GLint extra2;
+    GLint sampler0;
+    GLint view;
+    GLint aspect;
+    GLint tan_fov_h;
 };
 
-struct Uniforms
+struct Frame
 {
-
+    GLuint buffer;
+    GLuint texture;
+    int width;
+    int height;
 };
 
 struct App
 {
     SDL_Window *window;
     SDL_GLContext gl_context;
-    GLuint shader_test;
-
+    int window_width;
+    int window_height;
     bool running;
+    mat4 view;
+    float aspect;
+    float tan_fov_h;
 };
 
 static App app;
 
-void 
-progressive_render()
+Frame
+gen_frame(int width, int height)
 {
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 
+                 width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
-    SDL_GL_SwapWindow(app.window);
+    GLuint buffer;
+    glGenFramebuffers(1, &buffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, buffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+                           GL_TEXTURE_2D, texture, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    Frame result;
+    result.texture = texture;
+    result.buffer = buffer;
+    result.width = width;
+    result.height = height;
+    return result;
 }
 
 void
-handle_event(SDL_Event &event)
+draw_triangles(Shader &shader, GLuint buffer, GLsizei count)
 {
-    switch (event.type)
-    {
-    case SDL_QUIT:
-        app.running = false;
-        break;
-    case SDL_KEYDOWN:
-        if (event.key.keysym.sym == SDLK_SPACE)
-            progressive_render();
-        break;
-    case SDL_KEYUP:
-        if (event.key.keysym.sym == SDLK_ESCAPE)
-            app.running = false;
-        break;
-    }
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glEnableVertexAttribArray(shader.position);
+    glVertexAttribPointer(shader.position, 2, GL_FLOAT, GL_FALSE, 
+                          sizeof(GLfloat) * 2, 0);
+    glDrawArrays(GL_TRIANGLES, 0, count);
+    glDisableVertexAttribArray(shader.position);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void 
+render_scene(Frame &frame, Shader &shader, GLuint quad)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, frame.buffer);
+    glViewport(0, 0, frame.width, frame.height);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(shader.program);
+    glUniformMatrix4fv(shader.view, 1, GL_FALSE, app.view.data);
+    glUniform1f(shader.aspect, app.aspect);
+    glUniform1f(shader.tan_fov_h, app.tan_fov_h);
+    draw_triangles(shader, quad, 6);
+}
+
+void
+render_blit(Frame &frame_to_blit, Shader &shader, GLuint quad)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, app.window_width, app.window_height);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(shader.program);
+    glBindTexture(GL_TEXTURE_2D, frame_to_blit.texture);
+    glUniform1i(shader.sampler0, 0);
+    draw_triangles(shader, quad, 6);
 }
 
 int 
@@ -81,9 +135,12 @@ wmain(int argc, wchar_t **argv)
         return EXIT_FAILURE;
     }
 
+    app.window_width = 600;
+    app.window_height = 400;
+
     app.window = SDL_CreateWindow(
         WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
+        app.window_width, app.window_height, SDL_WINDOW_OPENGL);
     app.gl_context = SDL_GL_CreateContext(app.window);
     
     if (!app.window)
@@ -106,18 +163,105 @@ wmain(int argc, wchar_t **argv)
         return EXIT_FAILURE;
     }
 
-    app.shader_test = load_program("./shaders/test.vs", "./shaders/test.fs");
-    if (!app.shader_test)
+    app.view = mat_identity();
+    app.aspect = app.window_width / (float)app.window_height;
+    app.tan_fov_h = tan(PI / 8.0f);
+
+    Shader shader_test = {};
+    GLuint program = 
+        load_program("./shaders/test.vs", "./shaders/test.fs");    
+    shader_test.position  = glGetAttribLocation(program, "position");
+    shader_test.view      = glGetUniformLocation(program, "view");
+    shader_test.aspect    = glGetUniformLocation(program, "aspect");
+    shader_test.tan_fov_h = glGetUniformLocation(program, "tan_fov_h");
+    shader_test.program   = program;
+    assert(program);
+
+    Shader shader_blit = {};
+    program = 
+        load_program("./shaders/blit.vs", "./shaders/blit.fs");    
+    shader_blit.position = glGetAttribLocation(program, "position");
+    shader_blit.sampler0 = glGetUniformLocation(program, "sampler0");
+    shader_blit.program  = program;
+    assert(program);
+
+    float quad_data[] = {
+        -1.0f, -1.0f,
+        +1.0f, -1.0f,
+        +1.0f, +1.0f,
+        +1.0f, +1.0f,
+        -1.0f, +1.0f,
+        -1.0f, -1.0f
+    };
+    GLuint quad = gen_buffer(quad_data, sizeof(quad_data));
+
+    Frame frame = gen_frame(app.window_width, app.window_height);
+
+    struct Camera
     {
-        return EXIT_FAILURE;
-    }
+        vec3 position;
+        vec3 rotation;
+    };
+    Camera camera = {};
+    camera.position = Vec3(0.0f, -0.3f, -1.8f);
+    camera.rotation = Vec3(0.2f, -0.9f, 0.0f);
 
     app.running = true;
-    SDL_Event event = {};
     while (app.running)
     {
+        SDL_Event event = {};
         SDL_PollEvent(&event);
-        handle_event(event);
+        switch (event.type)
+        {
+        case SDL_QUIT:
+        {
+            app.running = false;  
+        } break;
+
+        case SDL_KEYUP:
+        {
+            if (event.key.keysym.sym == SDLK_ESCAPE)
+                app.running = false;
+
+            float move_step = 0.1f;
+            float rotate_step = 0.1f;
+            if (event.key.keysym.sym == SDLK_SPACE)
+                camera.position.y -= move_step;
+            if (event.key.keysym.sym == SDLK_LCTRL)
+                camera.position.y += move_step;
+
+            if (event.key.keysym.sym == SDLK_a)
+                camera.position.x += move_step;
+            if (event.key.keysym.sym == SDLK_d)
+                camera.position.x -= move_step;
+            if (event.key.keysym.sym == SDLK_w)
+                camera.position.z += move_step;
+            if (event.key.keysym.sym == SDLK_s)
+                camera.position.z -= move_step;
+
+            if (event.key.keysym.sym == SDLK_LEFT)
+                camera.rotation.y -= rotate_step;
+            if (event.key.keysym.sym == SDLK_RIGHT)
+                camera.rotation.y += rotate_step;
+
+            if (event.key.keysym.sym == SDLK_UP)
+                camera.rotation.x += rotate_step;
+            if (event.key.keysym.sym == SDLK_DOWN)
+                camera.rotation.x -= rotate_step;
+
+            printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",
+                   camera.position.x, camera.position.y, camera.position.z,
+                   camera.rotation.x, camera.rotation.y, camera.rotation.z);
+
+            app.view = mat_translate(camera.position) *
+                       mat_rotate_x(camera.rotation.x) * 
+                       mat_rotate_y(camera.rotation.y);
+            render_scene(frame, shader_test, quad);
+            render_blit(frame, shader_blit, quad);
+            SDL_GL_SwapWindow(app.window);
+            
+        } break;
+        }
     }
 
     SDL_GL_DeleteContext(app.gl_context);

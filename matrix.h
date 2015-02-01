@@ -2,6 +2,10 @@
 #define _matrix_h_
 #include "math.h"
 
+#ifndef PI
+#define PI 3.14159265359
+#endif
+
 union vec2
 {
     struct
@@ -10,6 +14,12 @@ union vec2
     };
     float data[2];
 };
+
+vec2 Vec2(float x, float y)
+{
+    vec2 result = {x, y};
+    return result;
+}
 
 union vec3
 {
@@ -20,6 +30,12 @@ union vec3
     float data[3];
 };
 
+vec3 Vec3(float x, float y, float z)
+{
+    vec3 result = {x, y, z};
+    return result;
+}
+
 union vec4
 {
     struct
@@ -29,13 +45,34 @@ union vec4
     float data[4];
 };
 
+vec4 Vec4(float x, float y, float z, float w)
+{
+    vec4 result = {x, y, z, w};
+    return result;
+}
+
 union mat4
 {
+    /*
+    Uses column-major order as such
+    | a0 a4 a8  a12 |   |         |
+    | a1 a5 a9  a13 |   |         |
+    | a2 a6 a10 a14 | = | x y z w |
+    | a3 a7 a11 a15 |   |         |
+    laid out contiguously in memory.
+    This corresponds with how OpenGL matrices are laid out. 
+    */
     struct
     {
         vec4 x, y, z, w;
     };
     float data[16];
+
+    // Returns the i'th column of a
+    float *operator[](unsigned int i)
+    {
+        return &data[i * 4];
+    }
 };
 
 float 
@@ -337,5 +374,8 @@ mat_rotate_z(float angle_in_radians);
 
 mat4
 mat_translate(float x, float y, float z);
+
+mat4
+mat_translate(vec3 t);
 
 #endif
