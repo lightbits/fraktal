@@ -27,10 +27,6 @@ typedef int8_t      int8;
 #include <stdio.h>
 #include "util.cpp"
 #include "matrix.cpp"
-#define EXIT_FAILURE -1
-#define EXIT_SUCCESS 0
-
-#define assert(expression) SDL_assert(expression)
 
 struct Shader
 {
@@ -63,6 +59,8 @@ struct App
     float aspect;
     float tan_fov_h;
     int iteration;
+
+    GLuint tex_sky;
 };
 
 static App app;
@@ -150,10 +148,12 @@ render_scene(Frame &frame, Shader &shader, GLuint quad)
     glBindFramebuffer(GL_FRAMEBUFFER, frame.buffer);
     glViewport(0, 0, frame.width, frame.height);
     glUseProgram(shader.program);
+    glBindTexture(GL_TEXTURE_2D, app.tex_sky);
     glUniformMatrix4fv(shader.view, 1, GL_FALSE, app.view.data);
     glUniform1f(shader.time, (float)app.iteration);
     glUniform1f(shader.aspect, app.aspect);
     glUniform1f(shader.tan_fov_h, app.tan_fov_h);
+    glUniform1i(shader.sampler0, 0);
     draw_triangles(shader, quad, 6);
     glDisable(GL_BLEND);
 }
@@ -229,9 +229,10 @@ wmain(int argc, wchar_t **argv)
     shader_test.view      = glGetUniformLocation(program, "view");
     shader_test.aspect    = glGetUniformLocation(program, "aspect");
     shader_test.tan_fov_h = glGetUniformLocation(program, "tan_fov_h");
+    shader_test.sampler0  = glGetUniformLocation(program, "sampler0");
     shader_test.time      = glGetUniformLocation(program, "time");
     shader_test.program   = program;
-    assert(program);
+    SDL_assert(program);
 
     Shader shader_blit = {};
     program = 
@@ -240,7 +241,13 @@ wmain(int argc, wchar_t **argv)
     shader_blit.iteration = glGetUniformLocation(program, "iteration");
     shader_blit.sampler0  = glGetUniformLocation(program, "sampler0");
     shader_blit.program   = program;
-    assert(program);
+    SDL_assert(program);
+
+    app.tex_sky = load_texture("./data/aosky001_lite.png",
+                               GL_LINEAR, GL_LINEAR,
+                               GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+    if (!app.tex_sky)
+        return EXIT_FAILURE;
 
     float quad_data[] = {
         -1.0f, -1.0f,

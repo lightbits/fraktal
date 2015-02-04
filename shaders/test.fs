@@ -4,28 +4,40 @@ in vec3 ray_origin;
 in vec3 ray_direction;
 in vec2 texel;
 uniform float time;
+uniform sampler2D tex_sky;
 out vec4 out_color;
 
 #define EPSILON 0.001
 #define STEPS 256
 #define Z_NEAR 0.1
-#define Z_FAR 15.0
+#define Z_FAR 5.0
+#define PI_HALF 1.57079632679
+#define PI 3.14159265359
+#define TWO_PI 6.28318530718
 const vec3 LIGHT_POS = vec3(1.0);
 const float LIGHT_RAD = 0.2;
 
-vec3 SampleSky(vec3 d)
+vec3 SampleSky(vec3 dir)
 {
-    return vec3(1.0, 0.85, 0.82) * d.y;
+    float u = atan(dir.x, dir.z);
+    float v = asin(dir.y);
+    u /= TWO_PI;
+    v /= PI;
+    v *= -1.0;
+    v += 0.5;
+    u += 0.5;
+    return texture(tex_sky, vec2(u, v)).rgb;
+    // return vec3(1.0, 0.85, 0.82) * d.y;
 }
 
 float Scene(vec3 p)
 {
     float sphere0 = length(p) - 0.5;
     float sphere1 = length(p - vec3(0.2, 0.4, 0.0)) - 0.25;
-    float sphere2 = length(p - LIGHT_POS) - LIGHT_RAD;
-    float ground = p.y + 0.1;
-    float wall = p.z + 0.3 + 0.3 * p.x;
-    return min(min(sphere0, min(sphere1, sphere2)), ground);
+    float sphere2 = length(p - vec2(10.0)) - LIGHT_RAD;
+    float ground = p.y + 10.0;
+    float wall = length(p - vec3(0.0, 0.0, -10.0)) - 0.2;
+    return min(min(sphere0, min(sphere1, sphere2)), min(ground, wall));
     // return min(min(min(sphere0, sphere1), ground), wall);
 }
 
@@ -59,7 +71,7 @@ Trace(vec3 origin, vec3 dir,
     }
 }
 
-vec2 seed = texel * (float(time) + 1.0);
+vec2 seed = (texel) * (float(time) + 1.0);
 
 vec2 Noise2f() {
     seed += vec2(-1, 1);
@@ -75,9 +87,6 @@ vec3 Ortho(vec3 v)
                                : vec3(0.0, -v.z, v.y);
 }
 
-#define PI_HALF 1.57079632679
-#define PI 3.14159265359
-#define TWO_PI 6.28318530718
 vec3 CosineWeightedSample(vec3 normal)
 {
     vec3 tangent = normalize(Ortho(normal));
@@ -101,7 +110,7 @@ vec3 ComputeLight(vec3 hit, vec3 from)
     Trace(origin, dir, hit, travel, nearest);
 
     if (nearest > EPSILON)
-        return SampleSky(dir);
+        return SampleSky(dir) * vec3(1.0, 0.5, 0.1);
 
     return vec3(0.0);
 }
@@ -118,10 +127,13 @@ void main()
     if (nearest < EPSILON)
     {
         out_color.rgb = ComputeLight(hit_point, dir);
+        if (length(hit_point - LIGHT_POS) <= LIGHT_RAD + EPSILON)
+            out_color.rgb += vec3(1.0);
     }
     else
     {
-        out_color.rgb = vec3(0.0);
+        out_color.rgb = SampleSky(dir);
+        // out_color.rgb = vec3(1.0);
     }
     out_color.a = 1.0;
 }

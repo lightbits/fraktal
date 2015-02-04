@@ -2,7 +2,7 @@
 call C:\Applications\vs2012\VC\vcvarsall.bat
 pushd .\build
 set VERSION=/DDEBUG
-set COMPILE_OPTIONS=/Zi /nologo /MT /EHsc %VERSION%
+set COMPILE_OPTIONS=/Zi /nologo /MT /EHsc /O2 /Oi /fp:fast %VERSION%
 set INCLUDE_PATHS=/I"..\..\..\sdl\include" /I"..\..\..\glew\include"
 set LIB_PATHS=/LIBPATH:"..\..\..\glew\lib\x86" /LIBPATH:"..\..\..\sdl\lib\x86"
 set DEPENDENCIES="SDL2.lib" "SDL2main.lib" "opengl32.lib" "glew32.lib"

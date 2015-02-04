@@ -1,5 +1,38 @@
 #include "util.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "libs/stb_image.h"
+
+GLuint 
+load_texture(const char *filename,
+             GLenum min_filter,
+             GLenum mag_filter,
+             GLenum wrap_s,
+             GLenum wrap_t)
+{
+    int width, height, channels;
+    uint8 *pixels = stbi_load(filename, &width, &height, &channels, 4);
+
+    if (pixels == NULL)
+    {
+        printf("Failed to load texture: %s", stbi_failure_reason());
+        return 0;
+    }
+
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, 
+                 GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    stbi_image_free(pixels);
+    return texture;
+}
+
 GLuint
 gen_buffer(GLvoid *data, GLsizei size)
 {
