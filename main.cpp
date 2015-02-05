@@ -8,9 +8,6 @@ http://people.cs.kuleuven.be/~philip.dutre/GI/TotalCompendium.pdf
 http://blog.hvidtfeldts.net/index.php/2015/01/path-tracing-3d-fractals/
 */
 
-#include "GL/glew.h"
-#include "SDL.h"
-#include "SDL_opengl.h"
 #include "config.h"
 #include "matrix.h"
 #include "util.h"
@@ -59,6 +56,7 @@ struct App
     float aspect;
     float tan_fov_h;
     int iteration;
+    float elapsed_time;
 
     GLuint tex_sky;
 };
@@ -71,8 +69,9 @@ save_screenshot()
     int w = app.window_width;
     int h = app.window_height;
     uint8 *pixels = new uint8[w * h * 3];
-    glReadPixels(0, 0, w, h, GL_BGR, GL_UNSIGNED_BYTE, pixels);
+    glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
+    // Flip y
     for (int y = 0; y < h / 2; y++)
     for (int x = 0; x < w * 3; x++)
     {
@@ -83,9 +82,7 @@ save_screenshot()
         pixels[to] = temp;
     }
 
-    SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(pixels, w, h, 8 * 3, w * 3, 0, 0, 0, 0);
-    SDL_SaveBMP(surface, "screenshot.bmp");
-    SDL_FreeSurface(surface);
+    save_rgb_to_png("screenshot.png", w, h, (void*)pixels);
     delete[] pixels;
 }
 
@@ -150,7 +147,7 @@ render_scene(Frame &frame, Shader &shader, GLuint quad)
     glUseProgram(shader.program);
     glBindTexture(GL_TEXTURE_2D, app.tex_sky);
     glUniformMatrix4fv(shader.view, 1, GL_FALSE, app.view.data);
-    glUniform1f(shader.time, (float)app.iteration);
+    glUniform1f(shader.time, app.elapsed_time);
     glUniform1f(shader.aspect, app.aspect);
     glUniform1f(shader.tan_fov_h, app.tan_fov_h);
     glUniform1i(shader.sampler0, 0);
@@ -172,7 +169,8 @@ render_blit(Frame &frame_to_blit, Shader &shader, GLuint quad)
     draw_triangles(shader, quad, 6);
 }
 
-double get_elapsed_time(uint64 begin, uint64 end)
+double 
+get_elapsed_time(uint64 begin, uint64 end)
 {
     uint64 frequency = SDL_GetPerformanceFrequency();
     return (double)(end - begin) / (double)frequency;
@@ -181,46 +179,25 @@ double get_elapsed_time(uint64 begin, uint64 end)
 int 
 wmain(int argc, wchar_t **argv)
 {
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
-    {
-        const char *error = SDL_GetError();
-        printf("Failed to initialize SDL: %s", error);
-        SDL_ShowSimpleMessageBox(
-            SDL_MESSAGEBOX_ERROR, "An error occurred", error, 0);
-        return EXIT_FAILURE;
-    }
+    int init_status = SDL_Init(SDL_INIT_EVERYTHING);
+    assert(init_status == 0);
 
-    app.window_width = 600;
-    app.window_height = 400;
+    app.window_width = 1000;
+    app.window_height = 500;
 
     app.window = SDL_CreateWindow(
         WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         app.window_width, app.window_height, SDL_WINDOW_OPENGL);
     app.gl_context = SDL_GL_CreateContext(app.window);
-    
-    if (!app.window)
-    {
-        const char *error = SDL_GetError();
-        printf("Failed to create window: %s", error);
-        SDL_ShowSimpleMessageBox(
-            SDL_MESSAGEBOX_ERROR, "An error occurred", error, 0);
-        return EXIT_FAILURE;
-    }
+    assert(app.window);
 
     GLboolean glew_experimental = true;
     GLenum glew_error = glewInit();
-    if (glew_error != GLEW_OK)
-    {
-        const char *error = (const char *)glewGetErrorString(glew_error);
-        printf("Failed to load OpenGL functions: %s\n", error);
-        SDL_ShowSimpleMessageBox(
-            SDL_MESSAGEBOX_ERROR, "An error occurred", error, 0);
-        return EXIT_FAILURE;
-    }
+    assert(glew_error == GLEW_OK);
 
     app.view = mat_identity();
     app.aspect = app.window_width / (float)app.window_height;
-    app.tan_fov_h = tan(PI / 8.0f);
+    app.tan_fov_h = tan(PI / 10.0f);
 
     Shader shader_test = {};
     GLuint program = 
@@ -230,9 +207,10 @@ wmain(int argc, wchar_t **argv)
     shader_test.aspect    = glGetUniformLocation(program, "aspect");
     shader_test.tan_fov_h = glGetUniformLocation(program, "tan_fov_h");
     shader_test.sampler0  = glGetUniformLocation(program, "sampler0");
+    shader_test.iteration = glGetUniformLocation(program, "iteration");
     shader_test.time      = glGetUniformLocation(program, "time");
     shader_test.program   = program;
-    SDL_assert(program);
+    assert(program);
 
     Shader shader_blit = {};
     program = 
@@ -241,13 +219,12 @@ wmain(int argc, wchar_t **argv)
     shader_blit.iteration = glGetUniformLocation(program, "iteration");
     shader_blit.sampler0  = glGetUniformLocation(program, "sampler0");
     shader_blit.program   = program;
-    SDL_assert(program);
+    assert(program);
 
     app.tex_sky = load_texture("./data/aosky001_lite.png",
                                GL_LINEAR, GL_LINEAR,
                                GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-    if (!app.tex_sky)
-        return EXIT_FAILURE;
+    assert(app.tex_sky);
 
     float quad_data[] = {
         -1.0f, -1.0f,
@@ -259,7 +236,7 @@ wmain(int argc, wchar_t **argv)
     };
     GLuint quad = gen_buffer(quad_data, sizeof(quad_data));
 
-    Frame frame = gen_frame(app.window_width, app.window_height);
+    Frame frame = gen_frame(app.window_width / 2, app.window_height / 2);
     clear_frame(frame);
 
     struct Camera
@@ -273,6 +250,7 @@ wmain(int argc, wchar_t **argv)
 
     app.running = true;
     app.iteration = 1;
+    uint64 app_begin = SDL_GetPerformanceCounter();
     while (app.running)
     {
         SDL_Event event = {};
@@ -324,10 +302,6 @@ wmain(int argc, wchar_t **argv)
                 app.iteration = 1;
             }
 
-            printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",
-                   camera.position.x, camera.position.y, camera.position.z,
-                   camera.rotation.x, camera.rotation.y, camera.rotation.z);
-
             uint64 scene_begin = SDL_GetPerformanceCounter();
 
             app.view = mat_translate(camera.position) *
@@ -340,6 +314,7 @@ wmain(int argc, wchar_t **argv)
 
             uint64 scene_end = SDL_GetPerformanceCounter();
             double scene_time = get_elapsed_time(scene_begin, scene_end);
+            app.elapsed_time = get_elapsed_time(app_begin, scene_end);
 
             app.iteration++;
             char title[256];

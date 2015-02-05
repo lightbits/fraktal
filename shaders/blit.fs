@@ -8,4 +8,5 @@ out vec4 out_color;
 void main()
 {
     out_color = texture(sampler0, texel) / float(iteration);
+    out_color.rgb = sqrt(out_color.rgb);
 }

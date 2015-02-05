@@ -3,6 +3,15 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "libs/stb_image.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "libs/stb_image_write.h"
+
+void
+save_rgb_to_png(const char *filename, int w, int h, const void *data)
+{
+    stbi_write_png(filename, w, h, 3, data, w * 3);
+}
+
 GLuint 
 load_texture(const char *filename,
              GLenum min_filter,
