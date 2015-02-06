@@ -1,7 +1,10 @@
 #version 150
 
-in vec3 ray_origin;
-in vec3 ray_exit;
+uniform float aspect;
+uniform float tan_fov_h;
+uniform vec2 pixel_size;
+in mat4 inv_view;
+
 in vec2 texel;
 uniform float time;
 uniform sampler2D tex_sky;
@@ -69,31 +72,37 @@ vec3 RotateX(vec3 v, float t)
 
 float Mystery(vec3 p)
 {
-    // float db = sdSphere(p, 1.5);
-    // p.xyz = mod(p.xyz, vec3(0.5)) - vec3(0.25);
-    // float d1 = opSubtract(db, sdBox(p, vec3(0.2)));
-    // return d1;
+    float db = sdSphere(p, 1.5);
+    p.xyz = mod(p.xyz, vec3(0.25)) - vec3(0.125);
+    return opSubtract(db, sdSphere(p, 0.15));
 
-    p = RotateY(p, 0.01 * time);
-    float d1 = sdSphere(p, 0.8);
-    float d2 = sdBox(p, vec3(1.0, 0.4, 0.4));
-    float d3 = sdBox(p, vec3(0.1, 0.1, 2.0));
-    return min(d3, opSubtract(d1, d2));
+    // p = RotateY(p, 0.01 * time);
+    // float d1 = sdSphere(p, 0.8);
+    // float d2 = sdBox(p, vec3(1.0, 0.4, 0.4));
+    // float d3 = sdBox(p, vec3(0.1, 0.1, 2.0));
+    // return min(d3, opSubtract(d1, d2));
+}
+
+float sdFloor(vec3 p)
+{
+    return sdSphere(p - vec3(0.0, -10000.0, 0.0), 9999.5);
+}
+
+float sdPillars(vec3 p)
+{
+    float height = 0.4 * exp(-dot(p, p) * 0.01);
+    vec2 modrad = vec2(1.0);
+    p.xz = mod(p.xz + modrad, 2.0 * modrad) - modrad;
+    p = RotateY(p, 0.2 * time);
+    return udRoundBox(p - vec3(0.0, -0.25, 0.0), vec3(0.1, height, 0.1), 0.05);
 }
 
 float Scene(vec3 p)
 {
-    vec3 q = p;
-    vec2 modrad = vec2(1.0);
-    q.xz = mod(p.xz + modrad, 2.0 * modrad) - modrad;
-    float b = sdSphere(p - vec3(0.0, -1000.0, 0.0), 999.5);
-
-    vec3 size = vec3(0.1, 0.4, 0.1);
-
-    q = RotateY(q, 0.2 * time);
-    float c = udRoundBox(q, size, 0.05);
-    float d = Mystery(p - vec3(0.0, 0.5, 0.0));
-    return min(b, min(c, d));
+    float d1 = sdFloor(p);
+    float d2 = sdPillars(p);
+    float d3 = Mystery(p - vec3(0.0, 0.5, 0.0));
+    return min(d1, min(d2, d3));
 }
 
 vec3 Normal(vec3 p)
@@ -186,8 +195,15 @@ vec3 ComputeLight(vec3 hit, vec3 from)
 
 void main()
 {
-    vec3 dir = normalize(ray_exit - ray_origin);
-    vec3 origin = ray_origin;
+    // Perturb texel to get anti-aliasing (for free! yay!)
+    vec2 sample = texel;
+    sample += (-1.0 + 2.0 * Noise2f()) * 0.5 * pixel_size;
+
+    // Transform image plane coordinates via view-space matrix
+    vec3 film_coord = vec3(sample.x * aspect, sample.y, -1.0 / tan_fov_h);
+    vec3 origin = (inv_view[3]).xyz;
+    vec3 dir = normalize((inv_view * vec4(film_coord, 1.0)).xyz - origin);
+
     vec3 hit_point;
     float travel;
     float nearest;
@@ -200,7 +216,6 @@ void main()
     else
     {
         out_color.rgb = SampleSky(dir);
-        // out_color.rgb = vec3(1.0);
     }
     out_color.a = 1.0;
 }

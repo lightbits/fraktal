@@ -34,6 +34,7 @@ struct Shader
     GLint aspect;
     GLint tan_fov_h;
     GLint iteration;
+    GLint pixel_size;
     GLint time;
 };
 
@@ -147,6 +148,9 @@ render_scene(Frame &frame, Shader &shader, GLuint quad)
     glUseProgram(shader.program);
     glBindTexture(GL_TEXTURE_2D, app.tex_sky);
     glUniformMatrix4fv(shader.view, 1, GL_FALSE, app.view.data);
+    glUniform2f(shader.pixel_size, 
+                1.0f / (float)frame.width, 
+                1.0f / (float)frame.height);
     glUniform1f(shader.time, app.elapsed_time);
     glUniform1f(shader.aspect, app.aspect);
     glUniform1f(shader.tan_fov_h, app.tan_fov_h);
@@ -202,14 +206,15 @@ wmain(int argc, wchar_t **argv)
     Shader shader_test = {};
     GLuint program = 
         load_program("./shaders/test.vs", "./shaders/test.fs");    
-    shader_test.position  = glGetAttribLocation(program, "position");
-    shader_test.view      = glGetUniformLocation(program, "view");
-    shader_test.aspect    = glGetUniformLocation(program, "aspect");
-    shader_test.tan_fov_h = glGetUniformLocation(program, "tan_fov_h");
-    shader_test.sampler0  = glGetUniformLocation(program, "sampler0");
-    shader_test.iteration = glGetUniformLocation(program, "iteration");
-    shader_test.time      = glGetUniformLocation(program, "time");
-    shader_test.program   = program;
+    shader_test.position   = glGetAttribLocation(program, "position");
+    shader_test.view       = glGetUniformLocation(program, "view");
+    shader_test.aspect     = glGetUniformLocation(program, "aspect");
+    shader_test.pixel_size = glGetUniformLocation(program, "pixel_size");
+    shader_test.tan_fov_h  = glGetUniformLocation(program, "tan_fov_h");
+    shader_test.sampler0   = glGetUniformLocation(program, "sampler0");
+    shader_test.iteration  = glGetUniformLocation(program, "iteration");
+    shader_test.time       = glGetUniformLocation(program, "time");
+    shader_test.program    = program;
     assert(program);
 
     Shader shader_blit = {};
@@ -221,7 +226,7 @@ wmain(int argc, wchar_t **argv)
     shader_blit.program   = program;
     assert(program);
 
-    app.tex_sky = load_texture("./data/aosky001_lite.png",
+    app.tex_sky = load_texture("./data/aosky001_lite.jpg",
                                GL_LINEAR, GL_LINEAR,
                                GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
     assert(app.tex_sky);
@@ -314,7 +319,15 @@ wmain(int argc, wchar_t **argv)
 
             uint64 scene_end = SDL_GetPerformanceCounter();
             double scene_time = get_elapsed_time(scene_begin, scene_end);
-            app.elapsed_time = get_elapsed_time(app_begin, scene_end);
+
+            // Should probably use a framerate independent timer for this
+            // Since we do motion blur, and things must move at a consistent
+            // speed from frame to frame.
+            double time_step = 0.03;
+            app.elapsed_time += time_step;
+
+            // Otherwise, do this I guess...
+            // app.elapsed_time = get_elapsed_time(app_begin, scene_end);
 
             app.iteration++;
             char title[256];
