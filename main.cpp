@@ -184,7 +184,7 @@ int
 wmain(int argc, wchar_t **argv)
 {
     int init_status = SDL_Init(SDL_INIT_EVERYTHING);
-    assert(init_status == 0);
+    ASSERT(init_status == 0);
 
     app.window_width = 1000;
     app.window_height = 500;
@@ -193,11 +193,11 @@ wmain(int argc, wchar_t **argv)
         WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         app.window_width, app.window_height, SDL_WINDOW_OPENGL);
     app.gl_context = SDL_GL_CreateContext(app.window);
-    assert(app.window);
+    ASSERT(app.window);
 
     GLboolean glew_experimental = true;
     GLenum glew_error = glewInit();
-    assert(glew_error == GLEW_OK);
+    ASSERT(glew_error == GLEW_OK);
 
     app.view = mat_identity();
     app.aspect = app.window_width / (float)app.window_height;
@@ -215,7 +215,7 @@ wmain(int argc, wchar_t **argv)
     shader_test.iteration  = glGetUniformLocation(program, "iteration");
     shader_test.time       = glGetUniformLocation(program, "time");
     shader_test.program    = program;
-    assert(program);
+    ASSERT(program);
 
     Shader shader_blit = {};
     program = 
@@ -224,12 +224,12 @@ wmain(int argc, wchar_t **argv)
     shader_blit.iteration = glGetUniformLocation(program, "iteration");
     shader_blit.sampler0  = glGetUniformLocation(program, "sampler0");
     shader_blit.program   = program;
-    assert(program);
+    ASSERT(program);
 
     app.tex_sky = load_texture("./data/aosky001_lite.jpg",
                                GL_LINEAR, GL_LINEAR,
                                GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-    assert(app.tex_sky);
+    ASSERT(app.tex_sky);
 
     float quad_data[] = {
         -1.0f, -1.0f,
@@ -241,7 +241,7 @@ wmain(int argc, wchar_t **argv)
     };
     GLuint quad = gen_buffer(quad_data, sizeof(quad_data));
 
-    Frame frame = gen_frame(app.window_width / 2, app.window_height / 2);
+    Frame frame = gen_frame(app.window_width, app.window_height);
     clear_frame(frame);
 
     struct Camera

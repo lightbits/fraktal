@@ -115,28 +115,25 @@ vec3 Normal(vec3 p)
     );
 }
 
-void 
-Trace(vec3 origin, vec3 dir, 
-      out vec3 hit_point, out float travel, out float nearest)
+bool 
+Trace(vec3 origin, vec3 dir, out vec3 hit_point)
 {
+    float t = 0.0;
     hit_point = origin;
-    travel = 0.0;
-    nearest = Z_FAR;
     for (int i = 0; i < STEPS; i++)
     {
         float s = Scene(hit_point);
-        travel += s;
+        t += s;
         hit_point += s * dir;
-        nearest = min(nearest, s);
-        if (s < EPSILON)
-            break;
-        if (travel > Z_FAR)
+        if (s <= EPSILON)
+            return true;
+        if (t > Z_FAR)
             break;
     }
+    return false;
 }
 
 vec2 seed = (texel) * (time + 1.0);
-
 vec2 Noise2f() {
     seed += vec2(-1, 1);
     // implementation based on: lumina.sourceforge.net/Tutorials/Noise.html
@@ -183,14 +180,22 @@ vec3 ComputeLight(vec3 hit, vec3 from)
     vec3 dir = CosineWeightedSample(normal);
     vec3 origin = hit + normal * 2.0 * EPSILON;
 
-    float travel, nearest;
-    Trace(origin, dir, hit, travel, nearest);
-
-    vec3 luminance = vec3(1.0);
-    if (nearest > EPSILON)
+    if (!Trace(origin, dir, hit))
+    {
         return SampleSky(dir);
+    }
 
     return vec3(0.0);
+}
+
+vec2 SampleDisk()
+{
+    vec2 r = Noise2f();
+    r.x *= TWO_PI;
+    r.y = sqrt(r.y);
+    float x = r.y * cos(r.x);
+    float y = r.y * sin(r.y);
+    return vec2(x, y);
 }
 
 void main()
@@ -199,17 +204,26 @@ void main()
     vec2 sample = texel;
     sample += (-1.0 + 2.0 * Noise2f()) * 0.5 * pixel_size;
 
+    float lens_radius = 0.05; // Affects field of depth
+    float focal_distance = 0.1; // Affects where objects are in focus
+    vec3 film = vec3(sample.x * aspect, sample.y, 0.0);
+    vec3 lens_centre = vec3(0.0, 0.0, 1.0 / tan_fov_h);
+    vec3 dir = normalize(lens_centre - film);
+    float t = (focal_distance - lens_centre.z) / dir.z;
+    vec3 focus = lens_centre + dir * t;
+
+    vec3 lens = lens_centre + lens_radius * vec3(SampleDisk(), 0.0);
+    dir = normalize(focus - lens);
+    vec3 origin = lens;
+
+    origin += (inv_view[3]).xyz;
+
     // Transform image plane coordinates via view-space matrix
-    vec3 film_coord = vec3(sample.x * aspect, sample.y, -1.0 / tan_fov_h);
-    vec3 origin = (inv_view[3]).xyz;
-    vec3 dir = normalize((inv_view * vec4(film_coord, 1.0)).xyz - origin);
+    // vec3 origin = (inv_view[3]).xyz;
+    // vec3 dir = normalize((inv_view * vec4(film_coord, 1.0)).xyz - origin);
 
     vec3 hit_point;
-    float travel;
-    float nearest;
-    Trace(origin, dir, hit_point, travel, nearest);
-
-    if (nearest < EPSILON)
+    if (Trace(origin, dir, hit_point))
     {
         out_color.rgb = ComputeLight(hit_point, dir);
     }

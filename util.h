@@ -4,8 +4,8 @@
 #include "GL/glew.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
-#define assert(x) SDL_assert(x)
-#define STBI_ASSERT(x) assert(x)
+#define ASSERT(x) SDL_assert(x)
+#define STBI_ASSERT(x) ASSERT(x)
 
 GLuint
 load_program(const char *vs_filename, const char *fs_filename);
