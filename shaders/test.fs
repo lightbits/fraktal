@@ -3,7 +3,7 @@
 uniform float aspect;
 uniform float tan_fov_h;
 uniform vec2 pixel_size;
-in mat4 inv_view;
+uniform mat4 view;
 
 in vec2 texel;
 uniform float time;
@@ -91,9 +91,9 @@ float sdFloor(vec3 p)
 float sdPillars(vec3 p)
 {
     float height = 0.4 * exp(-dot(p, p) * 0.01);
-    vec2 modrad = vec2(1.0);
+    vec2 modrad = vec2(0.5);
     p.xz = mod(p.xz + modrad, 2.0 * modrad) - modrad;
-    p = RotateY(p, 0.2 * time);
+    p = RotateY(p, 0.0 * time);
     return udRoundBox(p - vec3(0.0, -0.25, 0.0), vec3(0.1, height, 0.1), 0.05);
 }
 
@@ -203,24 +203,27 @@ void main()
     // Perturb texel to get anti-aliasing (for free! yay!)
     vec2 sample = texel;
     sample += (-1.0 + 2.0 * Noise2f()) * 0.5 * pixel_size;
+    sample *= -1.0; // Flip before passing through lens
 
     float lens_radius = 0.05; // Affects field of depth
-    float focal_distance = 0.1; // Affects where objects are in focus
+    float focal_distance = 3.0; // Affects where objects are in focus
     vec3 film = vec3(sample.x * aspect, sample.y, 0.0);
-    vec3 lens_centre = vec3(0.0, 0.0, 1.0 / tan_fov_h);
+    vec3 lens_centre = vec3(0.0, 0.0, -1.0 / tan_fov_h);
     vec3 dir = normalize(lens_centre - film);
-    float t = (focal_distance - lens_centre.z) / dir.z;
+    float t = -focal_distance / dir.z;
     vec3 focus = lens_centre + dir * t;
 
     vec3 lens = lens_centre + lens_radius * vec3(SampleDisk(), 0.0);
     dir = normalize(focus - lens);
     vec3 origin = lens;
 
-    origin += (inv_view[3]).xyz;
+    origin = (view * vec4(origin, 1.0)).xyz;
+    dir = normalize((view * vec4(dir, 0.0)).xyz);
 
     // Transform image plane coordinates via view-space matrix
-    // vec3 origin = (inv_view[3]).xyz;
-    // vec3 dir = normalize((inv_view * vec4(film_coord, 1.0)).xyz - origin);
+    // vec3 film = vec3(sample.x * aspect, sample.y, -1.0 / tan_fov_h);
+    // vec3 origin = (view[3]).xyz;
+    // vec3 dir = normalize((view * vec4(film, 1.0)).xyz - origin);
 
     vec3 hit_point;
     if (Trace(origin, dir, hit_point))
@@ -231,5 +234,12 @@ void main()
     {
         out_color.rgb = SampleSky(dir);
     }
+
+    // Visualize region in focus by a redline
+    focus = (view * vec4(focus, 1.0)).xyz;
+    vec3 focus_line = vec3(focus.x, -0.5, focus.z); // Project onto floor
+    if (length(hit_point - focus_line) <= 0.3)
+        out_color.r = 1.0;
+
     out_color.a = 1.0;
 }

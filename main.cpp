@@ -147,6 +147,7 @@ render_scene(Frame &frame, Shader &shader, GLuint quad)
     glViewport(0, 0, frame.width, frame.height);
     glUseProgram(shader.program);
     glBindTexture(GL_TEXTURE_2D, app.tex_sky);
+
     glUniformMatrix4fv(shader.view, 1, GL_FALSE, app.view.data);
     glUniform2f(shader.pixel_size, 
                 1.0f / (float)frame.width, 
@@ -250,7 +251,7 @@ wmain(int argc, wchar_t **argv)
         vec3 rotation;
     };
     Camera camera = {};
-    camera.position = Vec3(0.0f, -0.3f, -1.8f);
+    camera.position = Vec3(0.0f, 0.3f, 5.8f);
     camera.rotation = Vec3(0.2f, -0.9f, 0.0f);
 
     app.running = true;
@@ -275,28 +276,28 @@ wmain(int argc, wchar_t **argv)
             float move_step = 0.1f;
             float rotate_step = 0.1f;
             if (event.key.keysym.sym == SDLK_SPACE)
-                camera.position.y -= move_step;
-            if (event.key.keysym.sym == SDLK_LCTRL)
                 camera.position.y += move_step;
+            if (event.key.keysym.sym == SDLK_LCTRL)
+                camera.position.y -= move_step;
 
             if (event.key.keysym.sym == SDLK_a)
-                camera.position.x += move_step;
-            if (event.key.keysym.sym == SDLK_d)
                 camera.position.x -= move_step;
+            if (event.key.keysym.sym == SDLK_d)
+                camera.position.x += move_step;
             if (event.key.keysym.sym == SDLK_w)
-                camera.position.z += move_step;
-            if (event.key.keysym.sym == SDLK_s)
                 camera.position.z -= move_step;
+            if (event.key.keysym.sym == SDLK_s)
+                camera.position.z += move_step;
 
             if (event.key.keysym.sym == SDLK_LEFT)
-                camera.rotation.y -= rotate_step;
-            if (event.key.keysym.sym == SDLK_RIGHT)
                 camera.rotation.y += rotate_step;
+            if (event.key.keysym.sym == SDLK_RIGHT)
+                camera.rotation.y -= rotate_step;
 
             if (event.key.keysym.sym == SDLK_UP)
-                camera.rotation.x += rotate_step;
-            if (event.key.keysym.sym == SDLK_DOWN)
                 camera.rotation.x -= rotate_step;
+            if (event.key.keysym.sym == SDLK_DOWN)
+                camera.rotation.x += rotate_step;
 
             if (event.key.keysym.sym == SDLK_PRINTSCREEN)
                 save_screenshot();
@@ -309,9 +310,9 @@ wmain(int argc, wchar_t **argv)
 
             uint64 scene_begin = SDL_GetPerformanceCounter();
 
-            app.view = mat_translate(camera.position) *
+            app.view = mat_rotate_y(camera.rotation.y) *
                        mat_rotate_x(camera.rotation.x) * 
-                       mat_rotate_y(camera.rotation.y);
+                       mat_translate(camera.position);
             render_scene(frame, shader_test, quad);
             render_blit(frame, shader_blit, quad);
             glFinish();
