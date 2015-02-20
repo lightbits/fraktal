@@ -64,7 +64,7 @@ struct App
 
 static App app;
 
-void 
+void
 save_screenshot()
 {
     int w = app.window_width;
@@ -93,7 +93,7 @@ gen_frame(int width, int height)
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,
                  width, height, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -104,7 +104,7 @@ gen_frame(int width, int height)
     GLuint buffer;
     glGenFramebuffers(1, &buffer);
     glBindFramebuffer(GL_FRAMEBUFFER, buffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                            GL_TEXTURE_2D, texture, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -121,7 +121,7 @@ draw_triangles(Shader &shader, GLuint buffer, GLsizei count)
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
     glEnableVertexAttribArray(shader.position);
-    glVertexAttribPointer(shader.position, 2, GL_FLOAT, GL_FALSE, 
+    glVertexAttribPointer(shader.position, 2, GL_FLOAT, GL_FALSE,
                           sizeof(GLfloat) * 2, 0);
     glDrawArrays(GL_TRIANGLES, 0, count);
     glDisableVertexAttribArray(shader.position);
@@ -137,7 +137,7 @@ clear_frame(Frame &frame)
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void 
+void
 render_scene(Frame &frame, Shader &shader, GLuint quad)
 {
     glEnable(GL_BLEND);
@@ -149,8 +149,8 @@ render_scene(Frame &frame, Shader &shader, GLuint quad)
     glBindTexture(GL_TEXTURE_2D, app.tex_sky);
 
     glUniformMatrix4fv(shader.view, 1, GL_FALSE, app.view.data);
-    glUniform2f(shader.pixel_size, 
-                1.0f / (float)frame.width, 
+    glUniform2f(shader.pixel_size,
+                1.0f / (float)frame.width,
                 1.0f / (float)frame.height);
     glUniform1f(shader.time, app.elapsed_time);
     glUniform1f(shader.aspect, app.aspect);
@@ -174,14 +174,14 @@ render_blit(Frame &frame_to_blit, Shader &shader, GLuint quad)
     draw_triangles(shader, quad, 6);
 }
 
-double 
+double
 get_elapsed_time(uint64 begin, uint64 end)
 {
     uint64 frequency = SDL_GetPerformanceFrequency();
     return (double)(end - begin) / (double)frequency;
 }
 
-int 
+int
 wmain(int argc, wchar_t **argv)
 {
     int init_status = SDL_Init(SDL_INIT_EVERYTHING);
@@ -205,8 +205,8 @@ wmain(int argc, wchar_t **argv)
     app.tan_fov_h = tan(PI / 10.0f);
 
     Shader shader_test = {};
-    GLuint program = 
-        load_program("./shaders/test.vs", "./shaders/test.fs");    
+    GLuint program =
+        load_program("./shaders/test.vs", "./shaders/test.fs");
     shader_test.position   = glGetAttribLocation(program, "position");
     shader_test.view       = glGetUniformLocation(program, "view");
     shader_test.aspect     = glGetUniformLocation(program, "aspect");
@@ -219,8 +219,8 @@ wmain(int argc, wchar_t **argv)
     ASSERT(program);
 
     Shader shader_blit = {};
-    program = 
-        load_program("./shaders/blit.vs", "./shaders/blit.fs");    
+    program =
+        load_program("./shaders/blit.vs", "./shaders/blit.fs");
     shader_blit.position  = glGetAttribLocation(program, "position");
     shader_blit.iteration = glGetUniformLocation(program, "iteration");
     shader_blit.sampler0  = glGetUniformLocation(program, "sampler0");
@@ -251,8 +251,8 @@ wmain(int argc, wchar_t **argv)
         vec3 rotation;
     };
     Camera camera = {};
-    camera.position = Vec3(0.0f, 0.3f, 5.8f);
-    camera.rotation = Vec3(0.2f, -0.9f, 0.0f);
+    camera.position = Vec3(-2.5f, 0.5f, 9.3f);
+    camera.rotation = Vec3(-0.4f, -0.1f, 0.0f);
 
     app.running = true;
     app.iteration = 1;
@@ -265,7 +265,7 @@ wmain(int argc, wchar_t **argv)
         {
         case SDL_QUIT:
         {
-            app.running = false;  
+            app.running = false;
         } break;
 
         case SDL_KEYDOWN:
@@ -311,7 +311,7 @@ wmain(int argc, wchar_t **argv)
             uint64 scene_begin = SDL_GetPerformanceCounter();
 
             app.view = mat_rotate_y(camera.rotation.y) *
-                       mat_rotate_x(camera.rotation.x) * 
+                       mat_rotate_x(camera.rotation.x) *
                        mat_translate(camera.position);
             render_scene(frame, shader_test, quad);
             render_blit(frame, shader_blit, quad);
@@ -334,7 +334,7 @@ wmain(int argc, wchar_t **argv)
             char title[256];
             sprintf(title, "Iteration %d (%.2f ms)", app.iteration, 1000.0 * scene_time);
             SDL_SetWindowTitle(app.window, title);
-            
+
         } break;
         }
     }

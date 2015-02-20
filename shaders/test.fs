@@ -115,7 +115,7 @@ vec3 Normal(vec3 p)
     );
 }
 
-bool 
+bool
 Trace(vec3 origin, vec3 dir, out vec3 hit_point)
 {
     float t = 0.0;
@@ -148,17 +148,61 @@ vec3 Ortho(vec3 v)
                                : vec3(0.0, -v.z, v.y);
 }
 
+vec3 UniformHemisphereSample(vec3 normal)
+{
+    /*
+    The general monte carlo sampler is
+        F = (1 / N) sum (f(xi) / pdf(xi))
+
+    We wish to estimate the integral
+
+        Lo = int [(c / pi) Li cos(t) dw]
+
+    Let's use uniform sampling (pdf = 1/2pi)
+        Lo = (1 / N) sum [ ((c / pi) Li cos (t)) / (1/2pi) ]
+           = (2c / N) sum [ Li cos(t) ]
+    */
+
+    vec3 tangent = normalize(Ortho(normal));
+    vec3 bitangent = normalize(cross(normal, tangent));
+    vec2 s = Noise2f();
+    s.x = -1.0 + 2.0 * s.x;
+    float t = s.y * PI;
+    float r = sqrt(1.0 - s.x * s.x);
+    return r * cos(t) * tangent +
+           r * sin(t) * normal +
+           s.x * bitangent;
+}
+
 vec3 CosineWeightedSample(vec3 normal)
 {
     vec3 tangent = normalize(Ortho(normal));
     vec3 bitangent = normalize(cross(normal, tangent));
-    vec2 r = Noise2f();
-    r.x *= TWO_PI;
-    r.y = pow(r.y, 1.0 / 2.0);
-    float oneminus = sqrt(1.0 - r.y * r.y);
-    return cos(r.x) * oneminus * tangent + 
-           sin(r.x) * oneminus * bitangent + 
-           r.y * normal;
+    vec2 s = Noise2f();
+
+    /*
+    For more efficiency we can generate proportionally
+    fewer rays where the cos term is small. That is,
+
+        pdf(x) = cos (t) / constant
+
+    where constant = pi, by normalization over hemisphere.
+
+        Lo = (1 / N) sum [ ((c / pi) Li cos (t)) / (cos(t)/pi) ]
+           = (c / N) sum [Li]
+
+    Yay!
+    */
+
+    // Uniform disk sample (should it be uniform?)
+    float t = s.x * TWO_PI;
+    float r = sqrt(s.y);
+
+    // Project up to hemisphere
+    float y = sqrt(1.0 - r * r);
+    return cos(t) * r * tangent +
+           sin(t) * r * bitangent +
+           y * normal;
 }
 
 vec3 ConeSample(vec3 dir, float extent)
@@ -169,23 +213,35 @@ vec3 ConeSample(vec3 dir, float extent)
     r.x *= TWO_PI;
     r.y *= 1.0 - r.y * extent;
     float oneminus = sqrt(1.0 - r.y * r.y);
-    return cos(r.x) * oneminus * tangent + 
-           sin(r.x) * oneminus * bitangent + 
+    return cos(r.x) * oneminus * tangent +
+           sin(r.x) * oneminus * bitangent +
            r.y * dir;
 }
 
 vec3 ComputeLight(vec3 hit, vec3 from)
 {
     vec3 normal = Normal(hit);
-    vec3 dir = CosineWeightedSample(normal);
     vec3 origin = hit + normal * 2.0 * EPSILON;
+    vec3 dir = CosineWeightedSample(normal);
+    // vec3 dir = UniformHemisphereSample(normal);
 
+    vec3 result = vec3(0.0);
     if (!Trace(origin, dir, hit))
     {
-        return SampleSky(dir);
+        // return 2.0f * SampleSky(dir) * dot(normal, dir);
+        result += SampleSky(dir);
     }
 
-    return vec3(0.0);
+    // Direct lighting
+    vec3 sundir = normalize(vec3(-0.2, 0.4, 1.0));
+    dir = sundir;
+    // dir = ConeSample(sundir, 1e-5);
+    if (!Trace(origin, dir, hit))
+    {
+        result += SampleSky(dir) * dot(normal, dir) / PI;
+    }
+
+    return result;
 }
 
 vec2 SampleDisk()
@@ -205,8 +261,8 @@ void main()
     sample += (-1.0 + 2.0 * Noise2f()) * 0.5 * pixel_size;
     sample *= -1.0; // Flip before passing through lens
 
-    float lens_radius = 0.05; // Affects field of depth
-    float focal_distance = 3.0; // Affects where objects are in focus
+    float lens_radius = 0.03; // Affects field of depth
+    float focal_distance = 5.0; // Affects where objects are in focus
     vec3 film = vec3(sample.x * aspect, sample.y, 0.0);
     vec3 lens_centre = vec3(0.0, 0.0, -1.0 / tan_fov_h);
     vec3 dir = normalize(lens_centre - film);
