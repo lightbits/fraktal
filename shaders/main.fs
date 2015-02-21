@@ -2,6 +2,8 @@
 
 uniform float aspect;
 uniform float tan_fov_h;
+uniform float lens_radius;
+uniform float focal_distance;
 uniform vec2 pixel_size;
 uniform mat4 view;
 
@@ -97,8 +99,29 @@ float sdPillars(vec3 p)
     return udRoundBox(p - vec3(0.0, -0.25, 0.0), vec3(0.1, height, 0.1), 0.05);
 }
 
+float sdLargePillar(vec3 p)
+{
+    float d1 = sdBox(p, vec3(2.0, 1.0, 4.0));
+    vec3 q = mod(p, vec3(0.25)) - vec3(0.125);
+    float r = sin(p.x * TWO_PI);
+    float d2 = sdSphere(q, (0.15 + r * 0.05));
+    return opSubtract(d1, d2);
+}
+
+float SmoothMin( float a, float b, float k )
+{
+    float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
+    return mix( b, a, h ) - k*h*(1.0-h);
+}
+
 float Scene(vec3 p)
 {
+    // You should downscale the step length in the trace routine
+    // when performing domain distortions.
+    // float r = sin(p.x * 23.0) * cos(p.z * 17.0) * sin(p.y * 27.0);
+    // float d1 = sdSphere(p - vec3(0.0, -3.0, 0.0), 4.0 + 0.1 * r);
+    // return d1;
+
     float d1 = sdFloor(p);
     float d2 = sdPillars(p);
     float d3 = Mystery(p - vec3(0.0, 0.5, 0.0));
@@ -218,24 +241,21 @@ vec3 ConeSample(vec3 dir, float extent)
            r.y * dir;
 }
 
-vec3 ComputeLight(vec3 hit, vec3 from)
+vec3 ComputeLight(vec3 hit)
 {
     vec3 normal = Normal(hit);
     vec3 origin = hit + normal * 2.0 * EPSILON;
     vec3 dir = CosineWeightedSample(normal);
-    // vec3 dir = UniformHemisphereSample(normal);
 
     vec3 result = vec3(0.0);
     if (!Trace(origin, dir, hit))
     {
-        // return 2.0f * SampleSky(dir) * dot(normal, dir);
         result += SampleSky(dir);
     }
 
     // Direct lighting
     vec3 sundir = normalize(vec3(-0.2, 0.4, 1.0));
     dir = sundir;
-    // dir = ConeSample(sundir, 1e-5);
     if (!Trace(origin, dir, hit))
     {
         result += SampleSky(dir) * dot(normal, dir) / PI;
@@ -261,8 +281,8 @@ void main()
     sample += (-1.0 + 2.0 * Noise2f()) * 0.5 * pixel_size;
     sample *= -1.0; // Flip before passing through lens
 
-    float lens_radius = 0.03; // Affects field of depth
-    float focal_distance = 5.0; // Affects where objects are in focus
+    // float lens_radius = 0.01; // Affects field of depth
+    // float focal_distance = 2.0; // Affects where objects are in focus
     vec3 film = vec3(sample.x * aspect, sample.y, 0.0);
     vec3 lens_centre = vec3(0.0, 0.0, -1.0 / tan_fov_h);
     vec3 dir = normalize(lens_centre - film);
@@ -284,7 +304,7 @@ void main()
     vec3 hit_point;
     if (Trace(origin, dir, hit_point))
     {
-        out_color.rgb = ComputeLight(hit_point, dir);
+        out_color.rgb = ComputeLight(hit_point);
     }
     else
     {

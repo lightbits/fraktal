@@ -33,6 +33,8 @@ struct Shader
     GLint view;
     GLint aspect;
     GLint tan_fov_h;
+    GLint lens_radius;
+    GLint focal_distance;
     GLint iteration;
     GLint pixel_size;
     GLint time;
@@ -58,6 +60,8 @@ struct App
     float tan_fov_h;
     int iteration;
     float elapsed_time;
+    float focal_distance;
+    float lens_radius;
 
     GLuint tex_sky;
 };
@@ -152,6 +156,8 @@ render_scene(Frame &frame, Shader &shader, GLuint quad)
     glUniform2f(shader.pixel_size,
                 1.0f / (float)frame.width,
                 1.0f / (float)frame.height);
+    glUniform1f(shader.focal_distance, app.focal_distance);
+    glUniform1f(shader.lens_radius, app.lens_radius);
     glUniform1f(shader.time, app.elapsed_time);
     glUniform1f(shader.aspect, app.aspect);
     glUniform1f(shader.tan_fov_h, app.tan_fov_h);
@@ -202,20 +208,22 @@ wmain(int argc, wchar_t **argv)
 
     app.view = mat_identity();
     app.aspect = app.window_width / (float)app.window_height;
-    app.tan_fov_h = tan(PI / 10.0f);
+    app.tan_fov_h = tan(PI / 17.0f);
 
-    Shader shader_test = {};
+    Shader shader_main = {};
     GLuint program =
-        load_program("./shaders/test.vs", "./shaders/test.fs");
-    shader_test.position   = glGetAttribLocation(program, "position");
-    shader_test.view       = glGetUniformLocation(program, "view");
-    shader_test.aspect     = glGetUniformLocation(program, "aspect");
-    shader_test.pixel_size = glGetUniformLocation(program, "pixel_size");
-    shader_test.tan_fov_h  = glGetUniformLocation(program, "tan_fov_h");
-    shader_test.sampler0   = glGetUniformLocation(program, "sampler0");
-    shader_test.iteration  = glGetUniformLocation(program, "iteration");
-    shader_test.time       = glGetUniformLocation(program, "time");
-    shader_test.program    = program;
+        load_program("./shaders/main.vs", "./shaders/main.fs");
+    shader_main.position   = glGetAttribLocation(program, "position");
+    shader_main.view       = glGetUniformLocation(program, "view");
+    shader_main.aspect     = glGetUniformLocation(program, "aspect");
+    shader_main.pixel_size = glGetUniformLocation(program, "pixel_size");
+    shader_main.focal_distance = glGetUniformLocation(program, "focal_distance");
+    shader_main.lens_radius= glGetUniformLocation(program, "lens_radius");
+    shader_main.tan_fov_h  = glGetUniformLocation(program, "tan_fov_h");
+    shader_main.sampler0   = glGetUniformLocation(program, "sampler0");
+    shader_main.iteration  = glGetUniformLocation(program, "iteration");
+    shader_main.time       = glGetUniformLocation(program, "time");
+    shader_main.program    = program;
     ASSERT(program);
 
     Shader shader_blit = {};
@@ -251,8 +259,11 @@ wmain(int argc, wchar_t **argv)
         vec3 rotation;
     };
     Camera camera = {};
-    camera.position = Vec3(-2.5f, 0.5f, 9.3f);
+    camera.position = Vec3(-1.5f, 0.5f, 9.3f);
     camera.rotation = Vec3(-0.4f, -0.1f, 0.0f);
+
+    app.focal_distance = 2.0f;
+    app.lens_radius = 0.01f;
 
     app.running = true;
     app.iteration = 1;
@@ -299,6 +310,16 @@ wmain(int argc, wchar_t **argv)
             if (event.key.keysym.sym == SDLK_DOWN)
                 camera.rotation.x += rotate_step;
 
+            if (event.key.keysym.sym == SDLK_z)
+                app.focal_distance += move_step;
+            else if (event.key.keysym.sym == SDLK_x)
+                app.focal_distance -= move_step;
+
+            if (event.key.keysym.sym == SDLK_c)
+                app.lens_radius += 0.1f * move_step;
+            else if (event.key.keysym.sym == SDLK_v)
+                app.lens_radius -= 0.1f * move_step;
+
             if (event.key.keysym.sym == SDLK_PRINTSCREEN)
                 save_screenshot();
 
@@ -313,7 +334,7 @@ wmain(int argc, wchar_t **argv)
             app.view = mat_rotate_y(camera.rotation.y) *
                        mat_rotate_x(camera.rotation.x) *
                        mat_translate(camera.position);
-            render_scene(frame, shader_test, quad);
+            render_scene(frame, shader_main, quad);
             render_blit(frame, shader_blit, quad);
             glFinish();
             SDL_GL_SwapWindow(app.window);
