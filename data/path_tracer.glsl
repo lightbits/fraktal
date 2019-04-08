@@ -1,6 +1,6 @@
 #define EPSILON 0.001
 #define STEPS 512
-#define DENOISER_ENABLED
+#define DENOISE 1
 #define BOUNCES 1
 
 #define M_PI 3.1415926535897932384626433832795
@@ -25,7 +25,7 @@ vec4 material(vec3 p, float m)
         return vec4(0.6,0.1,0.1,0.1);
 }
 
-#ifdef DENOISER_ENABLED
+#if DENOISE
 vec2 seed = vec2(-1,1)*(iSamples*(1.0/12.0) + 1.0);
 #else
 vec2 seed = (vec2(-1.0) + 2.0*gl_FragCoord.xy/iResolution.xy)*(iSamples*(1.0/12.0) + 1.0);
