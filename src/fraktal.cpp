@@ -44,7 +44,7 @@ void glfw_error_callback(int error, const char* description)
 int main(int argc, char **argv)
 {
     fraktal_scene_def_t def = {0};
-    def.render_shader_path = "./data/default_render_importance_sampling.glsl";
+    def.render_shader_path = "./data/path_tracer.glsl";
     def.model_shader_path = "./data/default_model.glsl";
     def.compose_shader_path = "./data/default_compose.glsl";
 
