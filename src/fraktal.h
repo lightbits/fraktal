@@ -716,10 +716,20 @@ void fraktal_present(fraktal_scene_t &scene)
 
     float pad = 2.0f;
 
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 4.0f);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.325f));
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(1.0f, 1.0f, 1.0f, 0.078f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
+    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(1.0f, 1.0f, 1.0f, 0.114f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.329f, 0.478f, 0.71f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
+
     // main menu
     float main_menu_bar_height;
     {
-        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
         ImGui::BeginMainMenuBar();
         main_menu_bar_height = ImGui::GetWindowHeight();
         ImGui::MenuItem("File");
@@ -739,7 +749,7 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, timeline_height));
         ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - timeline_height));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0,0));
         ImGui::Begin("##timeline", NULL, flags);
@@ -749,6 +759,8 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
     }
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
 
     // side panel
     const int display_mode_1x = 0;
@@ -763,7 +775,7 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse;
         float height = io.DisplaySize.y - (timeline_height + pad) - (main_menu_bar_height + pad);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
         ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, height), ImVec2(io.DisplaySize.x, height));
         ImGui::SetNextWindowPos(ImVec2(0.0f, main_menu_bar_height + pad));
         ImGui::Begin("Sidepanel", NULL, flags);
@@ -836,6 +848,8 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::End();
         ImGui::PopStyleColor();
     }
+
+    ImGui::PopStyleVar();
 
     // main preview panel
     {
@@ -912,5 +926,13 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::PopStyleVar();
     }
 
-    ImGui::ShowDemoWindow();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
 }
