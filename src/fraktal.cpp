@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     {
         const char *data = (const char*)open_sans_regular_compressed_data;
         const unsigned int size = open_sans_regular_compressed_size;
-        float height = 17.0f;
+        float height = 16.0f;
         ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(data, size, height);
     }
 
@@ -94,7 +94,17 @@ int main(int argc, char **argv)
 
     while (!glfwWindowShouldClose(window))
     {
-        glfwWaitEvents();
+        static int settle_frames = 0;
+        if (settle_frames == 0)
+        {
+            glfwWaitEvents();
+            settle_frames = 10;
+        }
+        else
+        {
+            glfwPollEvents();
+            settle_frames--;
+        }
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();

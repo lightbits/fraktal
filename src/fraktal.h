@@ -719,13 +719,13 @@ void fraktal_present(fraktal_scene_t &scene)
     // main menu
     float main_menu_bar_height;
     {
-        // ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
         ImGui::BeginMainMenuBar();
         main_menu_bar_height = ImGui::GetWindowHeight();
         ImGui::MenuItem("File");
         ImGui::MenuItem("Render mode");
         ImGui::EndMainMenuBar();
-        // ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
     }
 
     // timeline
@@ -848,7 +848,7 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoCollapse;
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.14f, 0.14f, 0.14f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::SetNextWindowSize(ImVec2(width, height));
@@ -911,4 +911,6 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::PopStyleVar();
         ImGui::PopStyleVar();
     }
+
+    ImGui::ShowDemoWindow();
 }
