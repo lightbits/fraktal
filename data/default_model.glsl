@@ -4,7 +4,7 @@
 #camera(yfov=50deg, center=(100,100))
 #material0(roughness=0.1)
 #material1(albedo=(0.7,0.3,0.2), roughness=0.1)
-#sun(size=30 deg, dir=(60 deg, 30 deg))
+#sun(size=3 deg, dir=(20 deg, -90 deg), strength=(250,250,200))
 
 float sphere(vec3 p, float r)
 {

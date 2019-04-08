@@ -309,6 +309,9 @@ GLuint load_render_program(fraktal_scene_def_t def, scene_params_t &params)
         "uniform float     iCameraF;\n"
         "uniform mat4      iView;\n"
         "uniform int       iSamples;\n"
+        "uniform vec3      iToSun;\n"
+        "uniform vec3      iSunStrength;\n"
+        "uniform float     iCosSunSize;\n"
         "out vec4          fragColor;\n"
         "#define MATERIAL0 0.0\n"
         "#define MATERIAL1 1.0\n"
@@ -513,6 +516,9 @@ void fraktal_render(fraktal_scene_t &scene)
     fetch_uniform(program_render, iCameraCenter);
     fetch_uniform(program_render, iCameraF);
     fetch_uniform(program_render, iSamples);
+    fetch_uniform(program_render, iToSun);
+    fetch_uniform(program_render, iSunStrength);
+    fetch_uniform(program_render, iCosSunSize);
     fetch_uniform(program_render, iView);
     scene.program_render_is_new = false;
 
@@ -532,19 +538,26 @@ void fraktal_render(fraktal_scene_t &scene)
     float iView[4*4];
     {
         float3 r = {
-            deg2rad(scene.params.view.dir.x),
-            deg2rad(scene.params.view.dir.y),
+            deg2rad(scene.params.view.dir.theta),
+            deg2rad(scene.params.view.dir.phi),
             0.0f
         };
         compute_view_matrix(iView, scene.params.view.pos, r);
     }
 
+    float3 iSunStrength = scene.params.sun.strength;
+    float3 iToSun = angle2float3(scene.params.sun.dir);
+    float iCosSunSize = cosf(deg2rad(scene.params.sun.size));
     glUniform2f(loc_iResolution, (float)fb.width, (float)fb.height);
     glUniform2f(loc_iCameraCenter,
                 scene.params.camera.center.x,
                 scene.params.camera.center.y);
     glUniform1f(loc_iCameraF, scene.params.camera.f);
     glUniform1i(loc_iSamples, scene.samples);
+    glUniform3f(loc_iSunStrength, iSunStrength.x, iSunStrength.y, iSunStrength.z);
+    glUniform3f(loc_iToSun, iToSun.x, iToSun.y, iToSun.z);
+    glUniform1f(loc_iCosSunSize, iCosSunSize);
+
     glUniformMatrix4fv(loc_iView, 1, GL_TRUE, iView);
 
     glBindVertexArray(vao);
@@ -625,10 +638,10 @@ void fraktal_present(fraktal_scene_t &scene)
         float x_move_step = (scene.params.resolution.x*0.05f)*fabsf(scene.params.view.pos.z)/scene.params.camera.f;
         float y_move_step = (scene.params.resolution.y*0.05f)*fabsf(scene.params.view.pos.z)/scene.params.camera.f;
         float z_move_step = 0.1f*fabsf(scene.params.view.pos.z);
-        if (scene.keys.Left.pressed)  { scene.params.view.dir.y -= rotate_step; moved = true; }
-        if (scene.keys.Right.pressed) { scene.params.view.dir.y += rotate_step; moved = true; }
-        if (scene.keys.Up.pressed)    { scene.params.view.dir.x -= rotate_step; moved = true; }
-        if (scene.keys.Down.pressed)  { scene.params.view.dir.x += rotate_step; moved = true; }
+        if (scene.keys.Left.pressed)  { scene.params.view.dir.phi -= rotate_step; moved = true; }
+        if (scene.keys.Right.pressed) { scene.params.view.dir.phi += rotate_step; moved = true; }
+        if (scene.keys.Up.pressed)    { scene.params.view.dir.theta -= rotate_step; moved = true; }
+        if (scene.keys.Down.pressed)  { scene.params.view.dir.theta += rotate_step; moved = true; }
         if (scene.keys.Ctrl.pressed)  { scene.params.view.pos.y -= y_move_step; moved = true; }
         if (scene.keys.Space.pressed) { scene.params.view.pos.y += y_move_step; moved = true; }
         if (scene.keys.A.pressed)     { scene.params.view.pos.x -= x_move_step; moved = true; }
@@ -777,8 +790,8 @@ void fraktal_present(fraktal_scene_t &scene)
                 if (ImGui::CollapsingHeader("View"))
                 {
                     ImGui::Text("direction:");
-                    scene.should_clear |= ImGui::SliderFloat("x##view_dir", &scene.params.view.dir.x, -90.0f, +90.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::SliderFloat("y##view_dir", &scene.params.view.dir.y, -180.0f, +180.0f, "%.0f deg");
+                    scene.should_clear |= ImGui::SliderFloat("theta##view_dir", &scene.params.view.dir.theta, -90.0f, +90.0f, "%.0f deg");
+                    scene.should_clear |= ImGui::SliderFloat("phi##view_dir", &scene.params.view.dir.phi, -180.0f, +180.0f, "%.0f deg");
                     scene.should_clear |= ImGui::DragFloat3("pos", &scene.params.view.pos.x);
                 }
                 if (ImGui::CollapsingHeader("Camera"))
@@ -790,8 +803,8 @@ void fraktal_present(fraktal_scene_t &scene)
                 {
                     scene.should_clear |= ImGui::SliderFloat("size##sun_size", &scene.params.sun.size, 0.0f, 180.0f, "%.0f deg");
                     ImGui::Text("direction:");
-                    scene.should_clear |= ImGui::SliderFloat("x##sun_dir", &scene.params.sun.dir.x, -90.0f, +90.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::SliderFloat("y##sun_dir", &scene.params.sun.dir.y, -180.0f, +180.0f, "%.0f deg");
+                    scene.should_clear |= ImGui::SliderFloat("theta##sun_dir", &scene.params.sun.dir.theta, -90.0f, +90.0f, "%.0f deg");
+                    scene.should_clear |= ImGui::SliderFloat("phi##sun_dir", &scene.params.sun.dir.phi, -180.0f, +180.0f, "%.0f deg");
                 }
                 if (ImGui::CollapsingHeader("Materials"))
                 {

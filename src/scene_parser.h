@@ -121,31 +121,31 @@ bool parse_angle(const char **c, float *x)
 
 bool parse_int2(const char **c, int2 *v)
 {
-    if (!parse_char(c, '(')) { log_err("Error parsing integer tuple: must begin with parenthesis.\n"); return false; }
+    if (!parse_char(c, '('))  { log_err("Error parsing integer tuple: must begin with parenthesis.\n"); return false; }
     if (!parse_int(c, &v->x)) { log_err("Error parsing integer tuple: first component must be an integer.\n"); return false; }
-    if (!parse_char(c, ',')) { log_err("Error parsing integer tuple: components must be seperated by ','.\n"); return false; }
+    if (!parse_char(c, ','))  { log_err("Error parsing integer tuple: components must be seperated by ','.\n"); return false; }
     if (!parse_int(c, &v->y)) { log_err("Error parsing integer tuple: second component must be an integer.\n"); return false; }
-    if (!parse_char(c, ')')) { log_err("Error parsing integer tuple: must end with parenthesis.\n"); return false; }
+    if (!parse_char(c, ')'))  { log_err("Error parsing integer tuple: must end with parenthesis.\n"); return false; }
     return true;
 }
 
 bool parse_angle2(const char **c, angle2 *v)
 {
-    if (!parse_char(c, '('))   { log_err("Error parsing angle tuple: must begin with parenthesis.\n"); return false; }
-    if (!parse_angle(c, &v->x)) { log_err("Error parsing angle tuple: first component must be a number.\n"); return false; }
-    if (!parse_char(c, ','))   { log_err("Error parsing angle tuple: components must be seperated by ','.\n"); return false; }
-    if (!parse_angle(c, &v->y)) { log_err("Error parsing angle tuple: second component must be a number.\n"); return false; }
-    if (!parse_char(c, ')'))   { log_err("Error parsing angle tuple: must end with parenthesis.\n"); return false; }
+    if (!parse_char(c, '('))        { log_err("Error parsing angle tuple: must begin with parenthesis.\n"); return false; }
+    if (!parse_angle(c, &v->theta)) { log_err("Error parsing angle tuple: first component must be a number.\n"); return false; }
+    if (!parse_char(c, ','))        { log_err("Error parsing angle tuple: components must be seperated by ','.\n"); return false; }
+    if (!parse_angle(c, &v->phi))   { log_err("Error parsing angle tuple: second component must be a number.\n"); return false; }
+    if (!parse_char(c, ')'))        { log_err("Error parsing angle tuple: must end with parenthesis.\n"); return false; }
     return true;
 }
 
 bool parse_float2(const char **c, float2 *v)
 {
-    if (!parse_char(c, '('))   { log_err("Error parsing tuple: must begin with parenthesis.\n"); return false; }
+    if (!parse_char(c, '('))    { log_err("Error parsing tuple: must begin with parenthesis.\n"); return false; }
     if (!parse_float(c, &v->x)) { log_err("Error parsing tuple: first component must be a number.\n"); return false; }
-    if (!parse_char(c, ','))   { log_err("Error parsing tuple: components must be seperated by ','.\n"); return false; }
+    if (!parse_char(c, ','))    { log_err("Error parsing tuple: components must be seperated by ','.\n"); return false; }
     if (!parse_float(c, &v->y)) { log_err("Error parsing tuple: second component must be a number.\n"); return false; }
-    if (!parse_char(c, ')'))   { log_err("Error parsing tuple: must end with parenthesis.\n"); return false; }
+    if (!parse_char(c, ')'))    { log_err("Error parsing tuple: must end with parenthesis.\n"); return false; }
     return true;
 }
 
@@ -271,6 +271,7 @@ bool parse_sun(const char **c, scene_params_t *params)
     while (parse_next_in_list(c)) {
         if (parse_argument_angle(c, "size", &params->sun.size)) ;
         else if (parse_argument_angle2(c, "dir", &params->sun.dir)) ;
+        else if (parse_argument_float3(c, "strength", &params->sun.strength)) ;
         else parse_list_unexpected();
     }
     if (!parse_end_list(c)) { log_err("Error parsing #sun directive.\n"); return false; }

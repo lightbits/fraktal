@@ -6,15 +6,10 @@
 #define M_PI 3.1415926535897932384626433832795
 #define ZERO (min(iFrame,0))
 
-const float sunSize = 0.05;
-const float cosSunSize = cos(sunSize);
-const vec3 toSun = normalize(vec3(0.0, 2.0, -1.5));
-const vec3 sunStrength = 250.0*vec3(1.0,1.0,0.8);
-
 vec3 sky(vec3 rd)
 {
-    float cosSun = max(dot(rd, toSun), 0.0);
-    return mix(vec3(0.1,0.2,0.7), sunStrength, step(cosSunSize, cosSun));
+    float cosSun = max(dot(rd, iToSun), 0.0);
+    return mix(vec3(0.1,0.2,0.7), iSunStrength, step(iCosSunSize, cosSun));
 }
 
 vec4 material(vec3 p, float m)
@@ -112,7 +107,7 @@ vec3 color(vec3 p, float matIndex)
     vec3 L = vec3(0.0);
     vec3 rd = cosineWeightedSample(n);
     float pdf_hemisphere = 1.0/M_PI;
-    float pdf_direct = mix(0.0, 1.0/(2.0*M_PI*(1.0 - cosSunSize)), step(cosSunSize, max(0.0, dot(toSun, rd))));
+    float pdf_direct = mix(0.0, 1.0/(2.0*M_PI*(1.0 - iCosSunSize)), step(iCosSunSize, max(0.0, dot(iToSun, rd))));
     float pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
 
     vec3 tr = trace(ro, rd);
@@ -132,19 +127,19 @@ vec3 color(vec3 p, float matIndex)
         vec3 rd = cosineWeightedSample(n);
         vec3 tr = trace(ro, rd);
         pdf_hemisphere = 1.0/M_PI;
-        pdf_direct = mix(0.0, 1.0/(2.0*M_PI*(1.0 - cosSunSize)), step(cosSunSize, max(0.0, dot(toSun, rd))));
+        pdf_direct = mix(0.0, 1.0/(2.0*M_PI*(1.0 - iCosSunSize)), step(iCosSunSize, max(0.0, dot(iToSun, rd))));
         pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
         if (tr.y > EPSILON)
             L += sky(rd)*R / pdf;
 
         // importance-sampled direct light
-        rd = uniformConeSample(toSun, cosSunSize);
+        rd = uniformConeSample(iToSun, iCosSunSize);
         pdf_hemisphere = 1.0/M_PI;
-        pdf_direct = 1.0/(2.0*M_PI*(1.0 - cosSunSize));
+        pdf_direct = 1.0/(2.0*M_PI*(1.0 - iCosSunSize));
         pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
         tr = trace(ro, rd);
         if (tr.y > EPSILON)
-            L += sunStrength*max(0.0,dot(n,rd))*R / pdf;
+            L += iSunStrength*max(0.0,dot(n,rd))*R / pdf;
         #endif
     }
     result += L*R;
@@ -152,13 +147,13 @@ vec3 color(vec3 p, float matIndex)
     L = vec3(0.0);
 
     // importance-sampled direct light
-    rd = uniformConeSample(toSun, cosSunSize);
+    rd = uniformConeSample(iToSun, iCosSunSize);
     pdf_hemisphere = 1.0/M_PI;
-    pdf_direct = 1.0/(2.0*M_PI*(1.0 - cosSunSize));
+    pdf_direct = 1.0/(2.0*M_PI*(1.0 - iCosSunSize));
     pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
     tr = trace(ro, rd);
     if (tr.y > EPSILON)
-        L += sunStrength*max(0.0,dot(n,rd)) / pdf;
+        L += iSunStrength*max(0.0,dot(n,rd)) / pdf;
     result += L*R;
 
     return result;
