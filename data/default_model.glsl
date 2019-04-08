@@ -1,10 +1,9 @@
 #resolution(200,200)
-// #view(dir=(-30 deg, 20deg), pos=(0,0,20))
-// #camera(yfov=10deg, center=(100,100))
-#camera(yfov=50deg, center=(100,100))
+#view(dir=(-25 deg, 140 deg), pos=(0,0,35))
+#camera(yfov=10deg, center=(100,100))
 #material0(roughness=0.1)
 #material1(albedo=(0.7,0.3,0.2), roughness=0.1)
-#sun(size=3 deg, dir=(20 deg, -90 deg), strength=(250,250,200))
+#sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=250)
 
 float sphere(vec3 p, float r)
 {

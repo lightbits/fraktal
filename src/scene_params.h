@@ -41,7 +41,8 @@ struct scene_params_t
     {
         float size;
         angle2 dir;
-        float3 strength;
+        float3 color;
+        float intensity;
     } sun;
     struct material_t
     {
@@ -67,8 +68,9 @@ scene_params_t get_default_scene_params()
     params.sun.size = 3.0f;
     params.sun.dir.theta = 30.0f;
     params.sun.dir.phi = 90.0f;
-    params.sun.strength.x = 250.0f;
-    params.sun.strength.y = 250.0f;
-    params.sun.strength.z = 200.0f;
+    params.sun.color.x = 1.0f;
+    params.sun.color.y = 1.0f;
+    params.sun.color.z = 0.8f;
+    params.sun.intensity = 250.0f;
     return params;
 }

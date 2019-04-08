@@ -271,7 +271,8 @@ bool parse_sun(const char **c, scene_params_t *params)
     while (parse_next_in_list(c)) {
         if (parse_argument_angle(c, "size", &params->sun.size)) ;
         else if (parse_argument_angle2(c, "dir", &params->sun.dir)) ;
-        else if (parse_argument_float3(c, "strength", &params->sun.strength)) ;
+        else if (parse_argument_float3(c, "color", &params->sun.color)) ;
+        else if (parse_argument_float(c, "intensity", &params->sun.intensity)) ;
         else parse_list_unexpected();
     }
     if (!parse_end_list(c)) { log_err("Error parsing #sun directive.\n"); return false; }

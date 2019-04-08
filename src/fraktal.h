@@ -545,13 +545,14 @@ void fraktal_render(fraktal_scene_t &scene)
         compute_view_matrix(iView, scene.params.view.pos, r);
     }
 
-    float3 iSunStrength = scene.params.sun.strength;
+    float3 iSunStrength = scene.params.sun.color;
+    iSunStrength.x *= scene.params.sun.intensity;
+    iSunStrength.y *= scene.params.sun.intensity;
+    iSunStrength.z *= scene.params.sun.intensity;
     float3 iToSun = angle2float3(scene.params.sun.dir);
     float iCosSunSize = cosf(deg2rad(scene.params.sun.size));
     glUniform2f(loc_iResolution, (float)fb.width, (float)fb.height);
-    glUniform2f(loc_iCameraCenter,
-                scene.params.camera.center.x,
-                scene.params.camera.center.y);
+    glUniform2f(loc_iCameraCenter, scene.params.camera.center.x, scene.params.camera.center.y);
     glUniform1f(loc_iCameraF, scene.params.camera.f);
     glUniform1i(loc_iSamples, scene.samples);
     glUniform3f(loc_iSunStrength, iSunStrength.x, iSunStrength.y, iSunStrength.z);
@@ -805,6 +806,8 @@ void fraktal_present(fraktal_scene_t &scene)
                     ImGui::Text("direction:");
                     scene.should_clear |= ImGui::SliderFloat("theta##sun_dir", &scene.params.sun.dir.theta, -90.0f, +90.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat("phi##sun_dir", &scene.params.sun.dir.phi, -180.0f, +180.0f, "%.0f deg");
+                    scene.should_clear |= ImGui::SliderFloat3("color##sun_color", &scene.params.sun.color.x, 0.0f, 1.0f);
+                    scene.should_clear |= ImGui::DragFloat("intensity##sun_intensity", &scene.params.sun.intensity);
                 }
                 if (ImGui::CollapsingHeader("Materials"))
                 {
