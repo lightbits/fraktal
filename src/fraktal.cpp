@@ -35,6 +35,8 @@ int main(int argc, char **argv)
 
 #include "fraktal.h"
 #include "cli_parser.h"
+// #include <tinycthread.h>
+// #include <tinycthread.c>
 
 void glfw_error_callback(int error, const char* description)
 {
@@ -147,6 +149,13 @@ int main(int argc, char **argv)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
+        #if 0
+        {
+            timespec t = {0};
+            t.tv_nsec = 16666667;
+            thrd_sleep(&t, NULL);
+        }
+        #endif
     }
 
     ImGui_ImplOpenGL3_Shutdown();
