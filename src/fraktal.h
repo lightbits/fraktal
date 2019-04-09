@@ -757,6 +757,12 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
         ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,8.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.0f,0.0f,0.0f,0.0f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(1.0f,1.0f,1.0f,0.25f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(1.0f,1.0f,1.0f,0.4f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(1.0f,1.0f,1.0f,0.55f));
         ImGui::Begin("Sidepanel", NULL, flags);
         side_panel_width = ImGui::GetWindowWidth();
         side_panel_height = ImGui::GetWindowHeight();
@@ -765,6 +771,7 @@ void fraktal_present(fraktal_scene_t &scene)
         {
             if (ImGui::BeginTabItem("Scene parameters"))
             {
+                ImGui::BeginChild("Scene parameters##child");
                 if (ImGui::CollapsingHeader("Resolution"))
                 {
                     ImGui::InputInt("x##resolution", &scene.params.resolution.x);
@@ -802,17 +809,26 @@ void fraktal_present(fraktal_scene_t &scene)
                         }
                     }
                 }
+                ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Log"))
             {
+                ImGui::BeginChild("Log##child");
                 ImGui::TextWrapped(log_get_buffer());
+                ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
         }
 
         ImGui::End();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
         ImGui::PopStyleColor();
     }
 
