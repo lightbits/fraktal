@@ -81,11 +81,16 @@ int main(int argc, char **argv)
         float height = 16.0f;
 
         ImGuiIO &io = ImGui::GetIO();
+
+        io.Fonts->AddFontFromMemoryCompressedTTF(data, size, height);
+
+        // add special symbols with a different font size
+        ImFontConfig config;
+        config.MergeMode = true;
         ImFontGlyphRangesBuilder builder;
         builder.AddText("\xce\xb8\xcf\x86");
-        builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
         builder.BuildRanges(&glyph_ranges);
-        io.Fonts->AddFontFromMemoryCompressedTTF(data, size, height, NULL, glyph_ranges.Data);
+        io.Fonts->AddFontFromMemoryCompressedTTF(data, size, 18.0f, &config, glyph_ranges.Data);
     }
 
     fraktal_scene_t scene = {0};
