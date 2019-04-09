@@ -741,48 +741,25 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::PopStyleColor();
     }
 
-    // timeline
-    float timeline_height = 32.0f;
-    {
-        ImGuiIO &io = ImGui::GetIO();
-        ImGuiWindowFlags flags =
-            ImGuiWindowFlags_NoTitleBar |
-            ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoCollapse;
-        ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, timeline_height));
-        ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - timeline_height));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0,0));
-        ImGui::Begin("##timeline", NULL, flags);
-        ImGui::Text("Timeline");
-        ImGui::End();
-        ImGui::PopStyleVar();
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor();
-    }
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-
     // side panel
     const int display_mode_1x = 0;
     const int display_mode_2x = 1;
     const int display_mode_fit = 2;
     static int display_mode = display_mode_1x;
-    float side_panel_width;
+    float side_panel_width = 0.0f;
+    float side_panel_height = 0.0f;
     {
         ImGuiIO &io = ImGui::GetIO();
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse;
-        float height = io.DisplaySize.y - (timeline_height + pad) - (main_menu_bar_height + pad);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, height), ImVec2(io.DisplaySize.x, height));
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(io.DisplaySize.x, io.DisplaySize.y - (main_menu_bar_height + pad)));
         ImGui::SetNextWindowPos(ImVec2(0.0f, main_menu_bar_height + pad));
         ImGui::Begin("Sidepanel", NULL, flags);
         side_panel_width = ImGui::GetWindowWidth();
+        side_panel_height = ImGui::GetWindowHeight();
 
         ImGui::Text("Samples: %d", scene.samples);
 
@@ -849,7 +826,28 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::PopStyleColor();
     }
 
-    ImGui::PopStyleVar();
+    // timeline
+    float timeline_height = 0.0f;
+    {
+        ImGuiIO &io = ImGui::GetIO();
+        ImGuiWindowFlags flags =
+            ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoCollapse;
+        timeline_height = io.DisplaySize.y - (side_panel_height + pad) - (main_menu_bar_height + pad);
+        ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, timeline_height));
+        ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - timeline_height));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
+        // ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0,0));
+        ImGui::Begin("##timeline", NULL, flags);
+        ImGui::Text("Timeline");
+        ImGui::End();
+        ImGui::PopStyleVar();
+        // ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+    }
 
     // main preview panel
     {
