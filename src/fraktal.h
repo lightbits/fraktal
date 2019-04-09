@@ -730,16 +730,16 @@ void fraktal_present(fraktal_scene_t &scene)
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
 
     // main menu
-    float main_menu_bar_height;
-    {
-        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::BeginMainMenuBar();
-        main_menu_bar_height = ImGui::GetWindowHeight();
-        ImGui::MenuItem("File");
-        ImGui::MenuItem("Render mode");
-        ImGui::EndMainMenuBar();
-        ImGui::PopStyleColor();
-    }
+    // float main_menu_bar_height;
+    // {
+    //     ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
+    //     ImGui::BeginMainMenuBar();
+    //     main_menu_bar_height = ImGui::GetWindowHeight();
+    //     ImGui::MenuItem("File");
+    //     ImGui::MenuItem("Render mode");
+    //     ImGui::EndMainMenuBar();
+    //     ImGui::PopStyleColor();
+    // }
 
     // side panel
     const int display_mode_1x = 0;
@@ -755,21 +755,11 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(io.DisplaySize.x, io.DisplaySize.y - (main_menu_bar_height + pad)));
-        ImGui::SetNextWindowPos(ImVec2(0.0f, main_menu_bar_height + pad));
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
+        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::Begin("Sidepanel", NULL, flags);
         side_panel_width = ImGui::GetWindowWidth();
         side_panel_height = ImGui::GetWindowHeight();
-
-        ImGui::Text("Samples: %d", scene.samples);
-
-        ImGui::Text("Display:");
-        ImGui::SameLine();
-        ImGui::RadioButton("1x", &display_mode, display_mode_1x);
-        ImGui::SameLine();
-        ImGui::RadioButton("2x", &display_mode, display_mode_2x);
-        ImGui::SameLine();
-        ImGui::RadioButton("fit", &display_mode, display_mode_fit);
 
         if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
         {
@@ -835,7 +825,7 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoCollapse;
-        timeline_height = io.DisplaySize.y - (side_panel_height + pad) - (main_menu_bar_height + pad);
+        timeline_height = io.DisplaySize.y - (side_panel_height + pad);
         ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, timeline_height));
         ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - timeline_height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
@@ -852,20 +842,35 @@ void fraktal_present(fraktal_scene_t &scene)
     // main preview panel
     {
         ImGuiIO &io = ImGui::GetIO();
-        float height = io.DisplaySize.y - (timeline_height + pad) - (main_menu_bar_height + pad);
+        float height = io.DisplaySize.y - (timeline_height + pad);
         float width = io.DisplaySize.x - (side_panel_width + pad);
 
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoCollapse;
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_MenuBar;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.14f, 0.14f, 0.14f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::SetNextWindowSize(ImVec2(width, height));
-        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, main_menu_bar_height + pad));
+        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, 0.0f));
         ImGui::Begin("Preview", NULL, flags);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f,1.0f));
+        ImGui::BeginMenuBar();
+        {
+            ImGui::Text("Samples: %d", scene.samples);
+            ImGui::Separator();
+            ImGui::Text("Display:");
+            ImGui::RadioButton("1x", &display_mode, display_mode_1x);
+            ImGui::RadioButton("2x", &display_mode, display_mode_2x);
+            ImGui::RadioButton("fit", &display_mode, display_mode_fit);
+        }
+        ImGui::EndMenuBar();
+        ImGui::PopStyleVar();
+
         ImDrawList *draw = ImGui::GetWindowDrawList();
         {
             ImVec2 image_size = ImVec2(
