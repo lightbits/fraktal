@@ -150,7 +150,7 @@ GLuint load_shader(const char *source_identifier, const char **sources, int num_
 {
     assert(sources && "Missing shader source list");
     assert(num_sources > 0 && "Must have atleast one shader");
-    assert(type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER && "Invalid shader type");
+    assert((type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER) && "Invalid shader type");
     GLint status = 0;
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, num_sources, (const GLchar **)sources, 0);
@@ -504,15 +504,15 @@ void fraktal_render(fraktal_scene_t &scene)
 
     fetch_attrib (program_render, iPosition);
     fetch_uniform(program_render, iResolution);
-    fetch_uniform(program_render, iChannelResolution);
-    fetch_uniform(program_render, iTime);
-    fetch_uniform(program_render, iTimeDelta);
-    fetch_uniform(program_render, iFrame);
-    fetch_uniform(program_render, iMouse);
-    fetch_uniform(program_render, iChannel0);
-    fetch_uniform(program_render, iChannel1);
-    fetch_uniform(program_render, iChannel2);
-    fetch_uniform(program_render, iChannel3);
+    // fetch_uniform(program_render, iChannelResolution);
+    // fetch_uniform(program_render, iTime);
+    // fetch_uniform(program_render, iTimeDelta);
+    // fetch_uniform(program_render, iFrame);
+    // fetch_uniform(program_render, iMouse);
+    // fetch_uniform(program_render, iChannel0);
+    // fetch_uniform(program_render, iChannel1);
+    // fetch_uniform(program_render, iChannel2);
+    // fetch_uniform(program_render, iChannel3);
     fetch_uniform(program_render, iCameraCenter);
     fetch_uniform(program_render, iCameraF);
     fetch_uniform(program_render, iSamples);
@@ -633,8 +633,6 @@ void fraktal_present(fraktal_scene_t &scene)
 
     bool moved = false;
     {
-        ImGuiIO &io = ImGui::GetIO();
-
         int rotate_step = 5;
         float x_move_step = (scene.params.resolution.x*0.05f)*fabsf(scene.params.view.pos.z)/scene.params.camera.f;
         float y_move_step = (scene.params.resolution.y*0.05f)*fabsf(scene.params.view.pos.z)/scene.params.camera.f;
@@ -838,8 +836,7 @@ void fraktal_present(fraktal_scene_t &scene)
             }
             if (ImGui::BeginTabItem("Log"))
             {
-                const char *buffer = log_get_buffer();
-                ImGui::TextUnformatted(log_get_buffer());
+                ImGui::TextWrapped(log_get_buffer());
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();

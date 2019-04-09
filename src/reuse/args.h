@@ -78,7 +78,7 @@ static args_t global_args = {0};
         arg_t arg = {0}; \
         arg.type = arg_type_##SUFFIX; \
         arg.ptr = x; \
-        arg.key = _strdup(key); \
+        arg.key = strdup(key); \
         arg.msg = msg; \
         assert(global_args.num_expected < MAX_ARGS); \
         global_args.args[global_args.num_expected++] = arg; \
@@ -143,7 +143,7 @@ bool arg_parse(int argc, char **argv)
         {
             if (i == 0)
             {
-                char *exe_dir = _strdup(argv[i]);
+                char *exe_dir = strdup(argv[i]);
                 for (size_t j = 0; j < strlen(exe_dir); j++)
                 {
                     #ifdef _WIN32

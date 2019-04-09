@@ -6,15 +6,15 @@
 bool test_cli_parser()
 {
     char *argv[] = {
-        "/bin/usr/fraktal/fraktal",
-        "-i",
-        ".\\data\\default_model.glsl",
-        "-nogui",
-        "-framerate",
-        "12",
-        "-vseconds",
-        "12",
-        "-ovideo%04d.png"
+        strdup("/bin/usr/fraktal/fraktal"),
+        strdup("-i"),
+        strdup(".\\data\\default_model.glsl"),
+        strdup("-nogui"),
+        strdup("-framerate"),
+        strdup("12"),
+        strdup("-vseconds"),
+        strdup("12"),
+        strdup("-ovideo%04d.png")
     };
     int argc = sizeof(argv)/sizeof(char*);
 
