@@ -1,3 +1,6 @@
+// Developed by Simen Haugo.
+// See LICENSE.txt for copyright and licensing details (standard MIT License).
+
 #define EPSILON 0.001
 #define STEPS 512
 #define ZERO (min(iFrame,0))

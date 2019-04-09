@@ -1,3 +1,6 @@
+// Developed by Simen Haugo.
+// See LICENSE.txt for copyright and licensing details (standard MIT License).
+
 #pragma once
 enum { NUM_MATERIALS = 5 };
 typedef float angle;

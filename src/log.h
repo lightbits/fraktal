@@ -1,3 +1,6 @@
+// Developed by Simen Haugo.
+// See LICENSE.txt for copyright and licensing details (standard MIT License).
+
 #pragma once
 #include <stdio.h>
 #include <stdlib.h>

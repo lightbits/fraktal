@@ -1,3 +1,6 @@
+// Developed by Simen Haugo.
+// See LICENSE.txt for copyright and licensing details (standard MIT License).
+
 #resolution(400,400)
 #view(dir=(-25 deg, 140 deg), pos=(0,0,35))
 #camera(yfov=10deg, center=(200,200))

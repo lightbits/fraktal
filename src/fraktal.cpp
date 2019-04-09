@@ -1,3 +1,6 @@
+// Developed by Simen Haugo.
+// See LICENSE.txt for copyright and licensing details (standard MIT License).
+
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
@@ -34,7 +37,9 @@ int main(int argc, char **argv)
 #include <open_sans_regular.h>
 
 #include "fraktal.h"
-#include "cli_parser.h"
+#include <reuse/getopt.h>
+#include <reuse/getopt.c
+// #include "cli_parser.h"
 // #include <tinycthread.h>
 // #include <tinycthread.c>
 
