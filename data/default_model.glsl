@@ -24,10 +24,15 @@ vec2 model(vec3 p)
     d = max(d, -sphere(p - vec3(0.0,0.0,1.0), 0.5));
     d = min(d, sphere(p - vec3(2.0,1.0,0.0), 0.9));
     float m = MATERIAL1;
-    float d_roof = box(p - vec3(0.0,3.0,2.0), vec3(4.0,0.1,4.0));
+    float d_roof = box(p - vec3(0.0,3.0 + 0.5*sin(0.3*p.z + 0.5*p.x),2.0), vec3(4.0,0.1,4.0));
     if (d_roof < d)
     {
-        d = d_roof;
+        vec3 q = p;
+        q.y += 0.2;
+        q.x = mod(q.x + 0.7, 1.4) - 0.7;
+        q.z = mod(q.z + 0.7, 1.4) - 0.7;
+        d_roof = max(d_roof, -(length(q.xz) - 0.4));
+        d = d_roof*0.8;
         m = MATERIAL1;
     }
     float d_ground = box(p + vec3(0.0,0.3,0.0), vec3(4.0,0.1,4.0));
