@@ -843,7 +843,7 @@ void fraktal_present(fraktal_scene_t &scene)
     // main preview panel
     {
         ImGuiIO &io = ImGui::GetIO();
-        float height = io.DisplaySize.y - (timeline_height + pad);
+        float height = side_panel_height;
         float width = io.DisplaySize.x - (side_panel_width + pad);
 
         ImGuiWindowFlags flags =
