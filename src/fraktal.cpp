@@ -37,8 +37,6 @@ int main(int argc, char **argv)
 #include <open_sans_regular.h>
 
 #include "fraktal.h"
-#include <reuse/getopt.h>
-#include <reuse/getopt.c
 // #include "cli_parser.h"
 // #include <tinycthread.h>
 // #include <tinycthread.c>
