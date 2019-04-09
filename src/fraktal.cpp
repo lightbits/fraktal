@@ -14,19 +14,6 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-#if 0
-#include "scene_parser.h"
-#include "cli_parser.h"
-
-int main(int argc, char **argv)
-{
-    if (!test_scene_parser())
-        printf("terrible stuff happened: %s\n", log_get_buffer());
-    assert(test_cli_parser());
-
-    return 0;
-}
-#else
 #define IMGUI_IMPL_OPENGL_LOADER_GL3W
 #include <imgui.cpp>
 #include <imgui_draw.cpp>
@@ -170,4 +157,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-#endif

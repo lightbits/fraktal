@@ -805,7 +805,6 @@ void fraktal_present(fraktal_scene_t &scene)
                 }
                 if (ImGui::CollapsingHeader("View"))
                 {
-                    ImGui::Text("direction:");
                     scene.should_clear |= ImGui::SliderFloat("theta##view_dir", &scene.params.view.dir.theta, -90.0f, +90.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat("phi##view_dir", &scene.params.view.dir.phi, -180.0f, +180.0f, "%.0f deg");
                     scene.should_clear |= ImGui::DragFloat3("pos", &scene.params.view.pos.x);
@@ -818,7 +817,6 @@ void fraktal_present(fraktal_scene_t &scene)
                 if (ImGui::CollapsingHeader("Sun"))
                 {
                     scene.should_clear |= ImGui::SliderFloat("size##sun_size", &scene.params.sun.size, 0.0f, 180.0f, "%.0f deg");
-                    ImGui::Text("direction:");
                     scene.should_clear |= ImGui::SliderFloat("theta##sun_dir", &scene.params.sun.dir.theta, -90.0f, +90.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat("phi##sun_dir", &scene.params.sun.dir.phi, -180.0f, +180.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat3("color##sun_color", &scene.params.sun.color.x, 0.0f, 1.0f);
