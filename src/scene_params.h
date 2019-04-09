@@ -2,6 +2,8 @@
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
 #pragma once
+#include <math.h>
+
 enum { NUM_MATERIALS = 5 };
 typedef float angle;
 struct int2 { int x,y; };
