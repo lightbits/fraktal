@@ -1,9 +1,9 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
-#resolution(400,400)
+#resolution(200,200)
 #view(dir=(-25 deg, 140 deg), pos=(0,0,35))
-#camera(yfov=10deg, center=(200,200))
+#camera(yfov=10deg, center=(100,100))
 #material0(roughness=0.1)
 #material1(albedo=(0.7,0.3,0.2), roughness=0.1)
 #sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=250)
