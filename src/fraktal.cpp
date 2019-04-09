@@ -74,11 +74,18 @@ int main(int argc, char **argv)
     ImGui_ImplOpenGL3_Init(def.glsl_version);
     ImGui::GetStyle().WindowBorderSize = 0.0f;
 
+    ImVector<ImWchar> glyph_ranges; // this must persist until call to GetTexData
     {
         const char *data = (const char*)open_sans_regular_compressed_data;
         const unsigned int size = open_sans_regular_compressed_size;
         float height = 16.0f;
-        ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(data, size, height);
+
+        ImGuiIO &io = ImGui::GetIO();
+        ImFontGlyphRangesBuilder builder;
+        builder.AddText("\xce\xb8\xcf\x86");
+        builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+        builder.BuildRanges(&glyph_ranges);
+        io.Fonts->AddFontFromMemoryCompressedTTF(data, size, height, NULL, glyph_ranges.Data);
     }
 
     fraktal_scene_t scene = {0};
