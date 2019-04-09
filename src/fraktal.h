@@ -148,6 +148,7 @@ void save_screenshot(const char *filename)
 
 GLuint load_shader(const char *source_identifier, const char **sources, int num_sources, GLenum type)
 {
+    assert(source_identifier && "Missing source identifier (path or 'built-in')");
     assert(sources && "Missing shader source list");
     assert(num_sources > 0 && "Must have atleast one shader");
     assert((type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER) && "Invalid shader type");
@@ -161,7 +162,8 @@ GLuint load_shader(const char *source_identifier, const char **sources, int num_
         GLint length; glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *info = (char*)malloc(length);
         glGetShaderInfoLog(shader, length, NULL, info);
-        log_err("Failed to compile shader (%s):\n%s\n", source_identifier, info);
+        printf("Source identifier is: %s\n", source_identifier);
+        log_err("Failed to compile shader (%s):\n%s", source_identifier, info);
         free(info);
         glDeleteShader(shader);
         return 0;

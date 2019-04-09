@@ -24,6 +24,7 @@ void log_err(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     int bytes = vfprintf(stderr, fmt, args);
+    va_end(args);
 
     if (!logfile.begin)
         log_init();
@@ -35,10 +36,11 @@ void log_err(const char *fmt, ...)
 
     if (logfile.bytes + bytes < logfile.capacity)
     {
+        va_start(args, fmt);
         logfile.str += vsprintf(logfile.str, fmt, args);
+        va_end(args);
         logfile.bytes += bytes;
     }
-    va_end(args);
 }
 
 const char *log_get_buffer()
