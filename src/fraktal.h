@@ -785,13 +785,14 @@ void fraktal_present(fraktal_scene_t &scene)
                 {
                     for (int i = 0; i < NUM_MATERIALS; i++)
                     {
-                        static char label[128];
-                        sprintf(label, "Material%d", i);
-                        if (ImGui::CollapsingHeader(label))
+                        ImGui::PushID(i);
+                        if (ImGui::TreeNode("Material", "Material (%d)", i))
                         {
                             scene.should_clear |= ImGui::Checkbox("active", &scene.params.material[i].active);
                             scene.should_clear |= ImGui::SliderFloat("roughness", &scene.params.material[i].roughness, 0.0f, 1.0f);
+                            ImGui::TreePop();
                         }
+                        ImGui::PopID();
                     }
                 }
                 ImGui::EndChild();
