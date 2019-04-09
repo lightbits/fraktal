@@ -729,23 +729,7 @@ void fraktal_present(fraktal_scene_t &scene)
     ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.329f, 0.478f, 0.71f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
 
-    // main menu
-    // float main_menu_bar_height;
-    // {
-    //     ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-    //     ImGui::BeginMainMenuBar();
-    //     main_menu_bar_height = ImGui::GetWindowHeight();
-    //     ImGui::MenuItem("File");
-    //     ImGui::MenuItem("Render mode");
-    //     ImGui::EndMainMenuBar();
-    //     ImGui::PopStyleColor();
-    // }
-
     // side panel
-    const int display_mode_1x = 0;
-    const int display_mode_2x = 1;
-    const int display_mode_fit = 2;
-    static int display_mode = display_mode_1x;
     float side_panel_width = 0.0f;
     float side_panel_height = 0.0f;
     {
@@ -755,7 +739,8 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
+        ImGui::SetNextWindowSize(ImVec2(0.3f*io.DisplaySize.x, 0.8f*io.DisplaySize.y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.8f*io.DisplaySize.y), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
@@ -874,6 +859,10 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, 0.0f));
         ImGui::Begin("Preview", NULL, flags);
 
+        const int display_mode_1x = 0;
+        const int display_mode_2x = 1;
+        const int display_mode_fit = 2;
+        static int display_mode = display_mode_1x;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f,1.0f));
         ImGui::BeginMenuBar();
         {
