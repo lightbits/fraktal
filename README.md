@@ -1,9 +1,12 @@
-# Fraktal
+# fraktal
 
-Fraktal is a GPU-accelerated visualization and processing tool for procedural functional models.
+![](doc/fraktal-logo.svg)
 
-## Building Fraktal from source
+This software is still in early development. Documentation will come soon...
+
+## Building fraktal from source
 
 * **Windows (MSVC):** build.bat
 * **Windows (MSYS2/MINGW):** make
 * **Unix:** make
+
