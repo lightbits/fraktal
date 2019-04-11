@@ -725,8 +725,13 @@ void fraktal_present(fraktal_scene_t &scene)
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(1.0f, 1.0f, 1.0f, 0.078f));
     ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
-    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(1.0f, 1.0f, 1.0f, 0.114f));
-    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.329f, 0.478f, 0.71f, 1.0f));
+    // blue tabs
+    // ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(1.0f, 1.0f, 1.0f, 0.114f));
+    // ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.329f, 0.478f, 0.71f, 1.0f));
+    // gray tabs
+    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
+
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
 
     // main menu bar
@@ -736,11 +741,10 @@ void fraktal_present(fraktal_scene_t &scene)
     int preview_mode_point_cloud = 2;
     int preview_mode = preview_mode_render;
     {
-        ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
         ImGui::BeginMainMenuBar();
         {
             main_menu_bar_height = ImGui::GetWindowHeight();
+            ImGui::Text("\xce\xb8"); // placeholder for Fraktal icon
             ImGui::MenuItem("File");
             ImGui::MenuItem("Window");
             ImGui::MenuItem("Help");
@@ -765,8 +769,6 @@ void fraktal_present(fraktal_scene_t &scene)
             }
         }
         ImGui::EndMainMenuBar();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
     }
 
     // side panel
@@ -795,9 +797,9 @@ void fraktal_present(fraktal_scene_t &scene)
 
         if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
         {
-            if (ImGui::BeginTabItem("Scene parameters"))
+            if (ImGui::BeginTabItem("Scene"))
             {
-                ImGui::BeginChild("Scene parameters##child");
+                ImGui::BeginChild("Scene##child");
                 if (ImGui::CollapsingHeader("Resolution"))
                 {
                     ImGui::InputInt("x##resolution", &scene.params.resolution.x);
