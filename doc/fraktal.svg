@@ -9,12 +9,12 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="256"
-   height="256"
+   width="32"
+   height="32"
    id="svg2"
    version="1.1"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="fraktal.svg">
+   sodipodi:docname="fraktal-logo.svg">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -24,25 +24,28 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.3203009"
-     inkscape:cx="102.57699"
-     inkscape:cy="108.05043"
+     inkscape:zoom="22.627417"
+     inkscape:cx="6.9898661"
+     inkscape:cy="18.235033"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
-     showgrid="false"
-     inkscape:snap-global="false"
+     showgrid="true"
+     inkscape:snap-global="true"
      inkscape:window-width="1366"
      inkscape:window-height="749"
      inkscape:window-x="-4"
      inkscape:window-y="-4"
-     inkscape:window-maximized="1">
+     inkscape:window-maximized="1"
+     showguides="true">
     <inkscape:grid
        type="xygrid"
        id="grid2985"
-       empspacing="5"
+       empspacing="4"
        visible="true"
        enabled="true"
-       snapvisiblegridlinesonly="true" />
+       snapvisiblegridlinesonly="true"
+       spacingx="0.25px"
+       spacingy="0.25px" />
   </sodipodi:namedview>
   <metadata
      id="metadata7">
@@ -52,7 +55,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -60,34 +63,15 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(0,-796.36218)">
-    <rect
+     transform="translate(0,-1020.3622)"
+     style="display:inline">
+    <path
        style="fill:#c53929;fill-opacity:1;fill-rule:nonzero;stroke:none"
-       id="rect3815"
-       width="136"
-       height="136"
-       x="60"
-       y="856.36218" />
-    <rect
-       y="826.36218"
-       x="30"
-       height="196"
-       width="196"
-       style="fill:none;stroke:#c53929;stroke-width:20;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       ry="32"
-       id="rect2988" />
-    <text
-       xml:space="preserve"
-       style="font-size:120.93165588px;font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
-       x="107.0082"
-       y="952.2627"
-       id="text3772"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan3774"
-         x="107.0082"
-         y="952.2627"
-         style="font-style:oblique;font-variant:normal;font-weight:bold;font-stretch:normal;fill:#ffffff;fill-opacity:1;font-family:Times New Roman;-inkscape-font-specification:Times New Roman">f</tspan></text>
+       d="M 7,2 C 4.2472972,2 2,4.2473 2,7 l 0,18 c 0,2.7527 2.2472972,5 5,5 l 18,0 c 2.752703,0 5,-2.2473 5,-5 L 30,7 C 30,4.2473 27.752703,2 25,2 z m 0,2 18,0 c 1.679297,0 3,1.3207 3,3 l 0,18 c 0,1.6793 -1.320703,3 -3,3 L 7,28 C 5.3207028,28 4,26.6793 4,25 L 4,7 C 4,5.3207 5.3207028,4 7,4 z m 0,3 0,18 18,0 0,-18 z m 13.75,2.25 c 1,0 1.5,0.5 1.5,1 0,0.488281 -0.367188,0.75 -0.75,0.75 -0.410156,0 -0.75,-0.25 -0.75,-0.75 0,-0.25 0.25,-0.5 0,-0.5 -0.25,0 -1,0.25 -1.5,1 -0.693375,1.040063 -1,2.25 -1,2.25 l 1.5,0 -0.25,1 -1.5,0 c 0,0 -1.25,4.5 -1.75,5.75 -1,2.5 -3,3 -4.25,3 -1,0 -1.25,-0.5 -1.25,-1 0,-0.5 0.363281,-0.75 0.75,-0.75 0.390625,0 0.75,0.25 0.75,0.75 0,0.25 -0.25,0.25 -0.25,0.5 0,0.25 1.25,0 1.75,-1.25 0.5,-1.25 1.117921,-3.405318 1.5,-4.75 0,0 0.5,-2 0.5,-2.25 -0.125,0 -1.25,0 -1.25,0 l 0.25,-1 c 0,0 0.932676,-0.182676 1.25,-0.5 0.5,-0.5 1,-1.25 1.75,-2 1.25,-1.25 2.5,-1.25 3,-1.25 z"
+       id="rect3769"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="sssssssssssssssssscccccssssssccccssssscsccccsss"
+       transform="translate(0,1020.3622)" />
   </g>
   <g
      inkscape:groupmode="layer"
