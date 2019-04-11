@@ -729,19 +729,60 @@ void fraktal_present(fraktal_scene_t &scene)
     ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.329f, 0.478f, 0.71f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
 
+    // main menu bar
+    float main_menu_bar_height = 0.0f;
+    int preview_mode_render = 0;
+    int preview_mode_mesh = 1;
+    int preview_mode_point_cloud = 2;
+    int preview_mode = preview_mode_render;
+    {
+        ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
+        ImGui::BeginMainMenuBar();
+        {
+            main_menu_bar_height = ImGui::GetWindowHeight();
+            ImGui::MenuItem("File");
+            ImGui::MenuItem("Window");
+            ImGui::MenuItem("Help");
+            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
+            {
+                if (ImGui::BeginTabItem("Render"))
+                {
+                    preview_mode = preview_mode_render;
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Mesh"))
+                {
+                    preview_mode = preview_mode_mesh;
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Point cloud"))
+                {
+                    preview_mode = preview_mode_point_cloud;
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+        }
+        ImGui::EndMainMenuBar();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+
     // side panel
     float side_panel_width = 0.0f;
     float side_panel_height = 0.0f;
     {
         ImGuiIO &io = ImGui::GetIO();
+        float avail_y = io.DisplaySize.y - main_menu_bar_height - pad;
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::SetNextWindowSize(ImVec2(0.3f*io.DisplaySize.x, 0.8f*io.DisplaySize.y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.8f*io.DisplaySize.y), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
-        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+        ImGui::SetNextWindowSize(ImVec2(0.3f*io.DisplaySize.x, 0.8f*avail_y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.8f*avail_y), ImVec2(io.DisplaySize.x, avail_y));
+        ImGui::SetNextWindowPos(ImVec2(0.0f, main_menu_bar_height + pad));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
         ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.0f,0.0f,0.0f,0.0f));
@@ -827,7 +868,7 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoCollapse;
-        timeline_height = io.DisplaySize.y - (side_panel_height + pad);
+        timeline_height = io.DisplaySize.y - (side_panel_height + pad) - (main_menu_bar_height + pad);
         ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, timeline_height));
         ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - timeline_height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
@@ -855,83 +896,87 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_MenuBar;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.14f, 0.14f, 0.14f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        // ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::SetNextWindowSize(ImVec2(width, height));
-        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, 0.0f));
+        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, main_menu_bar_height + pad));
         ImGui::Begin("Preview", NULL, flags);
 
-        const int display_mode_1x = 0;
-        const int display_mode_2x = 1;
-        const int display_mode_fit = 2;
-        static int display_mode = display_mode_1x;
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f,1.0f));
-        ImGui::BeginMenuBar();
+        if (preview_mode == preview_mode_render)
         {
-            ImGui::Text("Samples: %d", scene.samples);
-            ImGui::Separator();
-            ImGui::Text("Display:");
-            ImGui::RadioButton("1x", &display_mode, display_mode_1x);
-            ImGui::RadioButton("2x", &display_mode, display_mode_2x);
-            ImGui::RadioButton("fit", &display_mode, display_mode_fit);
-        }
-        ImGui::EndMenuBar();
-        ImGui::PopStyleVar();
+            const int display_mode_1x = 0;
+            const int display_mode_2x = 1;
+            const int display_mode_fit = 2;
+            static int display_mode = display_mode_1x;
 
-        ImDrawList *draw = ImGui::GetWindowDrawList();
-        {
-            ImVec2 image_size = ImVec2(
-                (float)scene.fb_compose.width,
-                (float)scene.fb_compose.height);
-            if (io.DisplayFramebufferScale.x > 0.0f &&
-                io.DisplayFramebufferScale.y > 0.0f)
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f,1.0f));
+            ImGui::BeginMenuBar();
             {
-                image_size.x /= io.DisplayFramebufferScale.x;
-                image_size.y /= io.DisplayFramebufferScale.y;
+                ImGui::Text("Samples: %d", scene.samples);
+                ImGui::Separator();
+                ImGui::Text("Display:");
+                ImGui::RadioButton("1x", &display_mode, display_mode_1x);
+                ImGui::RadioButton("2x", &display_mode, display_mode_2x);
+                ImGui::RadioButton("fit", &display_mode, display_mode_fit);
             }
-            ImVec2 avail = ImGui::GetContentRegionAvail();
+            ImGui::EndMenuBar();
+            ImGui::PopStyleVar();
 
-            ImVec2 top_left = ImGui::GetCursorScreenPos();
-            ImVec2 pos0,pos1;
-            if (display_mode == display_mode_1x)
+            ImDrawList *draw = ImGui::GetWindowDrawList();
             {
-                pos0.x = (float)(int)(top_left.x + avail.x*0.5f - image_size.x*0.5f);
-                pos0.y = (float)(int)(top_left.y + avail.y*0.5f - image_size.y*0.5f);
-                pos1.x = (float)(int)(top_left.x + avail.x*0.5f + image_size.x*0.5f);
-                pos1.y = (float)(int)(top_left.y + avail.y*0.5f + image_size.y*0.5f);
+                ImVec2 image_size = ImVec2(
+                    (float)scene.fb_compose.width,
+                    (float)scene.fb_compose.height);
+                if (io.DisplayFramebufferScale.x > 0.0f &&
+                    io.DisplayFramebufferScale.y > 0.0f)
+                {
+                    image_size.x /= io.DisplayFramebufferScale.x;
+                    image_size.y /= io.DisplayFramebufferScale.y;
+                }
+                ImVec2 avail = ImGui::GetContentRegionAvail();
+
+                ImVec2 top_left = ImGui::GetCursorScreenPos();
+                ImVec2 pos0,pos1;
+                if (display_mode == display_mode_1x)
+                {
+                    pos0.x = (float)(int)(top_left.x + avail.x*0.5f - image_size.x*0.5f);
+                    pos0.y = (float)(int)(top_left.y + avail.y*0.5f - image_size.y*0.5f);
+                    pos1.x = (float)(int)(top_left.x + avail.x*0.5f + image_size.x*0.5f);
+                    pos1.y = (float)(int)(top_left.y + avail.y*0.5f + image_size.y*0.5f);
+                }
+                else if (display_mode == display_mode_2x)
+                {
+                    pos0.x = (float)(int)(top_left.x + avail.x*0.5f - image_size.x);
+                    pos0.y = (float)(int)(top_left.y + avail.y*0.5f - image_size.y);
+                    pos1.x = (float)(int)(top_left.x + avail.x*0.5f + image_size.x);
+                    pos1.y = (float)(int)(top_left.y + avail.y*0.5f + image_size.y);
+                }
+                else if (avail.x < avail.y)
+                {
+                    float h = image_size.y*avail.x/image_size.x;
+                    pos0.x = (float)(int)(top_left.x);
+                    pos0.y = (float)(int)(top_left.y + avail.y*0.5f - h*0.5f);
+                    pos1.x = (float)(int)(top_left.x + avail.x);
+                    pos1.y = (float)(int)(top_left.y + avail.y*0.5f + h*0.5f);
+                }
+                else if (avail.y < avail.x)
+                {
+                    float w = image_size.x*avail.y/image_size.y;
+                    pos0.x = (float)(int)(top_left.x + avail.x*0.5f - w*0.5f);
+                    pos0.y = (float)(int)(top_left.y);
+                    pos1.x = (float)(int)(top_left.x + avail.x*0.5f + w*0.5f);
+                    pos1.y = (float)(int)(top_left.y + avail.y);
+                }
+                ImU32 tint = 0xFFFFFFFF;
+                ImVec2 uv0 = ImVec2(0.0f,0.0f);
+                ImVec2 uv1 = ImVec2(1.0f,1.0f);
+                draw->AddImage((void*)(intptr_t)scene.fb_compose.color0,
+                               pos0, pos1, uv0, uv1, tint);
             }
-            else if (display_mode == display_mode_2x)
-            {
-                pos0.x = (float)(int)(top_left.x + avail.x*0.5f - image_size.x);
-                pos0.y = (float)(int)(top_left.y + avail.y*0.5f - image_size.y);
-                pos1.x = (float)(int)(top_left.x + avail.x*0.5f + image_size.x);
-                pos1.y = (float)(int)(top_left.y + avail.y*0.5f + image_size.y);
-            }
-            else if (avail.x < avail.y)
-            {
-                float h = image_size.y*avail.x/image_size.x;
-                pos0.x = (float)(int)(top_left.x);
-                pos0.y = (float)(int)(top_left.y + avail.y*0.5f - h*0.5f);
-                pos1.x = (float)(int)(top_left.x + avail.x);
-                pos1.y = (float)(int)(top_left.y + avail.y*0.5f + h*0.5f);
-            }
-            else if (avail.y < avail.x)
-            {
-                float w = image_size.x*avail.y/image_size.y;
-                pos0.x = (float)(int)(top_left.x + avail.x*0.5f - w*0.5f);
-                pos0.y = (float)(int)(top_left.y);
-                pos1.x = (float)(int)(top_left.x + avail.x*0.5f + w*0.5f);
-                pos1.y = (float)(int)(top_left.y + avail.y);
-            }
-            ImU32 tint = 0xFFFFFFFF;
-            ImVec2 uv0 = ImVec2(0.0f,0.0f);
-            ImVec2 uv1 = ImVec2(1.0f,1.0f);
-            draw->AddImage((void*)(intptr_t)scene.fb_compose.color0,
-                           pos0, pos1, uv0, uv1, tint);
         }
 
         ImGui::End();
         ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
+        // ImGui::PopStyleVar();
         ImGui::PopStyleVar();
     }
 
