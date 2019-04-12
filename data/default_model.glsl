@@ -6,7 +6,7 @@
 #camera(yfov=10deg, center=(100,100))
 #material0(roughness=0.1)
 #material1(albedo=(0.7,0.3,0.2), roughness=0.1)
-#sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=250)
+#sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=500)
 
 float sphere(vec3 p, float r)
 {
@@ -25,14 +25,14 @@ vec2 model(vec3 p)
     d = min(d, sphere(p - vec3(2.0,1.0,0.0), 0.9));
     float m = MATERIAL1;
     float d_roof = box(p - vec3(0.0,3.0 + 0.5*sin(0.3*p.z + 0.5*p.x),2.0), vec3(4.0,0.1,4.0));
+    vec3 q = p;
+    q.y += 0.2;
+    q.x = mod(q.x + 0.7, 1.4) - 0.7;
+    q.z = mod(q.z + 0.7, 1.4) - 0.7;
+    d_roof = max(d_roof, -(length(q.xz) - 0.4))*0.8;
     if (d_roof < d)
     {
-        vec3 q = p;
-        q.y += 0.2;
-        q.x = mod(q.x + 0.7, 1.4) - 0.7;
-        q.z = mod(q.z + 0.7, 1.4) - 0.7;
-        d_roof = max(d_roof, -(length(q.xz) - 0.4));
-        d = d_roof*0.8;
+        d = d_roof;
         m = MATERIAL1;
     }
     float d_ground = box(p + vec3(0.0,0.3,0.0), vec3(4.0,0.1,4.0));
