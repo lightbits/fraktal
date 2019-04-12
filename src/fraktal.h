@@ -667,55 +667,6 @@ void fraktal_present(fraktal_scene_t &scene)
         glfwPostEmptyEvent();
     }
 
-    #if 0
-    {
-        ImGuiIO &io = ImGui::GetIO();
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
-        ImGui::SetNextWindowSize(io.DisplaySize);
-        ImGui::SetNextWindowPos(ImVec2(0.0f,0.0f));
-        ImGuiWindowFlags flags =
-            ImGuiWindowFlags_NoTitleBar |
-            ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoCollapse |
-            ImGuiWindowFlags_NoInputs;
-        ImGui::Begin("Preview", NULL, flags);
-        ImDrawList *draw = ImGui::GetWindowDrawList();
-        {
-            ImVec2 image_size = ImVec2(
-                (float)scene.fb_compose.width,
-                (float)scene.fb_compose.height);
-            if (io.DisplayFramebufferScale.x > 0.0f &&
-                io.DisplayFramebufferScale.y > 0.0f)
-            {
-                image_size.x /= io.DisplayFramebufferScale.x;
-                image_size.y /= io.DisplayFramebufferScale.y;
-            }
-            ImVec2 avail = ImGui::GetContentRegionAvail();
-
-            ImVec2 top_left = ImGui::GetCursorScreenPos();
-            ImVec2 pos0,pos1;
-            pos0.x = (float)(int)(top_left.x + avail.x*0.5f - image_size.x*0.5f);
-            pos0.y = (float)(int)(top_left.y + avail.y*0.5f - image_size.y*0.5f);
-            pos1.x = (float)(int)(top_left.x + avail.x*0.5f + image_size.x*0.5f);
-            pos1.y = (float)(int)(top_left.y + avail.y*0.5f + image_size.y*0.5f);
-            ImU32 tint = 0xFFFFFFFF;
-            ImVec2 uv0 = ImVec2(0.0f,0.0f);
-            ImVec2 uv1 = ImVec2(1.0f,1.0f);
-            // draw->AddImage((void*)(intptr_t)scene.fb_compose.color0,
-            //                pos0, pos1, uv0, uv1, tint);
-            float rounding = ImGui::GetStyle().WindowRounding;
-            draw->AddImageRounded((void*)(intptr_t)scene.fb_compose.color0,
-                pos0, pos1, uv0, uv1,
-                tint, rounding, ImDrawCornerFlags_All);
-        }
-        ImGui::End();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-    }
-    #endif
-
     float pad = 2.0f;
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
