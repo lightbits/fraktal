@@ -22,11 +22,7 @@
 #include <imgui_impl_glfw.cpp>
 #include <imgui_impl_opengl3.cpp>
 #include <open_sans_regular.h>
-
 #include "fraktal.h"
-// #include "cli_parser.h"
-// #include <tinycthread.h>
-// #include <tinycthread.c>
 
 void glfw_error_callback(int error, const char* description)
 {
@@ -36,7 +32,7 @@ void glfw_error_callback(int error, const char* description)
 int main(int argc, char **argv)
 {
     fraktal_scene_def_t def = {0};
-    def.render_shader_path = "./data/ambient_occlusion.glsl";
+    def.render_shader_path = "./data/path_tracer.glsl";
     def.model_shader_path = "./data/default_model.glsl";
     def.compose_shader_path = "./data/default_compose.glsl";
 
@@ -113,33 +109,26 @@ int main(int argc, char **argv)
             settle_frames--;
         }
 
-        const double max_gui_refresh_rate = 60.0;
-        const double min_gui_refresh_time = 1.0/max_gui_refresh_rate;
-        static double time_to_next_gui_refresh = 0.0;
+        const double max_redraw_rate = 60.0;
+        const double min_redraw_time = 1.0/max_redraw_rate;
+        static double time_to_next_redraw = 0.0;
         static double t_prev = glfwGetTime();
         double t_curr = glfwGetTime();
         double t_delta = t_curr - t_prev;
-        time_to_next_gui_refresh -= t_delta;
-        bool should_refresh_gui = false;
-        if (time_to_next_gui_refresh < 0.0)
+
+        time_to_next_redraw -= t_delta;
+        bool should_redraw = false;
+        if (time_to_next_redraw < 0.0)
         {
-            if (t_delta > min_gui_refresh_time)
-            {
-                // Application is running slow, which probably means that
-                // user is doing heavy rendering. We might want to reduce
-                // the GPU time we allocate to GUI rendering, in order to
-                // speed up their rendering task.
-                time_to_next_gui_refresh += min_gui_refresh_time;
-            }
+            if (t_delta > min_redraw_time) // application is running slow
+                time_to_next_redraw += min_redraw_time;
             else
-            {
-                time_to_next_gui_refresh += min_gui_refresh_time - t_delta;
-            }
-            should_refresh_gui = true;
+                time_to_next_redraw += min_redraw_time - t_delta;
+            should_redraw = true;
         }
         t_prev = t_curr;
 
-        if (should_refresh_gui)
+        if (should_redraw)
         {
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
@@ -183,14 +172,6 @@ int main(int argc, char **argv)
 
             glfwSwapBuffers(window);
         }
-
-        #if 0
-        {
-            timespec t = {0};
-            t.tv_nsec = 16666667;
-            thrd_sleep(&t, NULL);
-        }
-        #endif
     }
 
     ImGui_ImplOpenGL3_Shutdown();
