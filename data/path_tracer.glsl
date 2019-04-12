@@ -4,15 +4,17 @@
 #define EPSILON 0.001
 #define STEPS 512
 #define DENOISE 1
-#define BOUNCES 1
+#define BOUNCES 2
 
 #define M_PI 3.1415926535897932384626433832795
 #define ZERO (min(iFrame,0))
 
+const vec3 skyDomeColor = vec3(0.1,0.2,0.7);
+
 vec3 sky(vec3 rd)
 {
     float cosSun = max(dot(rd, iToSun), 0.0);
-    return mix(vec3(0.1,0.2,0.7), iSunStrength, step(iCosSunSize, cosSun));
+    return mix(skyDomeColor, iSunStrength, step(iCosSunSize, cosSun));
 }
 
 vec4 material(vec3 p, float m)
@@ -98,68 +100,74 @@ vec3 trace(vec3 ro, vec3 rd)
     return vec3(t, min_d, MATERIAL0);
 }
 
-vec3 color(vec3 p, float matIndex)
+// This integrator implements only one material: Lambertian.
+// Uses multiple importance sample, sampling from either BSDF
+// or sun light source.
+vec3 color(vec3 p, vec3 ro, float matIndex)
 {
-    vec3 n = normal(p);
-    vec3 ro = p + n*2.0*EPSILON;
-    vec4 m = material(p, matIndex);
-
-    // cosine weighted hemisphere sample
-    vec3 result = vec3(0.0);
-    vec3 R = m.rgb / M_PI; // lambertian
-    vec3 L = vec3(0.0);
-    vec3 rd = cosineWeightedSample(n);
-    float pdf_hemisphere = 1.0/M_PI;
-    float pdf_direct = mix(0.0, 1.0/(2.0*M_PI*(1.0 - iCosSunSize)), step(iCosSunSize, max(0.0, dot(iToSun, rd))));
-    float pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
-
-    vec3 tr = trace(ro, rd);
-    if (tr.y > EPSILON)
+    vec3 fCosTheta = vec3(1.0);
+    float pdf = 1.0;
+    for (int bounce = 0; bounce < BOUNCES; bounce++)
     {
-        L += sky(rd) / pdf;
-    }
-    else
-    {
-        #if BOUNCES > 0
-        // cosine weighted hemisphere sample
-        vec3 p = ro + rd*tr.x;
         vec3 n = normal(p);
-        vec3 ro = p + n*2.0*EPSILON;
-        vec4 m = material(p, tr.z);
-        vec3 R = m.rgb / M_PI;
-        vec3 rd = cosineWeightedSample(n);
-        vec3 tr = trace(ro, rd);
-        pdf_hemisphere = 1.0/M_PI;
-        pdf_direct = mix(0.0, 1.0/(2.0*M_PI*(1.0 - iCosSunSize)), step(iCosSunSize, max(0.0, dot(iToSun, rd))));
-        pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
-        if (tr.y > EPSILON)
-            L += sky(rd)*R / pdf;
+        ro = p + n*2.0*EPSILON;
+        vec4 m = material(p, matIndex);
 
-        // importance-sampled direct light
-        rd = uniformConeSample(iToSun, iCosSunSize);
-        pdf_hemisphere = 1.0/M_PI;
-        pdf_direct = 1.0/(2.0*M_PI*(1.0 - iCosSunSize));
-        pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
-        tr = trace(ro, rd);
-        if (tr.y > EPSILON)
-            L += iSunStrength*max(0.0,dot(n,rd))*R / pdf;
-        #endif
+        // choose one of two sampling strategies
+        if (noise2f().x < 0.5)
+        {
+            // cosine weighted hemisphere sample
+            vec3 rd = cosineWeightedSample(n);
+            float pdf_bsdf = 1.0/M_PI;
+            float pdf_light = (1.0/(2.0*M_PI*(1.0 - iCosSunSize)))*step(iCosSunSize, max(0.0, dot(iToSun, rd)));
+            pdf *= (0.5*pdf_bsdf + 0.5*pdf_light);
+            fCosTheta *= m.rgb/M_PI; // note: cos(theta) gets cancelled when dividing by pdf
+
+            vec3 tr = trace(ro, rd);
+            if (tr.y > EPSILON)
+            {
+                return sky(rd)*fCosTheta/pdf;
+            }
+            else
+            {
+                p = ro + rd*tr.x;
+                matIndex = tr.z;
+            }
+        }
+        else
+        {
+            // cone sampled direct light
+            vec3 rd = uniformConeSample(iToSun, iCosSunSize);
+            float pdf_bsdf = 1.0/M_PI;
+            float pdf_light = 1.0/(2.0*M_PI*(1.0 - iCosSunSize));
+            pdf *= (0.5*pdf_bsdf + 0.5*pdf_light);
+            fCosTheta *= m.rgb*(max(0.0,dot(n,rd))/M_PI);
+
+            vec3 tr = trace(ro, rd);
+            if (tr.y > EPSILON)
+            {
+                return iSunStrength*fCosTheta/pdf;
+            }
+            else
+            {
+                p = ro + rd*tr.x;
+                matIndex = tr.z;
+            }
+        }
     }
-    result += L*R;
-    R = m.rgb / M_PI;
-    L = vec3(0.0);
 
-    // importance-sampled direct light
-    rd = uniformConeSample(iToSun, iCosSunSize);
-    pdf_hemisphere = 1.0/M_PI;
-    pdf_direct = 1.0/(2.0*M_PI*(1.0 - iCosSunSize));
-    pdf = 0.5*pdf_hemisphere + 0.5*pdf_direct;
-    tr = trace(ro, rd);
-    if (tr.y > EPSILON)
-        L += iSunStrength*max(0.0,dot(n,rd)) / pdf;
-    result += L*R;
+    // Ran out of bounces and did not hit light...
+    // Cheap approximation of surface light: ambient
+    // return skyDomeColor*fCosTheta/pdf;
 
-    return result;
+    // Direct light approximation:
+    vec3 n = normal(p);
+    ro = p + n*2.0*EPSILON;
+    vec4 m = material(p, matIndex);
+    if (trace(ro, iToSun).y > EPSILON)
+        return normalize(iSunStrength)*max(0.0,dot(n,iToSun))*m.rgb*fCosTheta/pdf;
+    else
+        return skyDomeColor*fCosTheta/pdf;
 }
 
 void main()
@@ -173,7 +181,7 @@ void main()
     if (tr.y <= EPSILON)
     {
         vec3 p = ro + tr.x*rd;
-        fragColor.rgb = color(p, tr.z);
+        fragColor.rgb = color(p, ro, tr.z);
     }
     fragColor.a = 1.0;
 }
