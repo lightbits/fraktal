@@ -663,10 +663,9 @@ void fraktal_present(fraktal_scene_t &scene)
     if (scene.should_render || scene.program_render_is_new || scene.should_clear)
     {
         fraktal_render(scene);
+        fraktal_compose(scene);
         glfwPostEmptyEvent();
     }
-
-    fraktal_compose(scene);
 
     #if 0
     {
