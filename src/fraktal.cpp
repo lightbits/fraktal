@@ -36,7 +36,7 @@ void glfw_error_callback(int error, const char* description)
 int main(int argc, char **argv)
 {
     fraktal_scene_def_t def = {0};
-    def.render_shader_path = "./data/path_tracer.glsl";
+    def.render_shader_path = "./data/ambient_occlusion.glsl";
     def.model_shader_path = "./data/default_model.glsl";
     def.compose_shader_path = "./data/default_compose.glsl";
 
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     if (window == NULL)
         return EXIT_FAILURE;
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     if (gl3wInit() != 0)
     {
@@ -87,11 +87,11 @@ int main(int argc, char **argv)
 
         io.Fonts->AddFontFromMemoryCompressedTTF(data, size, height);
 
-        // add special symbols with a different font size
+        // add math symbols with a different font size
         ImFontConfig config;
         config.MergeMode = true;
         ImFontGlyphRangesBuilder builder;
-        builder.AddText("\xce\xb8\xcf\x86");
+        builder.AddText("\xce\xb8\xcf\x86"); // theta, phi
         builder.BuildRanges(&glyph_ranges);
         io.Fonts->AddFontFromMemoryCompressedTTF(data, size, 18.0f, &config, glyph_ranges.Data);
     }
@@ -112,18 +112,39 @@ int main(int argc, char **argv)
             glfwPollEvents();
             settle_frames--;
         }
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
 
-        glfwMakeContextCurrent(window);
-        int window_fb_width, window_fb_height;
-        glfwGetFramebufferSize(window, &window_fb_width, &window_fb_height);
-        glViewport(0, 0, window_fb_width, window_fb_height);
-        glClearColor(0.14f, 0.14f, 0.14f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
+        const double max_gui_refresh_rate = 60.0;
+        const double min_gui_refresh_time = 1.0/max_gui_refresh_rate;
+        static double time_to_next_gui_refresh = 0.0;
+        static double t_prev = glfwGetTime();
+        double t_curr = glfwGetTime();
+        double t_delta = t_curr - t_prev;
+        time_to_next_gui_refresh -= t_delta;
+        bool should_refresh_gui = false;
+        if (time_to_next_gui_refresh < 0.0)
         {
+            if (t_delta > min_gui_refresh_time)
+            {
+                // Application is running slow, which probably means that
+                // user is doing heavy rendering. We might want to reduce
+                // the GPU time we allocate to GUI rendering, in order to
+                // speed up their rendering task.
+                time_to_next_gui_refresh += min_gui_refresh_time;
+            }
+            else
+            {
+                time_to_next_gui_refresh += min_gui_refresh_time - t_delta;
+            }
+            should_refresh_gui = true;
+        }
+        t_prev = t_curr;
+
+        if (should_refresh_gui)
+        {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
             #define handle_key(struct_name, key) { \
                 bool down = glfwGetKey(window, key) == GLFW_PRESS; \
                 scene.keys.struct_name.released = false; \
@@ -147,13 +168,22 @@ int main(int argc, char **argv)
             handle_key(A, GLFW_KEY_A);
             handle_key(S, GLFW_KEY_S);
             handle_key(D, GLFW_KEY_D);
+
+            glfwMakeContextCurrent(window);
+            int window_fb_width, window_fb_height;
+            glfwGetFramebufferSize(window, &window_fb_width, &window_fb_height);
+            glViewport(0, 0, window_fb_width, window_fb_height);
+            glClearColor(0.14f, 0.14f, 0.14f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            fraktal_present(scene);
+
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+            glfwSwapBuffers(window);
         }
-        fraktal_present(scene);
 
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        glfwSwapBuffers(window);
         #if 0
         {
             timespec t = {0};
