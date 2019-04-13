@@ -114,7 +114,7 @@ vec3 color(vec3 p, vec3 ro, float matIndex)
         vec4 m = material(p, matIndex);
 
         // choose one of two sampling strategies
-        if (noise2f().x < 0.5)
+        if (noise2f().x > 0.5)
         {
             // cosine weighted hemisphere sample
             vec3 rd = cosineWeightedSample(n);
@@ -158,16 +158,16 @@ vec3 color(vec3 p, vec3 ro, float matIndex)
 
     // Ran out of bounces and did not hit light...
     // Cheap approximation of surface light: ambient
-    // return skyDomeColor*fCosTheta/pdf;
+    return skyDomeColor*fCosTheta/pdf;
 
     // Direct light approximation:
-    vec3 n = normal(p);
-    ro = p + n*2.0*EPSILON;
-    vec4 m = material(p, matIndex);
-    if (trace(ro, iToSun).y > EPSILON)
-        return normalize(iSunStrength)*max(0.0,dot(n,iToSun))*m.rgb*fCosTheta/pdf;
-    else
-        return skyDomeColor*fCosTheta/pdf;
+    // vec3 n = normal(p);
+    // ro = p + n*2.0*EPSILON;
+    // vec4 m = material(p, matIndex);
+    // if (trace(ro, iToSun).y > EPSILON)
+    //     return normalize(iSunStrength)*max(0.0,dot(n,iToSun))*m.rgb*fCosTheta/pdf;
+    // else
+    //     return skyDomeColor*fCosTheta/pdf;
 }
 
 void main()

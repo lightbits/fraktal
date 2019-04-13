@@ -8,6 +8,12 @@
 #material1(albedo=(0.7,0.3,0.2), roughness=0.1)
 #sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=500)
 
+float cylinder(vec3 p, float r, float height)
+{
+    vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(r, height);
+    return min(max(d.x,d.y),0.0) + length(max(d,0.0));
+}
+
 float sphere(vec3 p, float r)
 {
     return length(p) - r;
@@ -20,6 +26,7 @@ float box(vec3 p, vec3 b)
 
 vec2 model(vec3 p)
 {
+    float L = 0.8; // Lipschitz constant
     float d = sphere(p, 1.0);
     d = max(d, -sphere(p - vec3(0.0,0.0,1.0), 0.5));
     d = min(d, sphere(p - vec3(2.0,1.0,0.0), 0.9));
@@ -29,7 +36,7 @@ vec2 model(vec3 p)
     q.y += 0.2;
     q.x = mod(q.x + 0.7, 1.4) - 0.7;
     q.z = mod(q.z + 0.7, 1.4) - 0.7;
-    d_roof = max(d_roof, -(length(q.xz) - 0.4))*0.8;
+    d_roof = max(d_roof, -(length(q.xz) - 0.4));
     if (d_roof < d)
     {
         d = d_roof;
@@ -41,5 +48,5 @@ vec2 model(vec3 p)
         d = d_ground;
         m = MATERIAL0;
     }
-    return vec2(d, m);
+    return vec2(d*L, m);
 }
