@@ -22,9 +22,8 @@ vec4 material(vec3 p, float m)
         return vec4(0.6,0.1,0.1,0.1);
 }
 
-vec2 seed = (vec2(-1.0) + 2.0*gl_FragCoord.xy/iResolution.xy)*(iSamples*(1.0/12.0) + 1.0);
-
 // Adapted from: lumina.sourceforge.net/Tutorials/Noise.html
+vec2 seed = vec2(-1,1)*(iSamples*(1.0/12.0) + 1.0);
 vec2 noise2f()
 {
     seed += vec2(-1, 1);
@@ -99,7 +98,7 @@ void main()
         ro = p + n*2.0*EPSILON;
 
         // ambient
-        fragColor.rgb = skyDomeColor;
+        vec3 col = skyDomeColor;
 
         // direct sun light
         rd = iToSun;
@@ -107,25 +106,26 @@ void main()
         float ndotl = 0.0;
         if (tr.y > EPSILON)
             ndotl = max(0.0, dot(rd, n));
-        fragColor.rgb += 2.0*normalize(iSunStrength)*ndotl;
+        col += 2.0*normalize(iSunStrength)*ndotl;
 
         // fake indirect light (sky)
         rd = normalize(vec3(0.0, 1.0, -1.0));
         ndotl = max(dot(n, rd), 0.0);
-        fragColor.rgb += skyDomeColor*ndotl;
+        col += skyDomeColor*ndotl;
 
         // fake indirect light (floor bounce from top surface)
         rd = normalize(vec3(0.0, 1.0, -2.0));
         ndotl = max(dot(n, rd), 0.0);
-        fragColor.rgb += 0.2*vec3(1.0,0.3,0.1)*ndotl;
+        col += 0.2*vec3(1.0,0.3,0.1)*ndotl;
 
         // fake indirect light (floor bounce)
         rd = normalize(vec3(0.0, -1.0, -0.3));
         ndotl = max(dot(n, rd), 0.0);
-        fragColor.rgb += 0.8*vec3(1.0,0.3,0.1)*ndotl;
+        col += 0.8*vec3(1.0,0.3,0.1)*ndotl;
 
-        // fake occlusion
-        fragColor.rgb *= m.rgb*ambientOcclusion(p, n);
+        col *= m.rgb*ambientOcclusion(p, n);
+
+        fragColor.rgb = col;
     }
     else
     {
