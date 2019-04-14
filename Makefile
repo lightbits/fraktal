@@ -14,7 +14,7 @@
 #CXX = g++
 #CXX = clang++
 
-EXE = fraktal
+EXE = bin/fraktal
 SOURCES = src/fraktal.cpp
 UNAME_S := $(shell uname -s)
 
