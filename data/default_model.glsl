@@ -4,8 +4,6 @@
 #resolution(200,200)
 #view(dir=(-25 deg, 140 deg), pos=(0,0,35))
 #camera(yfov=10deg, center=(100,100))
-#material0(roughness=0.1)
-#material1(albedo=(0.7,0.3,0.2), roughness=0.1)
 #sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=500)
 
 float cylinder(vec3 p, float r, float height)
@@ -22,6 +20,14 @@ float sphere(vec3 p, float r)
 float box(vec3 p, vec3 b)
 {
     return max(abs(p.x) - b.x, max(abs(p.y) - b.y, abs(p.z) - b.z));
+}
+
+vec4 material(vec3 p, float matIndex)
+{
+    if (matIndex == MATERIAL0)
+        return vec4(0.6,0.1,0.1,1.0);
+    else
+        return vec4(1.0,1.0,1.0,1.0);
 }
 
 vec2 model(vec3 p)

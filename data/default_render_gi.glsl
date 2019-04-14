@@ -75,14 +75,6 @@ vec3 trace(vec3 ro, vec3 rd)
     return vec3(t, min_d, MATERIAL0);
 }
 
-vec4 material(vec3 p, float m)
-{
-    if (m == MATERIAL1)
-        return vec4(0.6,0.1,0.1,0.3);
-    else
-        return vec4(0.1,0.4,0.7,0.1);
-}
-
 vec3 shade(vec3 p, vec3 eyeOrigin, float matIndex)
 {
     const vec3 toSun = normalize(vec3(0.0, 2.0, -2.0));

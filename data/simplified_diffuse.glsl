@@ -14,14 +14,6 @@ vec3 sky(vec3 rd)
     return mix(skyDomeColor, iSunStrength, step(iCosSunSize, cosSun));
 }
 
-vec4 material(vec3 p, float m)
-{
-    if (m == MATERIAL1)
-        return vec4(1.0,1.0,1.0,0.3);
-    else
-        return vec4(0.6,0.1,0.1,0.1);
-}
-
 // Adapted from: lumina.sourceforge.net/Tutorials/Noise.html
 vec2 seed = vec2(-1,1)*(iSamples*(1.0/12.0) + 1.0);
 vec2 noise2f()

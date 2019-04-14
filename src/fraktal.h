@@ -366,6 +366,8 @@ GLuint load_render_program(fraktal_scene_def_t def, scene_params_t &params)
             def.glsl_version, "\n",
             fs_header_source,
             "vec2 model(vec3 p);\n", // forward-declaration
+            "vec4 material(vec3 p, float m);\n",
+            "#line 0\n",
             source
         };
         fs_render = load_shader(
