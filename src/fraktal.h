@@ -190,14 +190,9 @@ bool program_link_status(GLuint program)
     return true;
 }
 
-GLuint load_compose_program(fraktal_scene_def_t def)
+GLuint load_vertex_shader(fraktal_scene_def_t def)
 {
-    assert(def.glsl_version && "GLSL version string is NULL");
-    assert(def.compose_shader_path && "Compose shader path is NULL");
-
-    //
-    // Vertex shader. This is compiled once and cached.
-    //
+    // We only need to compile this one time
     static GLuint vs = 0;
     if (!vs)
     {
@@ -213,94 +208,58 @@ GLuint load_compose_program(fraktal_scene_def_t def)
         if (!vs)
             return 0;
     }
+    return vs;
+}
 
-    //
-    // Fragment shader header.
-    //
-    static const char *fs_header_source =
-        "uniform vec2      iResolution;\n"
-        "uniform sampler2D iChannel0;\n"
-        "uniform int       iSamples;\n"
-        "out vec4          fragColor;\n"
+GLuint load_model_shader(fraktal_scene_def_t def, scene_params_t &params)
+{
+    static const char *header =
+        "uniform vec2      iResolution;\n"           // viewport resolution (in pixels)
+        "uniform float     iTime;\n"                 // shader playback time (in seconds)
+        "uniform int       iFrame;\n"                // shader playback frame
+        "uniform vec2      iChannelResolution[4];\n" // channel resolution (in pixels)
+        "uniform vec4      iMouse;\n"                // mouse pixel coords. xy: current (if MLB down), zw: click
+        "uniform sampler2D iChannel0;\n"             // file or buffer texture
+        "uniform sampler2D iChannel1;\n"             // file or buffer texture
+        "uniform sampler2D iChannel2;\n"             // file or buffer texture
+        "uniform sampler2D iChannel3;\n"             // file or buffer texture
+        "#define MATERIAL0 0.0\n"
+        "#define MATERIAL1 1.0\n"
+        "#define MATERIAL2 2.0\n"
+        "#define MATERIAL3 3.0\n"
+        "#define MATERIAL4 4.0\n"
+        "#define MATERIAL5 5.0\n"
         "#line 0\n"
     ;
 
-    //
-    // Fragment shader compose-portion.
-    //
     GLuint fs = 0;
+    const char *path = def.model_shader_path;
+    char *source = read_file(path);
+    if (!scene_file_preprocessor(source, &params))
     {
-        const char *path = def.compose_shader_path;
-        char *source = read_file(path);
-        if (!source)
-        {
-            log_err("Failed to read source file \"%s\"\n", path);
-            return 0;
-        }
-        const char *sources[] = {
-            def.glsl_version, "\n",
-            fs_header_source,
-            source
-        };
-        fs = load_shader(
-            path,
-            sources,
-            sizeof(sources)/sizeof(char*),
-            GL_FRAGMENT_SHADER
-        );
-        if (!fs)
-            return 0;
-    }
-
-    //
-    // Link program
-    //
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-    glDetachShader(program, vs);
-    glDetachShader(program, fs);
-    glDeleteShader(fs);
-
-    if (!program_link_status(program))
-    {
-        glDeleteProgram(program);
+        log_err("Failed to parse source file %s\n", path);
         return 0;
     }
-
-    return program;
+    if (!source)
+    {
+        log_err("Failed to read source file %s\n", path);
+        return 0;
+    }
+    const char *sources[] = {
+        def.glsl_version, "\n",
+        header,
+        source
+    };
+    fs = load_shader(path, sources, sizeof(sources)/sizeof(char*), GL_FRAGMENT_SHADER);
+    free(source);
+    if (!fs)
+        return 0;
+    return fs;
 }
 
-GLuint load_render_program(fraktal_scene_def_t def, scene_params_t &params)
+GLuint load_render_shader(fraktal_scene_def_t def)
 {
-    assert(def.glsl_version && "GLSL version string is NULL");
-    assert(def.model_shader_path && "Model shader path is NULL");
-    assert(def.render_shader_path && "Render shader path is NULL");
-
-    //
-    // Vertex shader. This is compiled once and cached.
-    //
-    static GLuint vs = 0;
-    if (!vs)
-    {
-        static const char *source =
-            "in vec2 iPosition;\n"
-            "void main()\n"
-            "{\n"
-            "    gl_Position = vec4(iPosition, 0.0, 1.0);\n"
-            "}\n"
-        ;
-        const char *sources[] = { def.glsl_version, "\n#line 0\n", source };
-        vs = load_shader("built-in", sources, sizeof(sources)/sizeof(char*), GL_VERTEX_SHADER);
-        if (!vs)
-            return 0;
-    }
-
-    //
-    // Fragment shader header.
-    //
-    static const char *fs_header_source =
+    static const char *header =
         "uniform vec2      iResolution;\n"           // viewport resolution (in pixels)
         "uniform float     iTime;\n"                 // shader playback time (in seconds)
         "uniform int       iFrame;\n"                // shader playback frame
@@ -327,76 +286,111 @@ GLuint load_render_program(fraktal_scene_def_t def, scene_params_t &params)
         "#line 0\n"
     ;
 
-    //
-    // Fragment shader model-portion.
-    //
+    GLuint fs = 0;
+    char *source = read_file(def.render_shader_path);
+    const char *sources[] = {
+        def.glsl_version, "\n",
+        header,
+        "vec2 model(vec3 p);\n", // forward-declaration
+        "vec4 material(vec3 p, float m);\n",
+        "#line 0\n",
+        source
+    };
+    fs = load_shader(
+        def.render_shader_path,
+        sources,
+        sizeof(sources)/sizeof(char*),
+        GL_FRAGMENT_SHADER
+    );
+    free(source);
+    if (!fs)
+        return 0;
+    return fs;
+}
 
-    GLuint fs_model = 0;
+GLuint load_compose_shader(fraktal_scene_def_t def)
+{
+    static const char *header =
+        "uniform vec2      iResolution;\n"
+        "uniform sampler2D iChannel0;\n"
+        "uniform int       iSamples;\n"
+        "out vec4          fragColor;\n"
+        "#line 0\n"
+    ;
+
+    GLuint fs = 0;
+    const char *path = def.compose_shader_path;
+    char *source = read_file(path);
+    if (!source)
     {
-        const char *path = def.model_shader_path;
-        char *source = read_file(path);
-        if (!scene_file_preprocessor(source, &params))
-        {
-            log_err("Failed to parse source file %s\n", path);
-            return 0;
-        }
-        if (!source)
-        {
-            log_err("Failed to read source file %s\n", path);
-            return 0;
-        }
-        const char *sources[] = {
-            def.glsl_version, "\n",
-            fs_header_source,
-            source
-        };
-        fs_model = load_shader(path, sources, sizeof(sources)/sizeof(char*), GL_FRAGMENT_SHADER);
-        free(source);
-        if (!fs_model)
-            return 0;
+        log_err("Failed to read source file \"%s\"\n", path);
+        return 0;
     }
+    const char *sources[] = {
+        def.glsl_version, "\n",
+        header,
+        source
+    };
+    fs = load_shader(
+        path,
+        sources,
+        sizeof(sources)/sizeof(char*),
+        GL_FRAGMENT_SHADER
+    );
+    if (!fs)
+        return 0;
+    return fs;
+}
 
-    //
-    // Fragment shader render-portion.
-    //
-    GLuint fs_render = 0;
-    {
-        char *source = read_file(def.render_shader_path);
-        const char *sources[] = {
-            def.glsl_version, "\n",
-            fs_header_source,
-            "vec2 model(vec3 p);\n", // forward-declaration
-            "vec4 material(vec3 p, float m);\n",
-            "#line 0\n",
-            source
-        };
-        fs_render = load_shader(
-            def.render_shader_path,
-            sources,
-            sizeof(sources)/sizeof(char*),
-            GL_FRAGMENT_SHADER
-        );
-        free(source);
-        if (!fs_render)
-        {
-            glDeleteShader(fs_model);
-            return 0;
-        }
-    }
+GLuint load_compose_program(fraktal_scene_def_t def)
+{
+    assert(def.glsl_version && "GLSL version string is NULL");
+    assert(def.compose_shader_path && "Compose shader path is NULL");
+    GLuint vs = load_vertex_shader(def); if (!vs) return 0;
+    GLuint fs = load_compose_shader(def); if (!fs) return 0;
 
-    //
-    // Link program
-    //
     GLuint program = glCreateProgram();
     glAttachShader(program, vs);
-    glAttachShader(program, fs_model);
-    glAttachShader(program, fs_render);
+    glAttachShader(program, fs);
     glLinkProgram(program);
     glDetachShader(program, vs);
-    glDetachShader(program, fs_model);
-    glDeleteShader(fs_model);
-    glDetachShader(program, fs_render);
-    glDeleteShader(fs_render);
+    glDetachShader(program, fs);
+    glDeleteShader(fs);
+
+    if (!program_link_status(program))
+    {
+        glDeleteProgram(program);
+        return 0;
+    }
+
+    return program;
+}
+
+GLuint load_render_program(fraktal_scene_def_t def, scene_params_t &params)
+{
+    assert(def.glsl_version && "GLSL version string is NULL");
+    assert(def.model_shader_path && "Model shader path is NULL");
+    assert(def.render_shader_path && "Render shader path is NULL");
+
+    GLuint vs = load_vertex_shader(def); if (!vs) return 0;
+    GLuint fs1 = load_model_shader(def, params); if (!fs1) return 0;
+    GLuint fs2 = load_render_shader(def);
+    if (!fs2)
+    {
+        glDeleteShader(fs1);
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs1);
+    glAttachShader(program, fs2);
+    glLinkProgram(program);
+    glDetachShader(program, vs);
+    glDetachShader(program, fs1);
+    glDetachShader(program, fs2);
+    glDeleteShader(fs1);
+    glDeleteShader(fs2);
 
     if (!program_link_status(program))
     {
