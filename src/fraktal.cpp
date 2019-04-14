@@ -32,9 +32,9 @@ void glfw_error_callback(int error, const char* description)
 int main(int argc, char **argv)
 {
     fraktal_scene_def_t def = {0};
-    def.render_shader_path = "./data/simplified_diffuse.glsl";
-    def.model_shader_path = "./data/default_model.glsl";
-    def.compose_shader_path = "./data/default_compose.glsl";
+    def.render_shader_path = "./data/render/ambient_occlusion.glsl";
+    def.model_shader_path = "./data/model/vase.glsl";
+    def.compose_shader_path = "./data/compose/mean_and_gamma_correct.glsl";
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
