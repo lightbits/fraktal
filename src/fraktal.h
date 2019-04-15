@@ -276,12 +276,6 @@ GLuint load_render_shader(fraktal_scene_def_t def)
         "uniform vec3      iSunStrength;\n"
         "uniform float     iCosSunSize;\n"
         "out vec4          fragColor;\n"
-        "#define MATERIAL0 0.0\n"
-        "#define MATERIAL1 1.0\n"
-        "#define MATERIAL2 2.0\n"
-        "#define MATERIAL3 3.0\n"
-        "#define MATERIAL4 4.0\n"
-        "#define MATERIAL5 5.0\n"
         "#line 0\n"
     ;
 
@@ -765,20 +759,6 @@ void fraktal_present(fraktal_scene_t &scene)
                     scene.should_clear |= ImGui::SliderFloat("\xcf\x86##sun_dir", &scene.params.sun.dir.phi, -180.0f, +180.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat3("color##sun_color", &scene.params.sun.color.x, 0.0f, 1.0f);
                     scene.should_clear |= ImGui::DragFloat("intensity##sun_intensity", &scene.params.sun.intensity);
-                }
-                if (ImGui::CollapsingHeader("Materials"))
-                {
-                    for (int i = 0; i < NUM_MATERIALS; i++)
-                    {
-                        ImGui::PushID(i);
-                        if (ImGui::TreeNode("Material", "Material (%d)", i))
-                        {
-                            scene.should_clear |= ImGui::Checkbox("active", &scene.params.material[i].active);
-                            scene.should_clear |= ImGui::SliderFloat("roughness", &scene.params.material[i].roughness, 0.0f, 1.0f);
-                            ImGui::TreePop();
-                        }
-                        ImGui::PopID();
-                    }
                 }
                 ImGui::EndChild();
                 ImGui::EndTabItem();

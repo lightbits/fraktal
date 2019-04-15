@@ -5,6 +5,8 @@
 #view(dir=(-25 deg, 140 deg), pos=(0,0,35))
 #camera(yfov=10deg, center=(100,100))
 #sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=500)
+#define MATERIAL0 0.0
+#define MATERIAL1 1.0
 
 float cylinder(vec3 p, float r, float height)
 {
