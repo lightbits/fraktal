@@ -755,9 +755,16 @@ void fraktal_present(fraktal_scene_t &scene)
                 }
                 if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
                 {
+                    float3 &pos = scene.params.view.pos;
+                    float z_over_f = fabsf(pos.z)/scene.params.camera.f;
+                    float3 drag_speeds;
+                    drag_speeds.x = (scene.params.resolution.x*0.005f)*z_over_f;
+                    drag_speeds.y = (scene.params.resolution.y*0.005f)*z_over_f;
+                    drag_speeds.z = 0.01f*fabsf(scene.params.view.pos.z);
+
                     scene.should_clear |= ImGui::SliderFloat("\xce\xb8##view_dir", &scene.params.view.dir.theta, -90.0f, +90.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat("\xcf\x86##view_dir", &scene.params.view.dir.phi, -180.0f, +180.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::DragFloat3("pos", &scene.params.view.pos.x);
+                    scene.should_clear |= ImGui::DragFloat3("pos##view_pos", &pos.x, &drag_speeds.x);
                     scene.should_clear |= ImGui::DragFloat("f##camera_f", &scene.params.camera.f);
                     scene.should_clear |= ImGui::DragFloat2("center##camera_center", &scene.params.camera.center.x);
                 }

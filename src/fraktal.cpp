@@ -22,6 +22,7 @@
 #include <imgui_impl_glfw.cpp>
 #include <imgui_impl_opengl3.cpp>
 #include <open_sans_regular.h>
+#include "imgui_extensions.h"
 #include "fraktal.h"
 
 void glfw_error_callback(int error, const char* description)
