@@ -55,7 +55,6 @@ struct scene_params_t
         float3 albedo;
         float3 specular_albedo;
         float specular_exponent;
-        float specular_roughness;
     } material;
     struct isolines_t
     {
@@ -104,6 +103,5 @@ scene_params_t get_default_scene_params()
     params.material.specular_albedo.y = 0.3f;
     params.material.specular_albedo.z = 0.3f;
     params.material.specular_exponent = 32.0f;
-    params.material.specular_roughness = 0.1f;
     return params;
 }

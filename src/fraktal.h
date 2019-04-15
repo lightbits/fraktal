@@ -283,7 +283,6 @@ GLuint load_render_shader(fraktal_scene_def_t def)
         "uniform float     iIsolineMax;\n"
         "uniform int       iMaterialGlossy;\n"
         "uniform float     iSpecularExponent;\n"
-        "uniform float     iSpecularRoughness;\n"
         "uniform vec3      iSpecularAlbedo;\n"
         "uniform vec3      iAlbedo;\n"
         "out vec4          fragColor;\n"
@@ -587,7 +586,6 @@ void fraktal_render(fraktal_scene_t &scene)
         auto material = scene.params.material;
         glUniform1i(loc_iMaterialGlossy, material.glossy ? 1 : 0);
         glUniform1f(loc_iSpecularExponent, material.specular_exponent);
-        glUniform1f(loc_iSpecularRoughness, material.specular_roughness);
         glUniform3fv(loc_iSpecularAlbedo, 1, &material.specular_albedo.x);
         glUniform3fv(loc_iAlbedo, 1, &material.albedo.x);
     }
@@ -836,7 +834,6 @@ void fraktal_present(fraktal_scene_t &scene)
                     scene.should_clear |= ImGui::Checkbox("Glossy", &material.glossy);
                     scene.should_clear |= ImGui::ColorEdit3("Albedo", &material.albedo.x);
                     scene.should_clear |= ImGui::ColorEdit3("Specular", &material.specular_albedo.x);
-                    scene.should_clear |= ImGui::SliderFloat("Roughness", &material.specular_roughness, 0.0f, 1.0f);
                     scene.should_clear |= ImGui::DragFloat("Exponent", &material.specular_exponent, 1.0f, 0.0f, 1000.0f);
                 }
 
