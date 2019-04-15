@@ -6,7 +6,6 @@
 #define M_PI 3.1415926535897932384626433832795
 #define MAX_DISTANCE 100.0
 #define ZERO (min(iFrame,0))
-#define MATERIAL_FLOOR -1.0
 #define MAX_DISTANCE_VISIBILITY_TEST 10.0
 
 float model(vec3 p); // forward declaration
