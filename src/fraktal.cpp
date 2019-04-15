@@ -99,23 +99,15 @@ int main(int argc, char **argv)
 
     while (!glfwWindowShouldClose(window))
     {
-        if (scene.auto_render)
+        static int settle_frames = 3;
+        if (scene.auto_render || settle_frames > 0)
         {
             glfwPollEvents();
         }
         else
         {
-            static int settle_frames = 60;
-            if (settle_frames == 0)
-            {
-                glfwWaitEvents();
-                settle_frames = 10;
-            }
-            else
-            {
-                glfwPollEvents();
-                settle_frames--;
-            }
+            glfwWaitEvents();
+            settle_frames = 3;
         }
 
         const double max_redraw_rate = 60.0;
@@ -132,6 +124,7 @@ int main(int argc, char **argv)
 
         if (should_redraw)
         {
+            settle_frames--;
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
