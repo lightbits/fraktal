@@ -618,30 +618,42 @@ void fraktal_compose(fraktal_scene_t &scene)
     glDeleteVertexArrays(1, &vao);
 }
 
+bool handle_view_change_keys(fraktal_scene_t &scene)
+{
+    bool moved = false;
+
+    // rotation
+    int rotate_step = 5;
+    angle2 &dir = scene.params.view.dir;
+    if (scene.keys.Left.pressed)  { dir.phi   -= rotate_step; moved = true; }
+    if (scene.keys.Right.pressed) { dir.phi   += rotate_step; moved = true; }
+    if (scene.keys.Up.pressed)    { dir.theta -= rotate_step; moved = true; }
+    if (scene.keys.Down.pressed)  { dir.theta += rotate_step; moved = true; }
+
+    // translation
+    // Note: The z_over_f factor ensures that a key press yields the same 
+    // displacement of the object in image pixels, irregardless of how far
+    // away the camera is.
+    float3 &pos = scene.params.view.pos;
+    float z_over_f = fabsf(pos.z)/scene.params.camera.f;
+    float x_move_step = (scene.params.resolution.x*0.05f)*z_over_f;
+    float y_move_step = (scene.params.resolution.y*0.05f)*z_over_f;
+    float z_move_step = 0.1f*fabsf(scene.params.view.pos.z);
+    if (scene.keys.Ctrl.pressed)  { pos.y -= y_move_step; moved = true; }
+    if (scene.keys.Space.pressed) { pos.y += y_move_step; moved = true; }
+    if (scene.keys.A.pressed)     { pos.x -= x_move_step; moved = true; }
+    if (scene.keys.D.pressed)     { pos.x += x_move_step; moved = true; }
+    if (scene.keys.W.pressed)     { pos.z -= z_move_step; moved = true; }
+    if (scene.keys.S.pressed)     { pos.z += z_move_step; moved = true; }
+    return moved;
+}
+
 void fraktal_present(fraktal_scene_t &scene)
 {
     if (scene.keys.Alt.down && scene.keys.Enter.pressed)
         fraktal_load(scene, scene.def, FRAKTAL_LOAD_RENDER|FRAKTAL_LOAD_COMPOSE);
 
-    bool moved = false;
-    {
-        int rotate_step = 5;
-        float x_move_step = (scene.params.resolution.x*0.05f)*fabsf(scene.params.view.pos.z)/scene.params.camera.f;
-        float y_move_step = (scene.params.resolution.y*0.05f)*fabsf(scene.params.view.pos.z)/scene.params.camera.f;
-        float z_move_step = 0.1f*fabsf(scene.params.view.pos.z);
-        if (scene.keys.Left.pressed)  { scene.params.view.dir.phi -= rotate_step; moved = true; }
-        if (scene.keys.Right.pressed) { scene.params.view.dir.phi += rotate_step; moved = true; }
-        if (scene.keys.Up.pressed)    { scene.params.view.dir.theta -= rotate_step; moved = true; }
-        if (scene.keys.Down.pressed)  { scene.params.view.dir.theta += rotate_step; moved = true; }
-        if (scene.keys.Ctrl.pressed)  { scene.params.view.pos.y -= y_move_step; moved = true; }
-        if (scene.keys.Space.pressed) { scene.params.view.pos.y += y_move_step; moved = true; }
-        if (scene.keys.A.pressed)     { scene.params.view.pos.x -= x_move_step; moved = true; }
-        if (scene.keys.D.pressed)     { scene.params.view.pos.x += x_move_step; moved = true; }
-        if (scene.keys.W.pressed)     { scene.params.view.pos.z -= z_move_step; moved = true; }
-        if (scene.keys.S.pressed)     { scene.params.view.pos.z += z_move_step; moved = true; }
-    }
-
-    if (moved)
+    if (handle_view_change_keys(scene))
         scene.should_clear = true;
 
     if (!scene.keys.Alt.down && scene.keys.Enter.pressed)
@@ -741,14 +753,11 @@ void fraktal_present(fraktal_scene_t &scene)
                     ImGui::InputInt("x##resolution", &scene.params.resolution.x);
                     ImGui::InputInt("y##resolution", &scene.params.resolution.y);
                 }
-                if (ImGui::CollapsingHeader("View"))
+                if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
                 {
                     scene.should_clear |= ImGui::SliderFloat("\xce\xb8##view_dir", &scene.params.view.dir.theta, -90.0f, +90.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat("\xcf\x86##view_dir", &scene.params.view.dir.phi, -180.0f, +180.0f, "%.0f deg");
                     scene.should_clear |= ImGui::DragFloat3("pos", &scene.params.view.pos.x);
-                }
-                if (ImGui::CollapsingHeader("Camera"))
-                {
                     scene.should_clear |= ImGui::DragFloat("f##camera_f", &scene.params.camera.f);
                     scene.should_clear |= ImGui::DragFloat2("center##camera_center", &scene.params.camera.center.x);
                 }
@@ -760,6 +769,7 @@ void fraktal_present(fraktal_scene_t &scene)
                     scene.should_clear |= ImGui::SliderFloat3("color##sun_color", &scene.params.sun.color.x, 0.0f, 1.0f);
                     scene.should_clear |= ImGui::DragFloat("intensity##sun_intensity", &scene.params.sun.intensity);
                 }
+
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
