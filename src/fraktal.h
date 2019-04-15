@@ -752,8 +752,8 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        ImGui::SetNextWindowSize(ImVec2(0.3f*io.DisplaySize.x, 0.8f*avail_y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.8f*avail_y), ImVec2(io.DisplaySize.x, avail_y));
+        ImGui::SetNextWindowSize(ImVec2(0.3f*io.DisplaySize.x, avail_y), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, avail_y), ImVec2(io.DisplaySize.x, avail_y));
         ImGui::SetNextWindowPos(ImVec2(0.0f, main_menu_bar_height + pad));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
@@ -832,29 +832,6 @@ void fraktal_present(fraktal_scene_t &scene)
         ImGui::PopStyleColor();
         ImGui::PopStyleColor();
         ImGui::PopStyleColor();
-        ImGui::PopStyleColor();
-    }
-
-    // timeline
-    float timeline_height = 0.0f;
-    {
-        ImGuiIO &io = ImGui::GetIO();
-        ImGuiWindowFlags flags =
-            ImGuiWindowFlags_NoTitleBar |
-            ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoCollapse;
-        timeline_height = io.DisplaySize.y - (side_panel_height + pad) - (main_menu_bar_height + pad);
-        ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, timeline_height));
-        ImGui::SetNextWindowPos(ImVec2(0.0f, io.DisplaySize.y - timeline_height));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
-        // ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0,0));
-        ImGui::Begin("##timeline", NULL, flags);
-        ImGui::Text("Timeline");
-        ImGui::End();
-        ImGui::PopStyleVar();
-        // ImGui::PopStyleVar();
         ImGui::PopStyleColor();
     }
 
