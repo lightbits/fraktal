@@ -672,13 +672,13 @@ bool handle_view_change_keys(fraktal_scene_t &scene)
 
 void fraktal_present(fraktal_scene_t &scene)
 {
-    if (scene.keys.Alt.down && scene.keys.Enter.pressed)
+    if (scene.keys.Shift.down && scene.keys.Enter.pressed)
         fraktal_load(scene, scene.def, FRAKTAL_LOAD_RENDER|FRAKTAL_LOAD_COMPOSE);
 
     if (handle_view_change_keys(scene))
         scene.should_clear = true;
 
-    if (!scene.keys.Alt.down && scene.keys.Enter.pressed)
+    if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
         scene.auto_render = !scene.auto_render;
 
     if (scene.auto_render || scene.program_render_is_new || scene.should_clear)
