@@ -834,20 +834,27 @@ void fraktal_present(fraktal_scene_t &scene)
                 }
                 if (ImGui::CollapsingHeader("Floor"))
                 {
-                    auto &isolines = scene.params.isolines;
                     auto &floor = scene.params.floor;
                     scene.should_clear |= ImGui::DragFloat("Height", &floor.height, 0.01f);
-                    scene.should_clear |= ImGui::Checkbox("Draw isolines", &isolines.enabled); ImGui::SameLine();
-                    scene.should_clear |= ImGui::Checkbox("Reflective", &floor.reflective);
-                    if (isolines.enabled)
+
+                    if (ImGui::TreeNode("Isolines"))
                     {
+                        auto &isolines = scene.params.isolines;
+                        scene.should_clear |= ImGui::Checkbox("Enabled##Isolines", &isolines.enabled);
                         scene.should_clear |= ImGui::ColorEdit3("Color", &isolines.color.x);
                         scene.should_clear |= ImGui::DragFloat("Thickness", &isolines.thickness, 0.01f);
                         scene.should_clear |= ImGui::DragFloat("Spacing", &isolines.spacing, 0.01f);
                         scene.should_clear |= ImGui::DragInt("Count", &isolines.count, 0.1f, 0, 100);
+                        ImGui::TreePop();
                     }
-                    scene.should_clear |= ImGui::DragFloat("Exponent", &floor.specular_exponent, 1.0f, 0.0f, 10000.0f);
-                    scene.should_clear |= ImGui::SliderFloat("Reflectivity", &floor.reflectivity, 0.0f, 1.0f);
+
+                    if (ImGui::TreeNode("Reflection"))
+                    {
+                        scene.should_clear |= ImGui::Checkbox("Enabled##Reflection", &floor.reflective);
+                        scene.should_clear |= ImGui::DragFloat("Exponent", &floor.specular_exponent, 1.0f, 0.0f, 10000.0f);
+                        scene.should_clear |= ImGui::SliderFloat("Reflectivity", &floor.reflectivity, 0.0f, 1.0f);
+                        ImGui::TreePop();
+                    }
                 }
                 if (ImGui::CollapsingHeader("Material"))
                 {
