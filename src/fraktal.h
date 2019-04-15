@@ -165,7 +165,6 @@ GLuint load_shader(const char *source_identifier, const char **sources, int num_
         GLint length; glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *info = (char*)malloc(length);
         glGetShaderInfoLog(shader, length, NULL, info);
-        printf("Source identifier is: %s\n", source_identifier);
         log_err("Failed to compile shader (%s):\n%s", source_identifier, info);
         free(info);
         glDeleteShader(shader);

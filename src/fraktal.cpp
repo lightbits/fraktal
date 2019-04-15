@@ -93,7 +93,8 @@ int main(int argc, char **argv)
     }
 
     fraktal_scene_t scene = {0};
-    assert(fraktal_load(scene, def, 0));
+    if (!fraktal_load(scene, def, 0))
+        return 1;
 
     while (!glfwWindowShouldClose(window))
     {
