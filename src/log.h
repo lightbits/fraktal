@@ -19,6 +19,7 @@ void log_init()
     logfile.capacity = 1024*1024;
     logfile.begin = (char*)malloc(logfile.capacity*sizeof(char));
     logfile.str = logfile.begin;
+    logfile.str[0] = '\0';
     assert(logfile.begin);
 }
 
