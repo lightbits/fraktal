@@ -281,6 +281,11 @@ GLuint load_render_shader(fraktal_scene_def_t def)
         "uniform float     iIsolineThickness;\n"
         "uniform float     iIsolineSpacing;\n"
         "uniform float     iIsolineMax;\n"
+        "uniform int       iMaterialGlossy;\n"
+        "uniform float     iSpecularExponent;\n"
+        "uniform float     iSpecularRoughness;\n"
+        "uniform vec3      iSpecularAlbedo;\n"
+        "uniform vec3      iAlbedo;\n"
         "out vec4          fragColor;\n"
         "#line 0\n"
     ;
@@ -523,6 +528,11 @@ void fraktal_render(fraktal_scene_t &scene)
     fetch_uniform(program_render, iIsolineSpacing);
     fetch_uniform(program_render, iFloorHeight);
     fetch_uniform(program_render, iIsolineMax);
+    fetch_uniform(program_render, iMaterialGlossy);
+    fetch_uniform(program_render, iSpecularExponent);
+    fetch_uniform(program_render, iSpecularRoughness);
+    fetch_uniform(program_render, iSpecularAlbedo);
+    fetch_uniform(program_render, iAlbedo);
     fetch_uniform(program_render, iView);
     scene.program_render_is_new = false;
 
@@ -556,7 +566,7 @@ void fraktal_render(fraktal_scene_t &scene)
     float3 iToSun = angle2float3(scene.params.sun.dir);
     float iCosSunSize = cosf(deg2rad(scene.params.sun.size));
     glUniform2f(loc_iResolution, (float)fb.width, (float)fb.height);
-    glUniform2f(loc_iCameraCenter, scene.params.camera.center.x, scene.params.camera.center.y);
+    glUniform2fv(loc_iCameraCenter, 1, &scene.params.camera.center.x);
     glUniform1f(loc_iCameraF, scene.params.camera.f);
     glUniform1i(loc_iSamples, scene.samples);
     glUniform3f(loc_iSunStrength, iSunStrength.x, iSunStrength.y, iSunStrength.z);
@@ -567,10 +577,19 @@ void fraktal_render(fraktal_scene_t &scene)
         auto iso = scene.params.isolines;
         glUniform1i(loc_iDrawIsolines, iso.enabled ? 1 : 0);
         glUniform1f(loc_iFloorHeight, scene.params.floor_height);
-        glUniform3f(loc_iIsolineColor, iso.color.x, iso.color.y, iso.color.z);
+        glUniform3fv(loc_iIsolineColor, 1, &iso.color.x);
         glUniform1f(loc_iIsolineThickness, iso.thickness);
         glUniform1f(loc_iIsolineSpacing, iso.spacing);
         glUniform1f(loc_iIsolineMax, iso.count*iso.spacing + iso.thickness*0.5f);
+    }
+
+    {
+        auto material = scene.params.material;
+        glUniform1i(loc_iMaterialGlossy, material.glossy ? 1 : 0);
+        glUniform1f(loc_iSpecularExponent, material.specular_exponent);
+        glUniform1f(loc_iSpecularRoughness, material.specular_roughness);
+        glUniform3fv(loc_iSpecularAlbedo, 1, &material.specular_albedo.x);
+        glUniform3fv(loc_iAlbedo, 1, &material.albedo.x);
     }
 
     glUniformMatrix4fv(loc_iView, 1, GL_TRUE, iView);
@@ -810,6 +829,15 @@ void fraktal_present(fraktal_scene_t &scene)
                         scene.should_clear |= ImGui::DragFloat("Spacing", &isolines.spacing, 0.01f);
                         scene.should_clear |= ImGui::DragInt("Count", &isolines.count, 0.1f, 0, 100);
                     }
+                }
+                if (ImGui::CollapsingHeader("Material"))
+                {
+                    auto &material = scene.params.material;
+                    scene.should_clear |= ImGui::Checkbox("Glossy", &material.glossy);
+                    scene.should_clear |= ImGui::ColorEdit3("Albedo", &material.albedo.x);
+                    scene.should_clear |= ImGui::ColorEdit3("Specular", &material.specular_albedo.x);
+                    scene.should_clear |= ImGui::SliderFloat("Roughness", &material.specular_roughness, 0.0f, 1.0f);
+                    scene.should_clear |= ImGui::DragFloat("Exponent", &material.specular_exponent, 1.0f, 0.0f, 1000.0f);
                 }
 
                 ImGui::EndChild();

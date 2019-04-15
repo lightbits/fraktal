@@ -51,10 +51,12 @@ struct scene_params_t
     } sun;
     struct material_t
     {
-        bool active;
-        float roughness;
+        bool glossy;
         float3 albedo;
-    } material[NUM_MATERIALS];
+        float3 specular_albedo;
+        float specular_exponent;
+        float specular_roughness;
+    } material;
     struct isolines_t
     {
         bool enabled;
@@ -94,5 +96,14 @@ scene_params_t get_default_scene_params()
     params.isolines.spacing = 0.4f;
     params.floor_height = 0.0f;
     params.isolines.count = 3;
+    params.material.albedo.x = 0.6f;
+    params.material.albedo.y = 0.1f;
+    params.material.albedo.z = 0.1f;
+    params.material.glossy = true;
+    params.material.specular_albedo.x = 0.3f;
+    params.material.specular_albedo.y = 0.3f;
+    params.material.specular_albedo.z = 0.3f;
+    params.material.specular_exponent = 32.0f;
+    params.material.specular_roughness = 0.1f;
     return params;
 }

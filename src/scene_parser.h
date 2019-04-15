@@ -282,6 +282,7 @@ bool parse_sun(const char **c, scene_params_t *params)
     return true;
 }
 
+#if 0
 bool parse_material(const char **c, int index, scene_params_t *params)
 {
     assert(index >= 0 && index < NUM_MATERIALS);
@@ -297,6 +298,7 @@ bool parse_material(const char **c, int index, scene_params_t *params)
     if (!parse_end_list(c)) { log_err("Error parsing #material directive.\n"); return false; }
     return true;
 }
+#endif
 
 bool parse_resolution(const char **c, scene_params_t *params)
 {
@@ -327,11 +329,6 @@ bool scene_file_preprocessor(char *fs, scene_params_t *params)
             else if (parse_match(cc, "view"))       { if (!parse_view(cc, params)) return false; }
             else if (parse_match(cc, "camera"))     { if (!parse_camera(cc, params)) return false; }
             else if (parse_match(cc, "sun"))        { if (!parse_sun(cc, params)) return false; }
-            else if (parse_match(cc, "material0"))  { if (!parse_material(cc, 0, params)) return false; }
-            else if (parse_match(cc, "material1"))  { if (!parse_material(cc, 1, params)) return false; }
-            else if (parse_match(cc, "material2"))  { if (!parse_material(cc, 2, params)) return false; }
-            else if (parse_match(cc, "material3"))  { if (!parse_material(cc, 3, params)) return false; }
-            else if (parse_match(cc, "material4"))  { if (!parse_material(cc, 4, params)) return false; }
             remove_directive_from_source(mark, c);
         }
         c++;

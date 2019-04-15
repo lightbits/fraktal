@@ -2,7 +2,7 @@
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
 #resolution(200,200)
-#view(dir=(-20 deg, 30 deg), pos=(0,0,20))
+// #view(dir=(-20 deg, 30 deg), pos=(0,0,20))
 #camera(yfov=10deg, center=(100,100))
 #sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=500)
 

@@ -83,7 +83,7 @@ bool trace(vec3 ro, vec3 rd, out vec3 hit, out vec3 nor, out vec3 albedo)
             {
                 hit = ro + rd*t;
                 nor = normal(hit);
-                albedo = vec3(0.6, 0.1, 0.1);
+                albedo = iAlbedo;
             }
             return true;
         }
@@ -168,14 +168,15 @@ vec3 color(vec3 p, vec3 n, vec3 ro, vec3 albedo)
     result *= albedo;
 
     // specular
-    vec3 w_s = reflect(v, n);
-    #define SPECULAR_ROUGHNESS 0.01
-    #define SPECULAR_EXPONENT 16.0
-    rd = coneSample(w_s, SPECULAR_ROUGHNESS);
-    if (isVisible(ro,rd))
+    if (iMaterialGlossy == 1)
     {
-        float ndots = max(0.0, dot(iToSun, rd));
-        result += vec3(1.0)*smoothstep(0.0, 0.1, pow(ndots,SPECULAR_EXPONENT)) / M_PI;
+        vec3 w_s = reflect(v, n);
+        rd = coneSample(w_s, iSpecularRoughness);
+        if (isVisible(ro,rd))
+        {
+            float ndots = max(0.0, dot(iToSun, rd));
+            result += iSpecularAlbedo*smoothstep(0.0, 0.1, pow(ndots, iSpecularExponent));
+        }
     }
     return result;
 }
