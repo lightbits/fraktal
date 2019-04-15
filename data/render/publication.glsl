@@ -132,20 +132,22 @@ vec3 cosineWeightedSample(vec3 normal)
     return normalize(vec3(x,y,z));
 }
 
-vec3 coneSample(vec3 dir, float extent)
+// The corresponding direction pdf is: (exponent + 2)/2pi pow(cosAlpha, exponent)
+vec3 phongWeightedSample(vec3 dir, float exponent)
 {
-    vec3 tangent = vec3(1.0,0.0,0.0);
-    if (abs(dir.x) > 0.9)
-        tangent = vec3(0.0,1.0,0.0);
+    vec3 tangent = vec3(1.0, 0.0, 0.0);
+    if (abs(tangent.x) > 0.9)
+        tangent = vec3(0.0, 1.0, 0.0);
     vec3 bitangent = cross(tangent, dir);
     tangent = cross(dir, bitangent);
-    vec2 r = noise2f();
-    r.x *= 2.0*M_PI;
-    r.y = 1.0 - r.y*extent;
-    float oneminus = sqrt(1.0 - r.y*r.y);
-    return cos(r.x)*oneminus*tangent +
-           sin(r.x)*oneminus*bitangent +
-           r.y * dir;
+    vec2 u = noise2f();
+    float cosAlpha = pow(u[0], 1.0/(exponent + 1.0));
+    float sinAlpha = sqrt(1.0 - cosAlpha*cosAlpha);
+    float phi = 2.0*M_PI*u[1];
+    float x = sinAlpha*cos(phi);
+    float y = cosAlpha;
+    float z = sinAlpha*sin(phi);
+    return x*tangent + y*dir + z*bitangent;
 }
 
 vec3 color(vec3 p, vec3 n, vec3 ro, vec3 albedo)
@@ -170,13 +172,10 @@ vec3 color(vec3 p, vec3 n, vec3 ro, vec3 albedo)
     // specular
     if (iMaterialGlossy == 1)
     {
-        vec3 w_s = reflect(v, n);
-        rd = coneSample(w_s, iSpecularRoughness);
-        if (isVisible(ro,rd))
-        {
-            float ndots = max(0.0, dot(iToSun, rd));
-            result += iSpecularAlbedo*smoothstep(0.0, 0.1, pow(ndots, iSpecularExponent));
-        }
+        vec3 w_s = v - 2.0*dot(n, v)*n;
+        rd = phongWeightedSample(w_s, iSpecularExponent);
+        if (isVisible(ro, rd) && dot(rd, iToSun) >= iCosSunSize)
+            result += iSpecularAlbedo;
     }
     return result;
 }

@@ -889,18 +889,21 @@ void fraktal_present(fraktal_scene_t &scene)
             const int display_mode_fit = 2;
             static int display_mode = display_mode_1x;
 
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f,1.0f));
             ImGui::BeginMenuBar();
             {
-                ImGui::Text("Samples: %d", scene.samples);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,4.0f));
+                if (ImGui::BeginMenu("Scale"))
+                {
+                    if (ImGui::MenuItem("1x", NULL, display_mode==display_mode_1x)) { display_mode = display_mode_1x; }
+                    if (ImGui::MenuItem("2x", NULL, display_mode==display_mode_2x)) { display_mode = display_mode_2x; }
+                    if (ImGui::MenuItem("Scale to fit", NULL, display_mode==display_mode_fit)) { display_mode = display_mode_fit; }
+                    ImGui::EndMenu();
+                }
+                ImGui::PopStyleVar();
                 ImGui::Separator();
-                ImGui::Text("Display:");
-                ImGui::RadioButton("1x", &display_mode, display_mode_1x);
-                ImGui::RadioButton("2x", &display_mode, display_mode_2x);
-                ImGui::RadioButton("fit", &display_mode, display_mode_fit);
+                ImGui::Text("Samples: %d", scene.samples);
             }
             ImGui::EndMenuBar();
-            ImGui::PopStyleVar();
 
             ImDrawList *draw = ImGui::GetWindowDrawList();
             {
