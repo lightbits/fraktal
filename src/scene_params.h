@@ -55,6 +55,15 @@ struct scene_params_t
         float roughness;
         float3 albedo;
     } material[NUM_MATERIALS];
+    struct isolines_t
+    {
+        bool enabled;
+        float3 color;
+        float thickness;
+        float spacing;
+        int count;
+    } isolines;
+    float floor_height;
 };
 
 scene_params_t get_default_scene_params()
@@ -77,5 +86,13 @@ scene_params_t get_default_scene_params()
     params.sun.color.y = 1.0f;
     params.sun.color.z = 0.8f;
     params.sun.intensity = 250.0f;
+    params.isolines.enabled = false;
+    params.isolines.color.x = 0.3f;
+    params.isolines.color.y = 0.3f;
+    params.isolines.color.z = 0.3f;
+    params.isolines.thickness = 0.25f*0.5f;
+    params.isolines.spacing = 0.4f;
+    params.floor_height = 0.0f;
+    params.isolines.count = 3;
     return params;
 }

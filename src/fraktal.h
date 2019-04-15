@@ -275,6 +275,12 @@ GLuint load_render_shader(fraktal_scene_def_t def)
         "uniform vec3      iToSun;\n"
         "uniform vec3      iSunStrength;\n"
         "uniform float     iCosSunSize;\n"
+        "uniform int       iDrawIsolines;\n"
+        "uniform float     iFloorHeight;\n"
+        "uniform vec3      iIsolineColor;\n"
+        "uniform float     iIsolineThickness;\n"
+        "uniform float     iIsolineSpacing;\n"
+        "uniform float     iIsolineMax;\n"
         "out vec4          fragColor;\n"
         "#line 0\n"
     ;
@@ -511,6 +517,12 @@ void fraktal_render(fraktal_scene_t &scene)
     fetch_uniform(program_render, iToSun);
     fetch_uniform(program_render, iSunStrength);
     fetch_uniform(program_render, iCosSunSize);
+    fetch_uniform(program_render, iDrawIsolines);
+    fetch_uniform(program_render, iIsolineColor);
+    fetch_uniform(program_render, iIsolineThickness);
+    fetch_uniform(program_render, iIsolineSpacing);
+    fetch_uniform(program_render, iFloorHeight);
+    fetch_uniform(program_render, iIsolineMax);
     fetch_uniform(program_render, iView);
     scene.program_render_is_new = false;
 
@@ -550,6 +562,16 @@ void fraktal_render(fraktal_scene_t &scene)
     glUniform3f(loc_iSunStrength, iSunStrength.x, iSunStrength.y, iSunStrength.z);
     glUniform3f(loc_iToSun, iToSun.x, iToSun.y, iToSun.z);
     glUniform1f(loc_iCosSunSize, iCosSunSize);
+
+    {
+        auto iso = scene.params.isolines;
+        glUniform1i(loc_iDrawIsolines, iso.enabled ? 1 : 0);
+        glUniform1f(loc_iFloorHeight, scene.params.floor_height);
+        glUniform3f(loc_iIsolineColor, iso.color.x, iso.color.y, iso.color.z);
+        glUniform1f(loc_iIsolineThickness, iso.thickness);
+        glUniform1f(loc_iIsolineSpacing, iso.spacing);
+        glUniform1f(loc_iIsolineMax, iso.count*iso.spacing + iso.thickness*0.5f);
+    }
 
     glUniformMatrix4fv(loc_iView, 1, GL_TRUE, iView);
 
@@ -775,6 +797,19 @@ void fraktal_present(fraktal_scene_t &scene)
                     scene.should_clear |= ImGui::SliderFloat("\xcf\x86##sun_dir", &scene.params.sun.dir.phi, -180.0f, +180.0f, "%.0f deg");
                     scene.should_clear |= ImGui::SliderFloat3("color##sun_color", &scene.params.sun.color.x, 0.0f, 1.0f);
                     scene.should_clear |= ImGui::DragFloat("intensity##sun_intensity", &scene.params.sun.intensity);
+                }
+                if (ImGui::CollapsingHeader("Floor"))
+                {
+                    auto &isolines = scene.params.isolines;
+                    scene.should_clear |= ImGui::DragFloat("Height", &scene.params.floor_height, 0.01f);
+                    scene.should_clear |= ImGui::Checkbox("Draw isolines", &isolines.enabled);
+                    if (isolines.enabled)
+                    {
+                        scene.should_clear |= ImGui::ColorEdit3("Color", &isolines.color.x);
+                        scene.should_clear |= ImGui::DragFloat("Thickness", &isolines.thickness, 0.01f);
+                        scene.should_clear |= ImGui::DragFloat("Spacing", &isolines.spacing, 0.01f);
+                        scene.should_clear |= ImGui::DragInt("Count", &isolines.count, 0.1f, 0, 100);
+                    }
                 }
 
                 ImGui::EndChild();

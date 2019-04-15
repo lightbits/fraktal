@@ -2,8 +2,8 @@
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
 #resolution(200,200)
-#view(dir=(-20 deg, 30 deg), pos=(0,0,24))
-#camera(yfov=6deg, center=(100,100))
+#view(dir=(-20 deg, 30 deg), pos=(0,0,20))
+#camera(yfov=10deg, center=(100,100))
 #sun(size=3 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=500)
 
 float fCylinder(vec3 p, float r, float height) {
@@ -29,7 +29,6 @@ float fOpUnionSoft(float a, float b, float r) {
 }
 
 float model(vec3 p) {
-    p.y -= 1.0;
     float d = fSphere(p, 0.5);
 
     // grooves

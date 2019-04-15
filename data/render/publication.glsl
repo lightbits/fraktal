@@ -10,27 +10,28 @@
 
 float model(vec3 p); // forward declaration
 
-// Returns alternating color between white background and gray isolines.
-vec3 colorIsolines(float d)
+vec3 colorFloor(vec3 p)
 {
-    vec3 iso_color = vec3(0.3);
-    float iso_thickness = 0.25*0.5;
-    float iso_spacing = 0.4;
-    float iso_count = 3.0;
-    float iso_max = iso_count * iso_spacing + iso_thickness*0.5;
-
-    float a = mod(d - iso_thickness*0.5, iso_spacing);
-    float t = step(iso_spacing-iso_thickness, a) * (1.0 - step(iso_max, d));
-    return mix(vec3(1.0), iso_color, t);
+    if (iDrawIsolines==1)
+    {
+        // Returns alternating color between white background and gray isolines.
+        float d = model(p);
+        float a = mod(d - iIsolineThickness*0.5, iIsolineSpacing);
+        float t = step(iIsolineSpacing-iIsolineThickness, a) * (1.0 - step(iIsolineMax, d));
+        return mix(vec3(1.0), iIsolineColor, t);
+    }
+    else
+    {
+        return vec3(1.0);
+    }
 }
 
 float traceFloor(vec3 ro, vec3 rd)
 {
-    float floorHeight = 0.0;
     if (rd.y == 0.0)
         return -1.0;
     else
-        return (floorHeight - ro.y)/rd.y;
+        return (iFloorHeight - ro.y)/rd.y;
 }
 
 // Adapted from: lumina.sourceforge.net/Tutorials/Noise.html
@@ -76,7 +77,7 @@ bool trace(vec3 ro, vec3 rd, out vec3 hit, out vec3 nor, out vec3 albedo)
             {
                 hit = ro + rd*tFloor;
                 nor = vec3(0.0, 1.0, 0.0);
-                albedo = colorIsolines(model(hit));
+                albedo = colorFloor(hit);
             }
             else
             {
@@ -94,7 +95,7 @@ bool trace(vec3 ro, vec3 rd, out vec3 hit, out vec3 nor, out vec3 albedo)
     {
         hit = ro + rd*tFloor;
         nor = vec3(0.0, 1.0, 0.0);
-        albedo = colorIsolines(model(hit));
+        albedo = colorFloor(hit);
         return true;
     }
 
