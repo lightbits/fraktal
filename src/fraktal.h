@@ -672,7 +672,7 @@ bool handle_view_change_keys(fraktal_scene_t &scene)
     if (scene.keys.Down.pressed)  { dir.theta += rotate_step; moved = true; }
 
     // translation
-    // Note: The z_over_f factor ensures that a key press yields the same 
+    // Note: The z_over_f factor ensures that a key press yields the same
     // displacement of the object in image pixels, irregardless of how far
     // away the camera is.
     float3 &pos = scene.params.view.pos;
@@ -877,7 +877,7 @@ void fraktal_present(fraktal_scene_t &scene)
             ImGuiWindowFlags_MenuBar;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.14f, 0.14f, 0.14f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
-        // ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::SetNextWindowSize(ImVec2(width, height));
         ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, main_menu_bar_height + pad));
         ImGui::Begin("Preview", NULL, flags);
@@ -957,7 +957,7 @@ void fraktal_present(fraktal_scene_t &scene)
 
         ImGui::End();
         ImGui::PopStyleColor();
-        // ImGui::PopStyleVar();
+        ImGui::PopStyleVar();
         ImGui::PopStyleVar();
     }
 
