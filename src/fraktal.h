@@ -56,7 +56,7 @@ struct fraktal_scene_t
     int samples;
     bool should_clear;
     bool initialized;
-    bool should_render;
+    bool auto_render;
     GLuint quad;
 
     scene_params_t params;
@@ -653,9 +653,9 @@ void fraktal_present(fraktal_scene_t &scene)
         scene.should_clear = true;
 
     if (!scene.keys.Alt.down && scene.keys.Enter.pressed)
-        scene.should_render = !scene.should_render;
+        scene.auto_render = !scene.auto_render;
 
-    if (scene.should_render || scene.program_render_is_new || scene.should_clear)
+    if (scene.auto_render || scene.program_render_is_new || scene.should_clear)
     {
         fraktal_render(scene);
         fraktal_compose(scene);

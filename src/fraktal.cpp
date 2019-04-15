@@ -98,36 +98,36 @@ int main(int argc, char **argv)
 
     while (!glfwWindowShouldClose(window))
     {
-        static int settle_frames = 0;
-        if (settle_frames == 0)
+        if (scene.auto_render)
         {
-            glfwWaitEvents();
-            settle_frames = 10;
+            glfwPollEvents();
         }
         else
         {
-            glfwPollEvents();
-            settle_frames--;
+            static int settle_frames = 60;
+            if (settle_frames == 0)
+            {
+                glfwWaitEvents();
+                settle_frames = 10;
+            }
+            else
+            {
+                glfwPollEvents();
+                settle_frames--;
+            }
         }
 
         const double max_redraw_rate = 60.0;
         const double min_redraw_time = 1.0/max_redraw_rate;
-        static double time_to_next_redraw = 0.0;
-        static double t_prev = glfwGetTime();
+        static double t_last_redraw = -min_redraw_time;
         double t_curr = glfwGetTime();
-        double t_delta = t_curr - t_prev;
-
-        time_to_next_redraw -= t_delta;
+        double t_delta = t_curr - t_last_redraw;
         bool should_redraw = false;
-        if (time_to_next_redraw < 0.0)
+        if (t_delta >= min_redraw_time)
         {
-            if (t_delta > min_redraw_time) // application is running slow
-                time_to_next_redraw += min_redraw_time;
-            else
-                time_to_next_redraw += min_redraw_time - t_delta;
+            t_last_redraw = t_curr;
             should_redraw = true;
         }
-        t_prev = t_curr;
 
         if (should_redraw)
         {
