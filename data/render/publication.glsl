@@ -4,50 +4,34 @@
 #define EPSILON 0.0001
 #define STEPS 512
 #define M_PI 3.1415926535897932384626433832795
-#define Z_FAR 100.0
+#define MAX_DISTANCE 100.0
 #define ZERO (min(iFrame,0))
 #define MATERIAL_FLOOR -1.0
-#define Z_FAR_VISIBILITY_TEST 10.0
+#define MAX_DISTANCE_VISIBILITY_TEST 10.0
 
-float vmax(vec3 v) {
-    return max(max(v.x, v.y), v.z);
-}
+float model(vec3 p); // forward declaration
 
-// Cylinder standing upright on the xz plane
-float fCylinder(vec3 p, float r, float height) {
-    vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(r, height);
-    return min(max(d.x,d.y),0.0) + length(max(d,0.0));
-    // return d;
-}
-
-// Box: correct distance to corners
-float fBox(vec3 p, vec3 b) {
-    vec3 d = abs(p) - b;
-    return length(max(d, vec3(0))) + vmax(min(d, vec3(0)));
-}
-
-vec4 _model(vec3 p)
+// Returns alternating color between white background and gray isolines.
+vec3 colorIsolines(float d)
 {
-    // p.xy = p.yx;
-    #define SPECULAR_ROUGHNESS 0.1
-    #define SPECULAR_EXPONENT 32.0
-    float r = 0.1;
-    float d = fCylinder(p, 0.5 - r, 0.3 - r) - r;
-    d = max(d, -fBox(p - vec3(0.0,0.4,0.0), vec3(0.2)) + 0.1);
-
     vec3 iso_color = vec3(0.3);
-    {
-        float iso_thickness = 0.25*0.5;
-        float iso_spacing = 0.4;
-        float iso_count = 3.0;
-        float iso_max = iso_count * iso_spacing + iso_thickness*0.5;
-        float a = mod(d - iso_thickness*0.5, iso_spacing);
-        float t = step(iso_spacing-iso_thickness, a) * (1.0 - step(iso_max, d));
-        iso_color = mix(vec3(1.0), iso_color, t);
-    }
-    float ground = fBox(p - vec3(0,-1,0), vec3(4,1,4));
-    if (ground < d) return vec4(iso_color,ground);
-    else return vec4(0.6,0.1,0.1,d);
+    float iso_thickness = 0.25*0.5;
+    float iso_spacing = 0.4;
+    float iso_count = 3.0;
+    float iso_max = iso_count * iso_spacing + iso_thickness*0.5;
+
+    float a = mod(d - iso_thickness*0.5, iso_spacing);
+    float t = step(iso_spacing-iso_thickness, a) * (1.0 - step(iso_max, d));
+    return mix(vec3(1.0), iso_color, t);
+}
+
+float traceFloor(vec3 ro, vec3 rd)
+{
+    float floorHeight = 0.0;
+    if (rd.y == 0.0)
+        return -1.0;
+    else
+        return (floorHeight - ro.y)/rd.y;
 }
 
 // Adapted from: lumina.sourceforge.net/Tutorials/Noise.html
@@ -72,42 +56,65 @@ vec3 normal(vec3 p)
 {
     const float ep = 0.0001;
     vec2 e = vec2(1.0,-1.0)*0.5773*ep;
-    return normalize( e.xyy*_model( p + e.xyy ).w +
-                      e.yyx*_model( p + e.yyx ).w +
-                      e.yxy*_model( p + e.yxy ).w +
-                      e.xxx*_model( p + e.xxx ).w );
+    return normalize( e.xyy*model( p + e.xyy ) +
+                      e.yyx*model( p + e.yyx ) +
+                      e.yxy*model( p + e.yxy ) +
+                      e.xxx*model( p + e.xxx ) );
 }
 
-bool trace(vec3 ro, vec3 rd, out vec3 hit, out vec3 albedo)
+bool trace(vec3 ro, vec3 rd, out vec3 hit, out vec3 nor, out vec3 albedo)
 {
+    float tFloor = traceFloor(ro, rd);
     float t = 0.0;
     for (int i = ZERO; i < STEPS; i++)
     {
         vec3 p = ro + t*rd;
-        vec4 m = _model(p);
-        t += m.w;
-        if (m.w <= EPSILON)
+        float d = model(p);
+        t += d;
+        if (d <= EPSILON)
         {
-            albedo = m.rgb;
-            hit = p;
+            if (tFloor > 0.0 && tFloor < t)
+            {
+                hit = ro + rd*tFloor;
+                nor = vec3(0.0, 1.0, 0.0);
+                albedo = colorIsolines(model(hit));
+            }
+            else
+            {
+                hit = ro + rd*t;
+                nor = normal(hit);
+                albedo = vec3(0.6, 0.1, 0.1);
+            }
             return true;
         }
-        if (t > Z_FAR)
+        if (t > MAX_DISTANCE)
             break;
     }
+
+    if (tFloor > 0.0)
+    {
+        hit = ro + rd*tFloor;
+        nor = vec3(0.0, 1.0, 0.0);
+        albedo = colorIsolines(model(hit));
+        return true;
+    }
+
     return false;
 }
 
 bool isVisible(vec3 ro, vec3 rd)
 {
+    float tFloor = traceFloor(ro, rd);
+    if (tFloor > EPSILON)
+        return false;
     float t = 0.0;
     for (int i = ZERO; i < STEPS; i++)
     {
-        vec4 m = _model(ro + t*rd);
-        t += m.w;
-        if (m.w <= EPSILON)
+        float d = model(ro + t*rd);
+        t += d;
+        if (d <= EPSILON)
             return false;
-        if (t > Z_FAR_VISIBILITY_TEST)
+        if (t > MAX_DISTANCE_VISIBILITY_TEST)
             break;
     }
     return true;
@@ -141,9 +148,8 @@ vec3 coneSample(vec3 dir, float extent)
            r.y * dir;
 }
 
-vec3 color(vec3 p, vec3 ro, vec3 albedo)
+vec3 color(vec3 p, vec3 n, vec3 ro, vec3 albedo)
 {
-    vec3 n = normal(p);
     vec3 v = normalize(p - ro); // from eye to point
     ro = p + n*2.0*EPSILON;
 
@@ -163,7 +169,7 @@ vec3 color(vec3 p, vec3 ro, vec3 albedo)
 
     // specular
     vec3 w_s = reflect(v, n);
-    #define SPECULAR_ROUGHNESS 0.1
+    #define SPECULAR_ROUGHNESS 0.01
     #define SPECULAR_EXPONENT 16.0
     rd = coneSample(w_s, SPECULAR_ROUGHNESS);
     if (isVisible(ro,rd))
@@ -181,8 +187,8 @@ void main()
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
 
     fragColor.rgb = vec3(1.0);
-    vec3 p,albedo;
-    if (trace(ro, rd, p, albedo))
-        fragColor.rgb = color(p, ro, albedo);
+    vec3 p,n,albedo;
+    if (trace(ro, rd, p, n, albedo))
+        fragColor.rgb = color(p, n, ro, albedo);
     fragColor.a = 1.0;
 }

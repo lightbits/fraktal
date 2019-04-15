@@ -290,8 +290,6 @@ GLuint load_render_shader(fraktal_scene_def_t def)
     const char *sources[] = {
         def.glsl_version, "\n",
         header,
-        "vec2 model(vec3 p);\n", // forward-declaration
-        "vec4 material(vec3 p, float m);\n",
         "#line 0\n",
         source
     };
@@ -659,7 +657,6 @@ void fraktal_present(fraktal_scene_t &scene)
     {
         fraktal_render(scene);
         fraktal_compose(scene);
-        glfwPostEmptyEvent();
     }
 
     float pad = 2.0f;

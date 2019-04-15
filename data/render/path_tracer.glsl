@@ -9,6 +9,10 @@
 #define M_PI 3.1415926535897932384626433832795
 #define ZERO (min(iFrame,0))
 
+// forward declaration
+vec2 model(vec3 p);
+vec4 material(vec3 p, float matIndex);
+
 const vec3 skyDomeColor = vec3(0.1,0.2,0.7);
 
 vec3 sky(vec3 rd)
