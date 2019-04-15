@@ -1,7 +1,7 @@
 <p align="center">
 <b>fraktal</b>
 <br>
-<img width="128" height="128" src="doc/fraktal-logo.svg">
+<img width="128" height="128" src="res/fraktal-logo.svg">
 </p>
 
 This software is still in early development. Documentation will come soon...
