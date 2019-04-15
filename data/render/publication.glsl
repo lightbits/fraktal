@@ -10,30 +10,6 @@
 
 float model(vec3 p); // forward declaration
 
-vec3 colorFloor(vec3 p)
-{
-    if (iDrawIsolines==1)
-    {
-        // Returns alternating color between white background and gray isolines.
-        float d = model(p);
-        float a = mod(d - iIsolineThickness*0.5, iIsolineSpacing);
-        float t = step(iIsolineSpacing-iIsolineThickness, a) * (1.0 - step(iIsolineMax, d));
-        return mix(vec3(1.0), iIsolineColor, t);
-    }
-    else
-    {
-        return vec3(1.0);
-    }
-}
-
-float traceFloor(vec3 ro, vec3 rd)
-{
-    if (rd.y == 0.0)
-        return -1.0;
-    else
-        return (iFloorHeight - ro.y)/rd.y;
-}
-
 // Adapted from: lumina.sourceforge.net/Tutorials/Noise.html
 vec2 seed = vec2(-1,1)*(iSamples*(1.0/12.0) + 1.0);
 vec2 noise2f()
@@ -62,44 +38,24 @@ vec3 normal(vec3 p)
                       e.xxx*model( p + e.xxx ) );
 }
 
-bool trace(vec3 ro, vec3 rd, out vec3 hit, out vec3 nor, out vec3 albedo)
+float traceFloor(vec3 ro, vec3 rd)
 {
-    float tFloor = traceFloor(ro, rd);
+    if (rd.y == 0.0) return -1.0;
+    else return (iFloorHeight - ro.y)/rd.y;
+}
+
+float traceModel(vec3 ro, vec3 rd)
+{
     float t = 0.0;
     for (int i = ZERO; i < STEPS; i++)
     {
         vec3 p = ro + t*rd;
         float d = model(p);
         t += d;
-        if (d <= EPSILON)
-        {
-            if (tFloor > 0.0 && tFloor < t)
-            {
-                hit = ro + rd*tFloor;
-                nor = vec3(0.0, 1.0, 0.0);
-                albedo = colorFloor(hit);
-            }
-            else
-            {
-                hit = ro + rd*t;
-                nor = normal(hit);
-                albedo = iAlbedo;
-            }
-            return true;
-        }
-        if (t > MAX_DISTANCE)
-            break;
+        if (d <= EPSILON) return t;
+        if (t > MAX_DISTANCE) break;
     }
-
-    if (tFloor > 0.0)
-    {
-        hit = ro + rd*tFloor;
-        nor = vec3(0.0, 1.0, 0.0);
-        albedo = colorFloor(hit);
-        return true;
-    }
-
-    return false;
+    return -1.0;
 }
 
 bool isVisible(vec3 ro, vec3 rd)
@@ -150,24 +106,23 @@ vec3 phongWeightedSample(vec3 dir, float exponent)
     return x*tangent + y*dir + z*bitangent;
 }
 
-vec3 color(vec3 p, vec3 n, vec3 ro, vec3 albedo)
+vec3 colorModel(vec3 p, vec3 ro)
 {
+    vec3 n = normal(p);
     vec3 v = normalize(p - ro); // from eye to point
     ro = p + n*2.0*EPSILON;
 
     vec3 result = vec3(0.0);
 
-    // hemisphere sample
     vec3 rd = cosineWeightedSample(n);
     if (isVisible(ro,rd))
         result += vec3(1.0);
 
-    // sun sample
     rd = iToSun;
     if (isVisible(ro,rd))
         result += vec3(1.0)*max(0.0,dot(n, rd))*(2.0/M_PI);
 
-    result *= albedo;
+    result *= iAlbedo;
 
     // specular
     if (iMaterialGlossy == 1)
@@ -180,6 +135,39 @@ vec3 color(vec3 p, vec3 n, vec3 ro, vec3 albedo)
     return result;
 }
 
+// Computes a color alternating between white and gray where the gray lines
+// indicate points of identical distance to the model.
+vec3 colorIsolines(vec3 p)
+{
+    float d = model(p);
+    float a = mod(d - iIsolineThickness*0.5, iIsolineSpacing);
+    float t = step(iIsolineSpacing-iIsolineThickness, a) * (1.0 - step(iIsolineMax, d));
+    return mix(vec3(1.0), iIsolineColor, t);
+}
+
+vec3 colorFloor(vec3 p)
+{
+    vec3 albedo = vec3(1.0);
+    if (iDrawIsolines==1)
+        albedo = colorIsolines(p);
+
+    vec3 n = vec3(0.0, 1.0, 0.0);
+    vec3 ro = p + n*2.0*EPSILON;
+
+    vec3 result = vec3(0.0);
+
+    vec3 rd = cosineWeightedSample(n);
+    if (isVisible(ro,rd))
+        result += vec3(1.0);
+
+    rd = iToSun;
+    if (isVisible(ro,rd))
+        result += vec3(1.0)*max(0.0,dot(n, rd))*(2.0/M_PI);
+
+    result *= albedo;
+    return result;
+}
+
 void main()
 {
     vec3 rd = rayPinhole(2.0*(noise2f() - vec2(0.5)));
@@ -187,8 +175,22 @@ void main()
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
 
     fragColor.rgb = vec3(1.0);
-    vec3 p,n,albedo;
-    if (trace(ro, rd, p, n, albedo))
-        fragColor.rgb = color(p, n, ro, albedo);
+    float tModel = traceModel(ro, rd);
+    float tFloor = traceFloor(ro, rd);
+    if (tFloor > 0.0 && tModel > 0.0)
+    {
+        if (tFloor < tModel)
+            fragColor.rgb = colorFloor(ro + rd*tFloor);
+        else
+            fragColor.rgb = colorModel(ro + rd*tModel, ro);
+    }
+    else if (tFloor > 0.0)
+    {
+        fragColor.rgb = colorFloor(ro + rd*tFloor);
+    }
+    else if (tModel > 0.0)
+    {
+        fragColor.rgb = colorModel(ro + rd*tModel, ro);
+    }
     fragColor.a = 1.0;
 }
