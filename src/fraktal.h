@@ -276,15 +276,18 @@ GLuint load_render_shader(fraktal_scene_def_t def)
         "uniform vec3      iSunStrength;\n"
         "uniform float     iCosSunSize;\n"
         "uniform int       iDrawIsolines;\n"
-        "uniform float     iFloorHeight;\n"
         "uniform vec3      iIsolineColor;\n"
         "uniform float     iIsolineThickness;\n"
         "uniform float     iIsolineSpacing;\n"
         "uniform float     iIsolineMax;\n"
         "uniform int       iMaterialGlossy;\n"
-        "uniform float     iSpecularExponent;\n"
-        "uniform vec3      iSpecularAlbedo;\n"
-        "uniform vec3      iAlbedo;\n"
+        "uniform float     iMaterialSpecularExponent;\n"
+        "uniform vec3      iMaterialSpecularAlbedo;\n"
+        "uniform vec3      iMaterialAlbedo;\n"
+        "uniform int       iFloorReflective;\n"
+        "uniform float     iFloorHeight;\n"
+        "uniform float     iFloorSpecularExponent;\n"
+        "uniform float     iFloorReflectivity;\n"
         "out vec4          fragColor;\n"
         "#line 0\n"
     ;
@@ -525,13 +528,16 @@ void fraktal_render(fraktal_scene_t &scene)
     fetch_uniform(program_render, iIsolineColor);
     fetch_uniform(program_render, iIsolineThickness);
     fetch_uniform(program_render, iIsolineSpacing);
-    fetch_uniform(program_render, iFloorHeight);
     fetch_uniform(program_render, iIsolineMax);
     fetch_uniform(program_render, iMaterialGlossy);
-    fetch_uniform(program_render, iSpecularExponent);
-    fetch_uniform(program_render, iSpecularRoughness);
-    fetch_uniform(program_render, iSpecularAlbedo);
-    fetch_uniform(program_render, iAlbedo);
+    fetch_uniform(program_render, iMaterialSpecularExponent);
+    fetch_uniform(program_render, iMaterialSpecularRoughness);
+    fetch_uniform(program_render, iMaterialSpecularAlbedo);
+    fetch_uniform(program_render, iMaterialAlbedo);
+    fetch_uniform(program_render, iFloorReflective);
+    fetch_uniform(program_render, iFloorHeight);
+    fetch_uniform(program_render, iFloorSpecularExponent);
+    fetch_uniform(program_render, iFloorReflectivity);
     fetch_uniform(program_render, iView);
     scene.program_render_is_new = false;
 
@@ -558,24 +564,27 @@ void fraktal_render(fraktal_scene_t &scene)
         compute_view_matrix(iView, scene.params.view.pos, r);
     }
 
-    float3 iSunStrength = scene.params.sun.color;
-    iSunStrength.x *= scene.params.sun.intensity;
-    iSunStrength.y *= scene.params.sun.intensity;
-    iSunStrength.z *= scene.params.sun.intensity;
-    float3 iToSun = angle2float3(scene.params.sun.dir);
-    float iCosSunSize = cosf(deg2rad(scene.params.sun.size));
     glUniform2f(loc_iResolution, (float)fb.width, (float)fb.height);
     glUniform2fv(loc_iCameraCenter, 1, &scene.params.camera.center.x);
     glUniform1f(loc_iCameraF, scene.params.camera.f);
     glUniform1i(loc_iSamples, scene.samples);
-    glUniform3f(loc_iSunStrength, iSunStrength.x, iSunStrength.y, iSunStrength.z);
-    glUniform3f(loc_iToSun, iToSun.x, iToSun.y, iToSun.z);
-    glUniform1f(loc_iCosSunSize, iCosSunSize);
+
+    {
+        auto sun = scene.params.sun;
+        float3 iSunStrength = sun.color;
+        iSunStrength.x *= sun.intensity;
+        iSunStrength.y *= sun.intensity;
+        iSunStrength.z *= sun.intensity;
+        float3 iToSun = angle2float3(sun.dir);
+        float iCosSunSize = cosf(deg2rad(sun.size));
+        glUniform3fv(loc_iSunStrength, 1, &iSunStrength.x);
+        glUniform3fv(loc_iToSun, 1, &iToSun.x);
+        glUniform1f(loc_iCosSunSize, iCosSunSize);
+    }
 
     {
         auto iso = scene.params.isolines;
         glUniform1i(loc_iDrawIsolines, iso.enabled ? 1 : 0);
-        glUniform1f(loc_iFloorHeight, scene.params.floor_height);
         glUniform3fv(loc_iIsolineColor, 1, &iso.color.x);
         glUniform1f(loc_iIsolineThickness, iso.thickness);
         glUniform1f(loc_iIsolineSpacing, iso.spacing);
@@ -585,9 +594,17 @@ void fraktal_render(fraktal_scene_t &scene)
     {
         auto material = scene.params.material;
         glUniform1i(loc_iMaterialGlossy, material.glossy ? 1 : 0);
-        glUniform1f(loc_iSpecularExponent, material.specular_exponent);
-        glUniform3fv(loc_iSpecularAlbedo, 1, &material.specular_albedo.x);
-        glUniform3fv(loc_iAlbedo, 1, &material.albedo.x);
+        glUniform1f(loc_iMaterialSpecularExponent, material.specular_exponent);
+        glUniform3fv(loc_iMaterialSpecularAlbedo, 1, &material.specular_albedo.x);
+        glUniform3fv(loc_iMaterialAlbedo, 1, &material.albedo.x);
+    }
+
+    {
+        auto floor = scene.params.floor;
+        glUniform1i(loc_iFloorReflective, floor.reflective ? 1 : 0);
+        glUniform1f(loc_iFloorHeight, floor.height);
+        glUniform1f(loc_iFloorSpecularExponent, floor.specular_exponent);
+        glUniform1f(loc_iFloorReflectivity, floor.reflectivity);
     }
 
     glUniformMatrix4fv(loc_iView, 1, GL_TRUE, iView);
@@ -818,8 +835,10 @@ void fraktal_present(fraktal_scene_t &scene)
                 if (ImGui::CollapsingHeader("Floor"))
                 {
                     auto &isolines = scene.params.isolines;
-                    scene.should_clear |= ImGui::DragFloat("Height", &scene.params.floor_height, 0.01f);
-                    scene.should_clear |= ImGui::Checkbox("Draw isolines", &isolines.enabled);
+                    auto &floor = scene.params.floor;
+                    scene.should_clear |= ImGui::DragFloat("Height", &floor.height, 0.01f);
+                    scene.should_clear |= ImGui::Checkbox("Draw isolines", &isolines.enabled); ImGui::SameLine();
+                    scene.should_clear |= ImGui::Checkbox("Reflective", &floor.reflective);
                     if (isolines.enabled)
                     {
                         scene.should_clear |= ImGui::ColorEdit3("Color", &isolines.color.x);
@@ -827,6 +846,8 @@ void fraktal_present(fraktal_scene_t &scene)
                         scene.should_clear |= ImGui::DragFloat("Spacing", &isolines.spacing, 0.01f);
                         scene.should_clear |= ImGui::DragInt("Count", &isolines.count, 0.1f, 0, 100);
                     }
+                    scene.should_clear |= ImGui::DragFloat("Exponent", &floor.specular_exponent, 1.0f, 0.0f, 10000.0f);
+                    scene.should_clear |= ImGui::SliderFloat("Reflectivity", &floor.reflectivity, 0.0f, 1.0f);
                 }
                 if (ImGui::CollapsingHeader("Material"))
                 {

@@ -122,15 +122,14 @@ vec3 colorModel(vec3 p, vec3 ro)
     if (isVisible(ro,rd))
         result += vec3(1.0)*max(0.0,dot(n, rd))*(2.0/M_PI);
 
-    result *= iAlbedo;
+    result *= iMaterialAlbedo;
 
-    // specular
     if (iMaterialGlossy == 1)
     {
         vec3 w_s = v - 2.0*dot(n, v)*n;
-        rd = phongWeightedSample(w_s, iSpecularExponent);
+        rd = phongWeightedSample(w_s, iMaterialSpecularExponent);
         if (isVisible(ro, rd) && dot(rd, iToSun) >= iCosSunSize)
-            result += iSpecularAlbedo;
+            result += iMaterialSpecularAlbedo;
     }
     return result;
 }
@@ -145,14 +144,15 @@ vec3 colorIsolines(vec3 p)
     return mix(vec3(1.0), iIsolineColor, t);
 }
 
-vec3 colorFloor(vec3 p)
+vec3 colorFloor(vec3 p, vec3 ro)
 {
     vec3 albedo = vec3(1.0);
     if (iDrawIsolines==1)
         albedo = colorIsolines(p);
 
     vec3 n = vec3(0.0, 1.0, 0.0);
-    vec3 ro = p + n*2.0*EPSILON;
+    vec3 v = normalize(p - ro);
+    ro = p + n*2.0*EPSILON;
 
     vec3 result = vec3(0.0);
 
@@ -164,8 +164,16 @@ vec3 colorFloor(vec3 p)
     if (isVisible(ro,rd))
         result += vec3(1.0)*max(0.0,dot(n, rd))*(2.0/M_PI);
 
-    result *= albedo;
-    return result;
+    if (iFloorReflective == 1)
+    {
+        vec3 w_s = v - 2.0*dot(n, v)*n;
+        rd = phongWeightedSample(w_s, iFloorSpecularExponent);
+        float tModel = traceModel(ro, rd);
+        if (tModel > 0.0)
+            result = mix(result, colorModel(ro + tModel*rd, ro), iFloorReflectivity);
+    }
+
+    return result*albedo;
 }
 
 void main()
@@ -177,20 +185,9 @@ void main()
     fragColor.rgb = vec3(1.0);
     float tModel = traceModel(ro, rd);
     float tFloor = traceFloor(ro, rd);
-    if (tFloor > 0.0 && tModel > 0.0)
-    {
-        if (tFloor < tModel)
-            fragColor.rgb = colorFloor(ro + rd*tFloor);
-        else
-            fragColor.rgb = colorModel(ro + rd*tModel, ro);
-    }
-    else if (tFloor > 0.0)
-    {
-        fragColor.rgb = colorFloor(ro + rd*tFloor);
-    }
-    else if (tModel > 0.0)
-    {
+    if (tFloor > 0.0 && ((tModel > 0.0 && tFloor < tModel) || tModel < 0.0))
+        fragColor.rgb = colorFloor(ro + rd*tFloor, ro);
+    else if (tModel > 0.0 && ((tFloor > 0.0 && tModel < tFloor) || tFloor < 0.0))
         fragColor.rgb = colorModel(ro + rd*tModel, ro);
-    }
     fragColor.a = 1.0;
 }

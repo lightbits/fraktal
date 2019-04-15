@@ -64,7 +64,13 @@ struct scene_params_t
         float spacing;
         int count;
     } isolines;
-    float floor_height;
+    struct floor_t
+    {
+        bool reflective;
+        float height;
+        float specular_exponent;
+        float reflectivity;
+    } floor;
 };
 
 scene_params_t get_default_scene_params()
@@ -93,7 +99,6 @@ scene_params_t get_default_scene_params()
     params.isolines.color.z = 0.3f;
     params.isolines.thickness = 0.25f*0.5f;
     params.isolines.spacing = 0.4f;
-    params.floor_height = 0.0f;
     params.isolines.count = 3;
     params.material.albedo.x = 0.6f;
     params.material.albedo.y = 0.1f;
@@ -103,5 +108,9 @@ scene_params_t get_default_scene_params()
     params.material.specular_albedo.y = 0.3f;
     params.material.specular_albedo.z = 0.3f;
     params.material.specular_exponent = 32.0f;
+    params.floor.reflective = false;
+    params.floor.height = 0.0f;
+    params.floor.specular_exponent = 500.0f;
+    params.floor.reflectivity = 0.6f;
     return params;
 }
