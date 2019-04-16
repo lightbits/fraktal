@@ -11,3 +11,7 @@ This software is still in early development. Documentation will come soon...
 * **Windows (MSVC):** build.bat
 * **Windows (MSYS2/MINGW):** make
 * **Unix:** make
+
+## GPU-acceleration
+
+Fraktal delivers GPU-acceleration for all three major vendors: NVIDIA, AMD and Intel integrated graphics.
