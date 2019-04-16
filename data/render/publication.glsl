@@ -204,19 +204,19 @@ void main()
     vec3 ro = (iView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
 
-    // fragColor.rgb = vec3(0.0);
-    // float t = traceModelThickness(ro, rd);
-    // if (t > 0.0)
-    // {
-    //     fragColor.rgb = vec3(t/2.0);
-    // }
+    fragColor.rgb = vec3(0.0);
+    float t = traceModelThickness(ro, rd);
+    if (t > 0.0)
+    {
+        fragColor.rgb = vec3(t/2.0);
+    }
 
-    fragColor.rgb = vec3(1.0);
-    float tModel = traceModel(ro, rd);
-    float tFloor = traceFloor(ro, rd);
-    if (tFloor > 0.0 && ((tModel > 0.0 && tFloor < tModel) || tModel < 0.0))
-        fragColor.rgb = colorFloor(ro + rd*tFloor, ro);
-    else if (tModel > 0.0 && ((tFloor > 0.0 && tModel < tFloor) || tFloor < 0.0))
-        fragColor.rgb = colorModel(ro + rd*tModel, ro);
+    // fragColor.rgb = vec3(1.0);
+    // float tModel = traceModel(ro, rd);
+    // float tFloor = traceFloor(ro, rd);
+    // if (tFloor > 0.0 && ((tModel > 0.0 && tFloor < tModel) || tModel < 0.0))
+    //     fragColor.rgb = colorFloor(ro + rd*tFloor, ro);
+    // else if (tModel > 0.0 && ((tFloor > 0.0 && tModel < tFloor) || tFloor < 0.0))
+    //     fragColor.rgb = colorModel(ro + rd*tModel, ro);
     fragColor.a = 1.0;
 }
