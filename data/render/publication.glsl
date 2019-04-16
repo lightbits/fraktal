@@ -142,7 +142,7 @@ vec3 colorModel(vec3 p, vec3 ro)
 
     rd = iToSun;
     if (isVisible(ro,rd))
-        result += vec3(1.0)*max(0.0,dot(n, rd))*(2.0/M_PI);
+        result += vec3(1.0)*max(0.0,dot(n, rd));
 
     result *= iMaterialAlbedo;
 
@@ -184,7 +184,7 @@ vec3 colorFloor(vec3 p, vec3 ro)
 
     rd = iToSun;
     if (isVisible(ro,rd))
-        result += vec3(1.0)*max(0.0,dot(n, rd))*(2.0/M_PI);
+        result += vec3(1.0)*max(0.0,dot(n, rd));
 
     if (iFloorReflective == 1)
     {

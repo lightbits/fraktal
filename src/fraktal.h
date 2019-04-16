@@ -531,7 +531,6 @@ void fraktal_render(fraktal_scene_t &scene)
     fetch_uniform(program_render, iIsolineMax);
     fetch_uniform(program_render, iMaterialGlossy);
     fetch_uniform(program_render, iMaterialSpecularExponent);
-    fetch_uniform(program_render, iMaterialSpecularRoughness);
     fetch_uniform(program_render, iMaterialSpecularAlbedo);
     fetch_uniform(program_render, iMaterialAlbedo);
     fetch_uniform(program_render, iFloorReflective);
