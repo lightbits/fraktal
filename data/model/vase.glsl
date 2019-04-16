@@ -44,7 +44,10 @@ float model(vec3 p) {
     d = fOpUnionSoft(d, fCylinder(p, 0.2, 1.0), 0.3);
     p.y -= 1.0;
     d = fOpUnionSoft(d, fCylinder(p, 0.3, 0.01), 0.1);
-    d = max(d, -fCylinder(p, 0.18, 0.5));
+    float inside = fCylinder(p, 0.18, 1.2);
+    p.y += 1.5;
+    inside = fOpUnionSoft(inside, fSphere(p, 0.4), 0.3);
+    d = max(d, -inside);
 
     return d;
 }

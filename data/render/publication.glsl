@@ -51,11 +51,33 @@ float traceModel(vec3 ro, vec3 rd)
     {
         vec3 p = ro + t*rd;
         float d = model(p);
-        t += d;
         if (d <= EPSILON) return t;
+        t += d;
         if (t > MAX_DISTANCE) break;
     }
     return -1.0;
+}
+
+float traceModelThickness(vec3 ro, vec3 rd)
+{
+    float t = 0.0;
+    float thickness = 0.0;
+    for (int i = ZERO; i < STEPS; i++)
+    {
+        vec3 p = ro + t*rd;
+        float d = model(p);
+        if (d >= -EPSILON)
+        {
+            t += max(EPSILON, d);
+        }
+        else
+        {
+            t += max(EPSILON, -d);
+            thickness += max(EPSILON, -d);
+        }
+        if (t > MAX_DISTANCE) break;
+    }
+    return thickness;
 }
 
 bool isVisible(vec3 ro, vec3 rd)
@@ -181,6 +203,13 @@ void main()
     vec3 rd = rayPinhole(2.0*(noise2f() - vec2(0.5)));
     vec3 ro = (iView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
+
+    // fragColor.rgb = vec3(0.0);
+    // float t = traceModelThickness(ro, rd);
+    // if (t > 0.0)
+    // {
+    //     fragColor.rgb = vec3(t/2.0);
+    // }
 
     fragColor.rgb = vec3(1.0);
     float tModel = traceModel(ro, rd);
