@@ -30,6 +30,43 @@ void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
 }
 
+enum { NUM_GLFW_KEYS = 512 };
+static struct glfw_key_t
+{
+    bool was_pressed;
+    bool was_released;
+    bool is_down;
+} glfw_keys[NUM_GLFW_KEYS];
+
+void mark_key_events_as_processed()
+{
+    for (int key = 0; key < NUM_GLFW_KEYS; key++)
+    {
+        glfw_keys[key].was_pressed = false;
+        glfw_keys[key].was_released = false;
+    }
+}
+
+void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key >= 0 && key < NUM_GLFW_KEYS)
+    {
+        bool was_down = glfw_keys[key].is_down;
+        if (action == GLFW_PRESS && !was_down) {
+            glfw_keys[key].was_pressed = true;
+            glfw_keys[key].is_down = true;
+        }
+        if (action == GLFW_RELEASE && was_down) {
+            glfw_keys[key].was_released = true;
+            glfw_keys[key].is_down = false;
+        }
+        if (action == GLFW_REPEAT) {
+            glfw_keys[key].was_pressed = true;
+            glfw_keys[key].is_down = true;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     fraktal_scene_def_t def = {0};
@@ -58,6 +95,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
+    glfwSetKeyCallback(window, glfw_key_callback);
 
     if (gl3wInit() != 0)
     {
@@ -129,29 +167,24 @@ int main(int argc, char **argv)
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            #define handle_key(struct_name, key) { \
-                bool down = glfwGetKey(window, key) == GLFW_PRESS; \
-                scene.keys.struct_name.released = false; \
-                scene.keys.struct_name.pressed = false; \
-                if (scene.keys.struct_name.down && !down) \
-                    scene.keys.struct_name.released = true; \
-                if (!scene.keys.struct_name.down && down) \
-                    scene.keys.struct_name.pressed = true; \
-                scene.keys.struct_name.down = down; \
-                }
-            handle_key(Enter, GLFW_KEY_ENTER);
-            handle_key(Space, GLFW_KEY_SPACE);
-            handle_key(Ctrl, GLFW_KEY_LEFT_CONTROL);
-            handle_key(Alt, GLFW_KEY_LEFT_ALT);
-            handle_key(Shift, GLFW_KEY_LEFT_SHIFT);
-            handle_key(Left, GLFW_KEY_LEFT);
-            handle_key(Right, GLFW_KEY_RIGHT);
-            handle_key(Up, GLFW_KEY_UP);
-            handle_key(Down, GLFW_KEY_DOWN);
-            handle_key(W, GLFW_KEY_W);
-            handle_key(A, GLFW_KEY_A);
-            handle_key(S, GLFW_KEY_S);
-            handle_key(D, GLFW_KEY_D);
+            #define copy_key_event(struct_name, glfw_key) \
+                scene.keys.struct_name.pressed = glfw_keys[glfw_key].was_pressed; \
+                scene.keys.struct_name.released = glfw_keys[glfw_key].was_released; \
+                scene.keys.struct_name.down = glfw_keys[glfw_key].is_down;
+            copy_key_event(Enter, GLFW_KEY_ENTER);
+            copy_key_event(Space, GLFW_KEY_SPACE);
+            copy_key_event(Ctrl, GLFW_KEY_LEFT_CONTROL);
+            copy_key_event(Alt, GLFW_KEY_LEFT_ALT);
+            copy_key_event(Shift, GLFW_KEY_LEFT_SHIFT);
+            copy_key_event(Left, GLFW_KEY_LEFT);
+            copy_key_event(Right, GLFW_KEY_RIGHT);
+            copy_key_event(Up, GLFW_KEY_UP);
+            copy_key_event(Down, GLFW_KEY_DOWN);
+            copy_key_event(W, GLFW_KEY_W);
+            copy_key_event(A, GLFW_KEY_A);
+            copy_key_event(S, GLFW_KEY_S);
+            copy_key_event(D, GLFW_KEY_D);
+            mark_key_events_as_processed();
 
             glfwMakeContextCurrent(window);
             int window_fb_width, window_fb_height;
