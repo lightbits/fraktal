@@ -196,6 +196,9 @@ fKernel *fraktal_link_kernel(fLinkState *link)
     return kernel;
 }
 
+// Frees memory associated with a kernel. On return, the fKernel handle
+// is invalidated and should not be used anywhere.
+//
 // If NULL is passed the function silently returns.
 void fraktal_destroy_kernel(fKernel *f)
 {
