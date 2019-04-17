@@ -12,14 +12,18 @@ struct fLinkState
 
 GLuint compile_shader(const char *name, const char **sources, int num_sources, GLenum type)
 {
-    assert(name && "Missing name string (e.g. filename or 'built-in')");
-    assert(sources && "Missing shader source list");
-    assert(num_sources > 0 && "Must have atleast one shader");
-    assert((type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER));
-    GLint status = 0;
+    fraktal_check_gl_error();
+    fraktal_assert(sources && "Missing shader source list");
+    fraktal_assert(num_sources > 0 && "Must have atleast one shader");
+    fraktal_assert((type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER));
+    if (!name)
+        name = "unnamed";
+
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, num_sources, (const GLchar **)sources, 0);
     glCompileShader(shader);
+
+    GLint status = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (!status)
     {
@@ -31,11 +35,13 @@ GLuint compile_shader(const char *name, const char **sources, int num_sources, G
         glDeleteShader(shader);
         return 0;
     }
+    fraktal_check_gl_error();
     return shader;
 }
 
 bool program_link_status(GLuint program)
 {
+    fraktal_check_gl_error();
     GLint status; glGetProgramiv(program, GL_LINK_STATUS, &status);
     if (!status)
     {
@@ -47,32 +53,8 @@ bool program_link_status(GLuint program)
         free(info);
         return false;
     }
-    return true;
-}
-
-// On success, the function returns a handle that should be passed
-// to subsequent link_add_file or add_link_data calls. If the call
-// is successful, the caller owns the returned fLinkState, which
-// should eventually be destroyed with fraktal_destroy_link.
-fLinkState *fraktal_create_link()
-{
-    fLinkState *link = (fLinkState*)calloc(1, sizeof(fLinkState));
-    link->num_shaders = 0;
-    link->glsl_version = "#version 150";
-    return link;
-}
-
-void fraktal_destroy_link(fLinkState *link)
-{
     fraktal_check_gl_error();
-    if (link)
-    {
-        for (int i = 0; i < link->num_shaders; i++)
-            if (link->shaders[i])
-                glDeleteShader(link->shaders[i]);
-        free(link);
-        fraktal_check_gl_error();
-    }
+    return true;
 }
 
 bool add_link_data(fLinkState *link, const void *data, const char *name)
@@ -94,6 +76,35 @@ bool add_link_data(fLinkState *link, const void *data, const char *name)
     link->shaders[link->num_shaders++] = shader;
     fraktal_check_gl_error();
     return true;
+}
+
+// On success, the function returns a handle that should be passed
+// to subsequent link_add_file or add_link_data calls. If the call
+// is successful, the caller owns the returned fLinkState, which
+// should eventually be destroyed with fraktal_destroy_link.
+fLinkState *fraktal_create_link()
+{
+    fLinkState *link = (fLinkState*)calloc(1, sizeof(fLinkState));
+    link->num_shaders = 0;
+    link->glsl_version = "#version 150";
+    return link;
+}
+
+// Frees memory associated with a linking operation. On return, the
+// fLinkState handle is invalidated and should not be used anywhere.
+//
+// If 'link' is NULL the function silently returns.
+void fraktal_destroy_link(fLinkState *link)
+{
+    fraktal_check_gl_error();
+    if (link)
+    {
+        for (int i = 0; i < link->num_shaders; i++)
+            if (link->shaders[i])
+                glDeleteShader(link->shaders[i]);
+        free(link);
+        fraktal_check_gl_error();
+    }
 }
 
 // 'link': Obtained from fraktal_create_link.

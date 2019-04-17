@@ -2,6 +2,7 @@
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
 uniform vec2      iResolution;
+uniform int       iFrame;
 uniform vec2      iCameraCenter;
 uniform float     iCameraF;
 uniform mat4      iView;
