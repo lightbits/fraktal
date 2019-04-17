@@ -1,6 +1,37 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
+uniform vec2      iResolution;           // viewport resolution (in pixels)
+uniform float     iTime;                 // shader playback time (in seconds)
+uniform int       iFrame;                // shader playback frame
+uniform vec2      iChannelResolution[4]; // channel resolution (in pixels)
+uniform vec4      iMouse;                // mouse pixel coords. xy: current (if MLB down), zw: click
+uniform sampler2D iChannel0;             // file or buffer texture
+uniform sampler2D iChannel1;             // file or buffer texture
+uniform sampler2D iChannel2;             // file or buffer texture
+uniform sampler2D iChannel3;             // file or buffer texture
+uniform vec2      iCameraCenter;
+uniform float     iCameraF;
+uniform mat4      iView;
+uniform int       iSamples;
+uniform vec3      iToSun;
+uniform vec3      iSunStrength;
+uniform float     iCosSunSize;
+uniform int       iDrawIsolines;
+uniform vec3      iIsolineColor;
+uniform float     iIsolineThickness;
+uniform float     iIsolineSpacing;
+uniform float     iIsolineMax;
+uniform int       iMaterialGlossy;
+uniform float     iMaterialSpecularExponent;
+uniform vec3      iMaterialSpecularAlbedo;
+uniform vec3      iMaterialAlbedo;
+uniform int       iFloorReflective;
+uniform float     iFloorHeight;
+uniform float     iFloorSpecularExponent;
+uniform float     iFloorReflectivity;
+out vec4          fragColor;
+
 #define EPSILON 0.0001
 #define STEPS 512
 #define M_PI 3.1415926535897932384626433832795
@@ -204,19 +235,19 @@ void main()
     vec3 ro = (iView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
 
-    fragColor.rgb = vec3(0.0);
-    float t = traceModelThickness(ro, rd);
-    if (t > 0.0)
-    {
-        fragColor.rgb = vec3(t/2.0);
-    }
+    // fragColor.rgb = vec3(0.0);
+    // float t = traceModelThickness(ro, rd);
+    // if (t > 0.0)
+    // {
+    //     fragColor.rgb = vec3(t/2.0);
+    // }
 
-    // fragColor.rgb = vec3(1.0);
-    // float tModel = traceModel(ro, rd);
-    // float tFloor = traceFloor(ro, rd);
-    // if (tFloor > 0.0 && ((tModel > 0.0 && tFloor < tModel) || tModel < 0.0))
-    //     fragColor.rgb = colorFloor(ro + rd*tFloor, ro);
-    // else if (tModel > 0.0 && ((tFloor > 0.0 && tModel < tFloor) || tFloor < 0.0))
-    //     fragColor.rgb = colorModel(ro + rd*tModel, ro);
+    fragColor.rgb = vec3(1.0);
+    float tModel = traceModel(ro, rd);
+    float tFloor = traceFloor(ro, rd);
+    if (tFloor > 0.0 && ((tModel > 0.0 && tFloor < tModel) || tModel < 0.0))
+        fragColor.rgb = colorFloor(ro + rd*tFloor, ro);
+    else if (tModel > 0.0 && ((tFloor > 0.0 && tModel < tFloor) || tFloor < 0.0))
+        fragColor.rgb = colorModel(ro + rd*tModel, ro);
     fragColor.a = 1.0;
 }

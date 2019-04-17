@@ -51,6 +51,8 @@ enum fEnum_
 #include <file.h>
 #include "scene_params.h"
 #include "scene_parser.h"
+#include "fraktal_kernel.h"
+#include "fraktal_link.h"
 #include "fraktal_array.h"
 
 struct fraktal_scene_t
@@ -58,10 +60,10 @@ struct fraktal_scene_t
     fraktal_scene_def_t def;
     fArray *render_buffer;
     fArray *compose_buffer;
-    GLuint program_render;
-    GLuint program_compose;
-    bool program_render_is_new;
-    bool program_compose_is_new;
+    fKernel *render_kernel;
+    fKernel *compose_kernel;
+    bool render_kernel_is_new;
+    bool compose_kernel_is_new;
     int samples;
     bool should_clear;
     bool initialized;
@@ -123,262 +125,6 @@ void save_screenshot(const char *filename)
 }
 #endif
 
-GLuint load_shader(const char *source_identifier, const char **sources, int num_sources, GLenum type)
-{
-    assert(source_identifier && "Missing source identifier (path or 'built-in')");
-    assert(sources && "Missing shader source list");
-    assert(num_sources > 0 && "Must have atleast one shader");
-    assert((type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER) && "Invalid shader type");
-    GLint status = 0;
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, num_sources, (const GLchar **)sources, 0);
-    glCompileShader(shader);
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-    if (!status)
-    {
-        GLint length; glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-        char *info = (char*)malloc(length);
-        glGetShaderInfoLog(shader, length, NULL, info);
-        log_err("Failed to compile shader (%s):\n%s", source_identifier, info);
-        free(info);
-        glDeleteShader(shader);
-        return 0;
-    }
-    return shader;
-}
-
-bool program_link_status(GLuint program)
-{
-    GLint status; glGetProgramiv(program, GL_LINK_STATUS, &status);
-    if (!status)
-    {
-        GLint length;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
-        char *info = (char*)malloc(length);
-        glGetProgramInfoLog(program, length, NULL, info);
-        log_err("Failed to link program:\n%s", info);
-        free(info);
-        return false;
-    }
-    return true;
-}
-
-GLuint load_vertex_shader(fraktal_scene_def_t def)
-{
-    // We only need to compile this one time
-    static GLuint vs = 0;
-    if (!vs)
-    {
-        static const char *source =
-            "in vec2 iPosition;\n"
-            "void main()\n"
-            "{\n"
-            "    gl_Position = vec4(iPosition, 0.0, 1.0);\n"
-            "}\n"
-        ;
-        const char *sources[] = { def.glsl_version, "\n#line 0\n", source };
-        vs = load_shader("built-in", sources, sizeof(sources)/sizeof(char*), GL_VERTEX_SHADER);
-        if (!vs)
-            return 0;
-    }
-    return vs;
-}
-
-GLuint load_model_shader(fraktal_scene_def_t def, scene_params_t &params)
-{
-    static const char *header =
-        "uniform vec2      iResolution;\n"           // viewport resolution (in pixels)
-        "uniform float     iTime;\n"                 // shader playback time (in seconds)
-        "uniform int       iFrame;\n"                // shader playback frame
-        "uniform vec2      iChannelResolution[4];\n" // channel resolution (in pixels)
-        "uniform vec4      iMouse;\n"                // mouse pixel coords. xy: current (if MLB down), zw: click
-        "uniform sampler2D iChannel0;\n"             // file or buffer texture
-        "uniform sampler2D iChannel1;\n"             // file or buffer texture
-        "uniform sampler2D iChannel2;\n"             // file or buffer texture
-        "uniform sampler2D iChannel3;\n"             // file or buffer texture
-        "#define MATERIAL0 0.0\n"
-        "#define MATERIAL1 1.0\n"
-        "#define MATERIAL2 2.0\n"
-        "#define MATERIAL3 3.0\n"
-        "#define MATERIAL4 4.0\n"
-        "#define MATERIAL5 5.0\n"
-        "#line 0\n"
-    ;
-
-    GLuint fs = 0;
-    const char *path = def.model_shader_path;
-    char *source = read_file(path);
-    if (!scene_file_preprocessor(source, &params))
-    {
-        log_err("Failed to parse source file %s\n", path);
-        return 0;
-    }
-    if (!source)
-    {
-        log_err("Failed to read source file %s\n", path);
-        return 0;
-    }
-    const char *sources[] = {
-        def.glsl_version, "\n",
-        header,
-        source
-    };
-    fs = load_shader(path, sources, sizeof(sources)/sizeof(char*), GL_FRAGMENT_SHADER);
-    free(source);
-    if (!fs)
-        return 0;
-    return fs;
-}
-
-GLuint load_render_shader(fraktal_scene_def_t def)
-{
-    static const char *header =
-        "uniform vec2      iResolution;\n"           // viewport resolution (in pixels)
-        "uniform float     iTime;\n"                 // shader playback time (in seconds)
-        "uniform int       iFrame;\n"                // shader playback frame
-        "uniform vec2      iChannelResolution[4];\n" // channel resolution (in pixels)
-        "uniform vec4      iMouse;\n"                // mouse pixel coords. xy: current (if MLB down), zw: click
-        "uniform sampler2D iChannel0;\n"             // file or buffer texture
-        "uniform sampler2D iChannel1;\n"             // file or buffer texture
-        "uniform sampler2D iChannel2;\n"             // file or buffer texture
-        "uniform sampler2D iChannel3;\n"             // file or buffer texture
-        "uniform vec2      iCameraCenter;\n"
-        "uniform float     iCameraF;\n"
-        "uniform mat4      iView;\n"
-        "uniform int       iSamples;\n"
-        "uniform vec3      iToSun;\n"
-        "uniform vec3      iSunStrength;\n"
-        "uniform float     iCosSunSize;\n"
-        "uniform int       iDrawIsolines;\n"
-        "uniform vec3      iIsolineColor;\n"
-        "uniform float     iIsolineThickness;\n"
-        "uniform float     iIsolineSpacing;\n"
-        "uniform float     iIsolineMax;\n"
-        "uniform int       iMaterialGlossy;\n"
-        "uniform float     iMaterialSpecularExponent;\n"
-        "uniform vec3      iMaterialSpecularAlbedo;\n"
-        "uniform vec3      iMaterialAlbedo;\n"
-        "uniform int       iFloorReflective;\n"
-        "uniform float     iFloorHeight;\n"
-        "uniform float     iFloorSpecularExponent;\n"
-        "uniform float     iFloorReflectivity;\n"
-        "out vec4          fragColor;\n"
-        "#line 0\n"
-    ;
-
-    GLuint fs = 0;
-    char *source = read_file(def.render_shader_path);
-    const char *sources[] = {
-        def.glsl_version, "\n",
-        header,
-        "#line 0\n",
-        source
-    };
-    fs = load_shader(
-        def.render_shader_path,
-        sources,
-        sizeof(sources)/sizeof(char*),
-        GL_FRAGMENT_SHADER
-    );
-    free(source);
-    if (!fs)
-        return 0;
-    return fs;
-}
-
-GLuint load_compose_shader(fraktal_scene_def_t def)
-{
-    static const char *header =
-        "uniform vec2      iResolution;\n"
-        "uniform sampler2D iChannel0;\n"
-        "uniform int       iSamples;\n"
-        "out vec4          fragColor;\n"
-        "#line 0\n"
-    ;
-
-    GLuint fs = 0;
-    const char *path = def.compose_shader_path;
-    char *source = read_file(path);
-    if (!source)
-    {
-        log_err("Failed to read source file \"%s\"\n", path);
-        return 0;
-    }
-    const char *sources[] = {
-        def.glsl_version, "\n",
-        header,
-        source
-    };
-    fs = load_shader(
-        path,
-        sources,
-        sizeof(sources)/sizeof(char*),
-        GL_FRAGMENT_SHADER
-    );
-    if (!fs)
-        return 0;
-    return fs;
-}
-
-GLuint load_compose_program(fraktal_scene_def_t def)
-{
-    assert(def.glsl_version && "GLSL version string is NULL");
-    assert(def.compose_shader_path && "Compose shader path is NULL");
-    GLuint vs = load_vertex_shader(def); if (!vs) return 0;
-    GLuint fs = load_compose_shader(def); if (!fs) return 0;
-
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-    glDetachShader(program, vs);
-    glDetachShader(program, fs);
-    glDeleteShader(fs);
-
-    if (!program_link_status(program))
-    {
-        glDeleteProgram(program);
-        return 0;
-    }
-
-    return program;
-}
-
-GLuint load_render_program(fraktal_scene_def_t def, scene_params_t &params)
-{
-    assert(def.glsl_version && "GLSL version string is NULL");
-    assert(def.model_shader_path && "Model shader path is NULL");
-    assert(def.render_shader_path && "Render shader path is NULL");
-
-    GLuint vs = load_vertex_shader(def); if (!vs) return 0;
-    GLuint fs1 = load_model_shader(def, params); if (!fs1) return 0;
-    GLuint fs2 = load_render_shader(def);
-    if (!fs2)
-    {
-        glDeleteShader(fs1);
-        return 0;
-    }
-
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs1);
-    glAttachShader(program, fs2);
-    glLinkProgram(program);
-    glDetachShader(program, vs);
-    glDetachShader(program, fs1);
-    glDetachShader(program, fs2);
-    glDeleteShader(fs1);
-    glDeleteShader(fs2);
-
-    if (!program_link_status(program))
-    {
-        glDeleteProgram(program);
-        return 0;
-    }
-
-    return program;
-}
-
 void fraktal_set_resolution(fraktal_scene_t &scene, int x, int y)
 {
     assert(x > 0);
@@ -414,49 +160,85 @@ bool fraktal_load(fraktal_scene_t &scene,
     if (flags == 0)
         flags = 0xffffffff;
 
-    GLuint compose = scene.program_compose;
-    if (flags & FRAKTAL_LOAD_COMPOSE)
-        compose = load_compose_program(def);
-
-    GLuint render = scene.program_render;
     scene_params_t params = scene.params;
-    if (flags & FRAKTAL_LOAD_RENDER)
-        render = load_render_program(def, params);
 
-    if (!compose || !render)
+    fKernel *render = NULL;
     {
-        log_err("Failed to load shader pipeline\n");
+        fLinkState *link = fraktal_create_link();
+
+        // model kernel
+        {
+            const char *path = def.model_shader_path;
+            char *data = read_file(path);
+            if (!data)
+            {
+                log_err("Failed to read source file.\n");
+                fraktal_destroy_link(link);
+                return false;
+            }
+            if (!scene_file_preprocessor(data, &params))
+            {
+                log_err("Failed to parse source file.\n");
+                fraktal_destroy_link(link);
+                free(data);
+                return false;
+            }
+            if (!fraktal_add_link_data(link, data, 0, path))
+            {
+                fraktal_destroy_link(link);
+                free(data);
+                return false;
+            }
+            free(data);
+        }
+
+        if (!fraktal_add_link_file(link, def.render_shader_path))
+        {
+            fraktal_destroy_link(link);
+            return false;
+        }
+
+        render = fraktal_link_kernel(link);
+        fraktal_destroy_link(link);
+    }
+
+    fKernel *compose = fraktal_load_kernel(def.compose_shader_path);
+
+    if (compose && render)
+    {
+        bool resolution_changed =
+            params.resolution.x != scene.params.resolution.x ||
+            params.resolution.y != scene.params.resolution.y;
+
+        if (!scene.initialized || resolution_changed)
+            fraktal_set_resolution(scene, params.resolution.x, params.resolution.y);
+
+        fraktal_destroy_kernel(scene.compose_kernel);
+        fraktal_destroy_kernel(scene.render_kernel);
+
+        scene.compose_kernel = compose;
+        scene.render_kernel = render;
+        scene.params = params;
+        scene.compose_kernel_is_new = true;
+        scene.render_kernel_is_new = true;
+        scene.should_clear = true;
+        scene.def = def;
+        scene.initialized = true;
+        return true;
+    }
+    else
+    {
+        log_err("Failed to compile kernels\n");
+        fraktal_destroy_kernel(render);
+        fraktal_destroy_kernel(compose);
         return false;
     }
-
-    if (flags & FRAKTAL_LOAD_COMPOSE)
-    {
-        glDeleteProgram(scene.program_compose);
-        scene.program_compose = compose;
-        scene.program_compose_is_new = true;
-    }
-
-    if (flags & FRAKTAL_LOAD_RENDER)
-    {
-        glDeleteProgram(scene.program_render);
-        if (!scene.initialized ||
-            params.resolution.x != scene.params.resolution.x ||
-            params.resolution.y != scene.params.resolution.y)
-            fraktal_set_resolution(scene, params.resolution.x, params.resolution.y);
-        scene.params = params;
-        scene.program_render = render;
-        scene.program_render_is_new = true;
-        scene.should_clear = true;
-    }
-
-    scene.def = def;
-    scene.initialized = true;
 
     return true;
 }
 
-#define fetch_attrib(program, name)  static GLint loc_##name; if (scene.program##_is_new) loc_##name = glGetAttribLocation(scene.program, #name);
-#define fetch_uniform(program, name) static GLint loc_##name; if (scene.program##_is_new) loc_##name = glGetUniformLocation(scene.program, #name);
+#define fetch_uniform(kernel, name) static GLint loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
+#define fetch_attrib(kernel, name) static GLint loc_##name; if (scene.kernel##_is_new) loc_##name = glGetAttribLocation(scene.kernel->program, #name);
 
 void fraktal_render(fraktal_scene_t &scene)
 {
@@ -481,38 +263,29 @@ void fraktal_render(fraktal_scene_t &scene)
         scene.should_clear = false;
     }
 
-    fetch_attrib (program_render, iPosition);
-    fetch_uniform(program_render, iResolution);
-    // fetch_uniform(program_render, iChannelResolution);
-    // fetch_uniform(program_render, iTime);
-    // fetch_uniform(program_render, iTimeDelta);
-    // fetch_uniform(program_render, iFrame);
-    // fetch_uniform(program_render, iMouse);
-    // fetch_uniform(program_render, iChannel0);
-    // fetch_uniform(program_render, iChannel1);
-    // fetch_uniform(program_render, iChannel2);
-    // fetch_uniform(program_render, iChannel3);
-    fetch_uniform(program_render, iCameraCenter);
-    fetch_uniform(program_render, iCameraF);
-    fetch_uniform(program_render, iSamples);
-    fetch_uniform(program_render, iToSun);
-    fetch_uniform(program_render, iSunStrength);
-    fetch_uniform(program_render, iCosSunSize);
-    fetch_uniform(program_render, iDrawIsolines);
-    fetch_uniform(program_render, iIsolineColor);
-    fetch_uniform(program_render, iIsolineThickness);
-    fetch_uniform(program_render, iIsolineSpacing);
-    fetch_uniform(program_render, iIsolineMax);
-    fetch_uniform(program_render, iMaterialGlossy);
-    fetch_uniform(program_render, iMaterialSpecularExponent);
-    fetch_uniform(program_render, iMaterialSpecularAlbedo);
-    fetch_uniform(program_render, iMaterialAlbedo);
-    fetch_uniform(program_render, iFloorReflective);
-    fetch_uniform(program_render, iFloorHeight);
-    fetch_uniform(program_render, iFloorSpecularExponent);
-    fetch_uniform(program_render, iFloorReflectivity);
-    fetch_uniform(program_render, iView);
-    scene.program_render_is_new = false;
+    fetch_attrib(render_kernel,  iPosition);
+    fetch_uniform(render_kernel, iResolution);
+    fetch_uniform(render_kernel, iCameraCenter);
+    fetch_uniform(render_kernel, iCameraF);
+    fetch_uniform(render_kernel, iSamples);
+    fetch_uniform(render_kernel, iToSun);
+    fetch_uniform(render_kernel, iSunStrength);
+    fetch_uniform(render_kernel, iCosSunSize);
+    fetch_uniform(render_kernel, iDrawIsolines);
+    fetch_uniform(render_kernel, iIsolineColor);
+    fetch_uniform(render_kernel, iIsolineThickness);
+    fetch_uniform(render_kernel, iIsolineSpacing);
+    fetch_uniform(render_kernel, iIsolineMax);
+    fetch_uniform(render_kernel, iMaterialGlossy);
+    fetch_uniform(render_kernel, iMaterialSpecularExponent);
+    fetch_uniform(render_kernel, iMaterialSpecularAlbedo);
+    fetch_uniform(render_kernel, iMaterialAlbedo);
+    fetch_uniform(render_kernel, iFloorReflective);
+    fetch_uniform(render_kernel, iFloorHeight);
+    fetch_uniform(render_kernel, iFloorSpecularExponent);
+    fetch_uniform(render_kernel, iFloorReflectivity);
+    fetch_uniform(render_kernel, iView);
+    scene.render_kernel_is_new = false;
 
     GLuint vao = 0;
     glGenVertexArrays(1, &vao);
@@ -525,7 +298,7 @@ void fraktal_render(fraktal_scene_t &scene)
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
     glViewport(0, 0, fb->width, fb->height);
 
-    glUseProgram(scene.program_render);
+    glUseProgram(scene.render_kernel->program);
 
     float iView[4*4];
     {
@@ -602,11 +375,11 @@ void fraktal_render(fraktal_scene_t &scene)
 
 void fraktal_compose(fraktal_scene_t &scene)
 {
-    fetch_attrib (program_compose, iPosition);
-    fetch_uniform(program_compose, iResolution);
-    fetch_uniform(program_compose, iChannel0);
-    fetch_uniform(program_compose, iSamples);
-    scene.program_compose_is_new = false;
+    fetch_attrib(compose_kernel,  iPosition);
+    fetch_uniform(compose_kernel, iResolution);
+    fetch_uniform(compose_kernel, iChannel0);
+    fetch_uniform(compose_kernel, iSamples);
+    scene.compose_kernel_is_new = false;
 
     GLuint vao = 0;
     glGenVertexArrays(1, &vao);
@@ -623,7 +396,7 @@ void fraktal_compose(fraktal_scene_t &scene)
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(scene.program_compose);
+    glUseProgram(scene.compose_kernel->program);
 
     glUniform2f(loc_iResolution, (float)fb->width, (float)fb->height);
     glUniform1i(loc_iSamples, scene.samples);
@@ -688,7 +461,7 @@ void fraktal_present(fraktal_scene_t &scene)
     if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
         scene.auto_render = !scene.auto_render;
 
-    if (scene.auto_render || scene.program_render_is_new || scene.should_clear)
+    if (scene.auto_render || scene.render_kernel_is_new || scene.should_clear)
     {
         fraktal_render(scene);
         fraktal_compose(scene);
