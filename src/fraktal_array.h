@@ -106,6 +106,7 @@ fArray *fraktal_create_array(
     a->channels = channels;
     a->format = format;
     a->access = access;
+    fraktal_check_gl_error();
     return a;
 }
 

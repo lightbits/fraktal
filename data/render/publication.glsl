@@ -1,15 +1,7 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
-uniform vec2      iResolution;           // viewport resolution (in pixels)
-uniform float     iTime;                 // shader playback time (in seconds)
-uniform int       iFrame;                // shader playback frame
-uniform vec2      iChannelResolution[4]; // channel resolution (in pixels)
-uniform vec4      iMouse;                // mouse pixel coords. xy: current (if MLB down), zw: click
-uniform sampler2D iChannel0;             // file or buffer texture
-uniform sampler2D iChannel1;             // file or buffer texture
-uniform sampler2D iChannel2;             // file or buffer texture
-uniform sampler2D iChannel3;             // file or buffer texture
+uniform vec2      iResolution;
 uniform vec2      iCameraCenter;
 uniform float     iCameraF;
 uniform mat4      iView;
