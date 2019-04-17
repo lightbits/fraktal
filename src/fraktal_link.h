@@ -20,6 +20,12 @@ GLuint compile_shader(const char *name, const char **sources, int num_sources, G
         name = "unnamed";
 
     GLuint shader = glCreateShader(type);
+    if (!shader)
+    {
+        log_err("Failed to compile shader (%s): glCreateShader returned 0.\n", name);
+        return 0;
+    }
+
     glShaderSource(shader, num_sources, (const GLchar **)sources, 0);
     glCompileShader(shader);
 
