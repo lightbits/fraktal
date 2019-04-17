@@ -22,6 +22,21 @@ struct fraktal_scene_def_t
     const char *glsl_version;
 };
 
+typedef int fEnum;
+enum fEnum_
+{
+    FRAKTAL_READ_ONLY,
+    FRAKTAL_READ_WRITE,
+    FRAKTAL_CLAMP_TO_EDGE,
+    FRAKTAL_REPEAT,
+    FRAKTAL_LINEAR,
+    FRAKTAL_NEAREST,
+    FRAKTAL_FLOAT,
+    FRAKTAL_UINT8
+};
+
+#define fraktal_assert assert
+
 //
 // Implementation
 //
@@ -36,20 +51,13 @@ struct fraktal_scene_def_t
 #include <file.h>
 #include "scene_params.h"
 #include "scene_parser.h"
-
-struct framebuffer_t
-{
-    GLuint fbo;
-    GLuint color0;
-    int width;
-    int height;
-};
+#include "fraktal_array.h"
 
 struct fraktal_scene_t
 {
     fraktal_scene_def_t def;
-    framebuffer_t fb_render;
-    framebuffer_t fb_compose;
+    fArray *render_buffer;
+    fArray *compose_buffer;
     GLuint program_render;
     GLuint program_compose;
     bool program_render_is_new;
@@ -76,41 +84,6 @@ struct fraktal_scene_t
         key_t W,A,S,D;
     } keys;
 };
-
-// storage: GL_RGBA32F or GL_RGBA8
-framebuffer_t create_framebuffer(GLenum storage, int width, int height)
-{
-    GLuint color0;
-    glGenTextures(1, &color0);
-    glBindTexture(GL_TEXTURE_2D, color0);
-    glTexImage2D(GL_TEXTURE_2D, 0, storage, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    GLuint fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color0, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    framebuffer_t result;
-    result.color0 = color0;
-    result.fbo = fbo;
-    result.width = width;
-    result.height = height;
-    return result;
-}
-
-void clear_framebuffer(framebuffer_t &frame)
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, frame.fbo);
-    glViewport(0, 0, frame.width, frame.height);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
 
 void compute_view_matrix(float dst[4*4], float3 t, float3 r)
 {
@@ -411,15 +384,13 @@ void fraktal_set_resolution(fraktal_scene_t &scene, int x, int y)
     assert(x > 0);
     assert(y > 0);
 
-    glDeleteTextures(1, &scene.fb_render.color0);
-    glDeleteTextures(1, &scene.fb_compose.color0);
-    glDeleteFramebuffers(1, &scene.fb_render.fbo);
-    glDeleteFramebuffers(1, &scene.fb_compose.fbo);
+    fraktal_destroy_array(scene.render_buffer);
+    fraktal_destroy_array(scene.compose_buffer);
 
     scene.params.resolution.x = x;
     scene.params.resolution.y = y;
-    scene.fb_render = create_framebuffer(GL_RGBA32F, x, y);
-    scene.fb_compose = create_framebuffer(GL_RGBA8, x, y);
+    scene.render_buffer = fraktal_create_array(NULL, x, y, 4, FRAKTAL_FLOAT, FRAKTAL_READ_WRITE);
+    scene.compose_buffer = fraktal_create_array(NULL, x, y, 4, FRAKTAL_UINT8, FRAKTAL_READ_WRITE);
     scene.should_clear = true;
 }
 
@@ -489,18 +460,20 @@ bool fraktal_load(fraktal_scene_t &scene,
 
 void fraktal_render(fraktal_scene_t &scene)
 {
-    assert(scene.fb_render.fbo);
-    assert(scene.fb_render.color0);
-    assert(scene.fb_render.width > 0);
-    assert(scene.fb_render.height > 0);
-    assert(scene.fb_compose.fbo);
-    assert(scene.fb_compose.color0);
-    assert(scene.fb_compose.width > 0);
-    assert(scene.fb_compose.height > 0);
+    assert(scene.render_buffer);
+    assert(scene.render_buffer->color0);
+    assert(scene.render_buffer->width > 0);
+    assert(scene.render_buffer->height > 0);
+    assert(scene.render_buffer->channels > 0);
+    assert(scene.compose_buffer->fbo);
+    assert(scene.compose_buffer->color0);
+    assert(scene.compose_buffer->width > 0);
+    assert(scene.compose_buffer->height > 0);
+    assert(scene.compose_buffer->channels > 0);
     if (scene.should_clear)
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, scene.fb_render.fbo);
-        glViewport(0, 0, scene.fb_render.width, scene.fb_render.height);
+        glBindFramebuffer(GL_FRAMEBUFFER, scene.render_buffer->fbo);
+        glViewport(0, 0, scene.render_buffer->width, scene.render_buffer->height);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -548,9 +521,9 @@ void fraktal_render(fraktal_scene_t &scene)
     glBlendFunc(GL_ONE, GL_ONE);
     glBlendEquation(GL_FUNC_ADD);
 
-    framebuffer_t fb = scene.fb_render;
-    glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo);
-    glViewport(0, 0, fb.width, fb.height);
+    fArray *fb = scene.render_buffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
+    glViewport(0, 0, fb->width, fb->height);
 
     glUseProgram(scene.program_render);
 
@@ -564,7 +537,7 @@ void fraktal_render(fraktal_scene_t &scene)
         compute_view_matrix(iView, scene.params.view.pos, r);
     }
 
-    glUniform2f(loc_iResolution, (float)fb.width, (float)fb.height);
+    glUniform2f(loc_iResolution, (float)fb->width, (float)fb->height);
     glUniform2fv(loc_iCameraCenter, 1, &scene.params.camera.center.x);
     glUniform1f(loc_iCameraF, scene.params.camera.f);
     glUniform1i(loc_iSamples, scene.samples);
@@ -643,20 +616,20 @@ void fraktal_compose(fraktal_scene_t &scene)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 
-    framebuffer_t fb = scene.fb_compose;
-    glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo);
+    fArray *fb = scene.compose_buffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
 
-    glViewport(0, 0, fb.width, fb.height);
+    glViewport(0, 0, fb->width, fb->height);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(scene.program_compose);
 
-    glUniform2f(loc_iResolution, (float)fb.width, (float)fb.height);
+    glUniform2f(loc_iResolution, (float)fb->width, (float)fb->height);
     glUniform1i(loc_iSamples, scene.samples);
     glUniform1i(loc_iChannel0, 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, scene.fb_render.color0);
+        glBindTexture(GL_TEXTURE_2D, scene.render_buffer->color0);
 
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, scene.quad);
@@ -933,8 +906,8 @@ void fraktal_present(fraktal_scene_t &scene)
             ImDrawList *draw = ImGui::GetWindowDrawList();
             {
                 ImVec2 image_size = ImVec2(
-                    (float)scene.fb_compose.width,
-                    (float)scene.fb_compose.height);
+                    (float)scene.compose_buffer->width,
+                    (float)scene.compose_buffer->height);
                 if (io.DisplayFramebufferScale.x > 0.0f &&
                     io.DisplayFramebufferScale.y > 0.0f)
                 {
@@ -978,7 +951,7 @@ void fraktal_present(fraktal_scene_t &scene)
                 ImU32 tint = 0xFFFFFFFF;
                 ImVec2 uv0 = ImVec2(0.0f,0.0f);
                 ImVec2 uv1 = ImVec2(1.0f,1.0f);
-                draw->AddImage((void*)(intptr_t)scene.fb_compose.color0,
+                draw->AddImage((void*)(intptr_t)scene.compose_buffer->color0,
                                pos0, pos1, uv0, uv1, tint);
             }
         }

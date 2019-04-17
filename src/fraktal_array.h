@@ -1,78 +1,4 @@
-// Preliminary API
-typedef int fEnum;
-enum fEnum_
-{
-    FRAKTAL_READ_ONLY_ARRAY,
-    FRAKTAL_READ_WRITE_ARRAY,
-    FRAKTAL_WRAP_CLAMP_TO_EDGE,
-    FRAKTAL_WRAP_REPEAT,
-    FRAKTAL_FILTER_LINEAR,
-    FRAKTAL_FILTER_NEAREST
-}
-
-struct fKernel,fArray;
-
-fKernel *fraktal_load_kernel_file(const char *filename);
-fKernel *fraktal_load_kernel_files(const char **filenames, int num_files);
-void fraktal_run_kernel(void *output_array, fKernel kernel, int dim_x, int dim_y);
-
-fArray *fraktal_create_array2D_uint8(void *data, int dim_x, int dim_y, int components, fEnum access=FRAKTAL_READ_ONLY_ARRAY);
-fArray *fraktal_create_array2D_float(void *data, int dim_x, int dim_y, int components, fEnum access=FRAKTAL_READ_ONLY_ARRAY);
-fArray *fraktal_create_array1D_float(void *data, int dim, int components, fEnum access=FRAKTAL_READ_ONLY_ARRAY);
-void fraktal_zero_array(fArray *array);
-
-// Transfer a GPU array into CPU memory. The number of bytes to transfer
-// is automatically deduced (note: gpu_array must be a valid pointer returned
-// from one of the create_array* functions.
-void fraktal_gpu_to_cpu(void *cpu_memory, fArray *array);
-
-
-// A kernel may have multiple named input arguments, declared in the
-// kernel source code. For example:
-//
-//   uniform float aFloatVariable;
-//   uniform sampler2D aTexture2DVariable;
-//   uniform mat4 aMatrix4fVariable;
-//
-// are all valid input declarations. Variables are given a value for
-// subsequent kernel runs using the functions below. Unset variables
-// are initialized to zero (0). Calling the functions on unused variables
-// (that is, variables that are not referred to) has no effect.
-void *fraktal_get_param_location(const char *name);
-void fraktal_param_1f(void *location, float x);
-void fraktal_param_2f(void *location, float x, float y);
-void fraktal_param_3f(void *location, float x, float y, float z);
-void fraktal_param_4f(void *location, float x, float y, float z, float w);
-void fraktal_param_1i(void *location, int x);
-void fraktal_param_2i(void *location, int x, int y);
-void fraktal_param_3i(void *location, int x, int y, int z);
-void fraktal_param_4i(void *location, int x, int y, int z, int w);
-void fraktal_param_matrix2fv(void *location, float *m);
-void fraktal_param_matrix3fv(void *location, float *m);
-void fraktal_param_matrix4fv(void *location, float *m);
-void fraktal_param_matrix2fv_transpose(void *location, float *m);
-void fraktal_param_matrix3fv_transpose(void *location, float *m);
-void fraktal_param_matrix4fv_transpose(void *location, float *m);
-void fraktal_param_array2D(void *location, void *handle, fEnum wrap, fEnum filter);
-void fraktal_param_array1D(void *location, void *handle, fEnum wrap, fEnum filter);
-
-// It is also possible to query the name, memory offset and size in bytes
-// of the parameters
-int fraktal_get_params(const char **names, size_t **offsets, size_t **sizes);
-void fraktal_param(void )
-
-#ifdef FRAKTAL_OPENGL_INTEROP
-GLuint fraktal_array_gl_texture(fArray array);
-#endif
-
-#include <assert.h>
-#define fraktal_assert assert
-
-struct fKernel
-{
-    GLuint program;
-
-};
+#pragma once
 
 struct fArray
 {
@@ -80,19 +6,10 @@ struct fArray
     GLuint color0;
     int width;
     int height;
+    int channels;
     fEnum format;
     fEnum access;
 };
-
-fKernel *fraktal_load_kernel_files(const char **filenames, int num_files)
-{
-
-}
-
-fKernel *fraktal_load_kernel_file(const char *filename)
-{
-    return fraktal_load_kernel_files(&filename, 1);
-}
 
 bool fraktal_format_to_gl_format(int channels,
                                  fEnum format,
@@ -100,14 +17,14 @@ bool fraktal_format_to_gl_format(int channels,
                                  GLenum *data_format,
                                  GLenum *data_type)
 {
-    if (format == FRAKTAL_FORMAT_FLOAT)
+    if (format == FRAKTAL_FLOAT)
     {
         *data_type = GL_FLOAT;
         if      (channels == 1) { *internal_format = GL_R32F; *data_format = GL_RED; return true; }
         else if (channels == 2) { *internal_format = GL_RG32F; *data_format = GL_RG; return true; }
         else if (channels == 4) { *internal_format = GL_RGBA32F; *data_format = GL_RGBA; return true; }
     }
-    else if (format == FRAKTAL_FORMAT_UNSIGNED_INT8)
+    else if (format == FRAKTAL_UINT8)
     {
         *data_type = GL_UNSIGNED_BYTE;
         if      (channels == 1) { *internal_format = GL_R8; *data_format = GL_RED; return true; }
@@ -126,7 +43,7 @@ fArray *fraktal_create_array(
     fEnum access)
 {
     fraktal_assert(glGetError() == GL_NO_ERROR);
-    fraktal_assert(components > 0 && components <= 4);
+    fraktal_assert(channels > 0 && channels <= 4);
     fraktal_assert(width > 0 && height >= 0);
     fraktal_assert(access == FRAKTAL_READ_ONLY || access == FRAKTAL_READ_WRITE);
     fraktal_assert(channels == 1 || channels == 2 || channels == 4);
@@ -158,9 +75,8 @@ fArray *fraktal_create_array(
         {
             glDeleteTextures(1, &color0);
             log_err("Failed to create OpenGL texture object.\n");
-            return 0;
+            return NULL;
         }
-        return color0;
     }
 
     GLuint fbo = 0;
@@ -169,9 +85,9 @@ fArray *fraktal_create_array(
         glGenFramebuffers(1, &fbo);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         if (target == GL_TEXTURE_1D)
-            glFramebufferTexture1D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, color_attachment0, 0);
+            glFramebufferTexture1D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, color0, 0);
         else if (target == GL_TEXTURE_2D)
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, color_attachment0, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, color0, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         if (glGetError() != GL_NO_ERROR)
         {
@@ -193,6 +109,16 @@ fArray *fraktal_create_array(
     return a;
 }
 
+void fraktal_destroy_array(fArray *a)
+{
+    if (a)
+    {
+        glDeleteTextures(1, &a->color0);
+        glDeleteFramebuffers(1, &a->fbo);
+        free(a);
+    }
+}
+
 void fraktal_zero_array(fArray *a)
 {
     fraktal_assert(a);
@@ -212,7 +138,7 @@ void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a)
     fraktal_assert(a->color0);
     GLenum target = a->height == 0 ? GL_TEXTURE_1D : GL_TEXTURE_2D;
     GLenum internal_format,data_format,data_type;
-    fraktal_assert(fraktal_format_to_gl_format(a->channels, a->format));
+    fraktal_assert(fraktal_format_to_gl_format(a->channels, a->format, &internal_format, &data_format, &data_type));
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glBindTexture(target, a->color0);
     glGetTexImage(target, 0, data_format, data_type, cpu_memory);
