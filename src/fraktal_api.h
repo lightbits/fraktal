@@ -38,23 +38,23 @@ void fraktal_gpu_to_cpu(void *cpu_memory, fArray *array);
 // subsequent kernel runs using the functions below. Unset variables
 // are initialized to zero (0). Calling the functions on unused variables
 // (that is, variables that are not referred to) has no effect.
-void *fraktal_get_param_location(const char *name);
-void fraktal_param_1f(void *location, float x);
-void fraktal_param_2f(void *location, float x, float y);
-void fraktal_param_3f(void *location, float x, float y, float z);
-void fraktal_param_4f(void *location, float x, float y, float z, float w);
-void fraktal_param_1i(void *location, int x);
-void fraktal_param_2i(void *location, int x, int y);
-void fraktal_param_3i(void *location, int x, int y, int z);
-void fraktal_param_4i(void *location, int x, int y, int z, int w);
-void fraktal_param_matrix2fv(void *location, float *m);
-void fraktal_param_matrix3fv(void *location, float *m);
-void fraktal_param_matrix4fv(void *location, float *m);
-void fraktal_param_matrix2fv_transpose(void *location, float *m);
-void fraktal_param_matrix3fv_transpose(void *location, float *m);
-void fraktal_param_matrix4fv_transpose(void *location, float *m);
-void fraktal_param_array2D(void *location, void *handle, fEnum wrap, fEnum filter);
-void fraktal_param_array1D(void *location, void *handle, fEnum wrap, fEnum filter);
+int fraktal_get_param_offset(const char *name);
+void fraktal_param_1f(int offset, float x);
+void fraktal_param_2f(int offset, float x, float y);
+void fraktal_param_3f(int offset, float x, float y, float z);
+void fraktal_param_4f(int offset, float x, float y, float z, float w);
+void fraktal_param_1i(int offset, int x);
+void fraktal_param_2i(int offset, int x, int y);
+void fraktal_param_3i(int offset, int x, int y, int z);
+void fraktal_param_4i(int offset, int x, int y, int z, int w);
+void fraktal_param_matrix2fv(int offset, float *m);
+void fraktal_param_matrix3fv(int offset, float *m);
+void fraktal_param_matrix4fv(int offset, float *m);
+void fraktal_param_matrix2fv_transpose(int offset, float *m);
+void fraktal_param_matrix3fv_transpose(int offset, float *m);
+void fraktal_param_matrix4fv_transpose(int offset, float *m);
+void fraktal_param_array2D(int location, void *handle, fEnum wrap, fEnum filter);
+void fraktal_param_array1D(int location, void *handle, fEnum wrap, fEnum filter);
 
 // It is also possible to query the name, memory offset and size in bytes
 // of the parameters

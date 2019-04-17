@@ -111,16 +111,19 @@ fArray *fraktal_create_array(
 
 void fraktal_destroy_array(fArray *a)
 {
+    fraktal_assert(glGetError() == GL_NO_ERROR);
     if (a)
     {
         glDeleteTextures(1, &a->color0);
         glDeleteFramebuffers(1, &a->fbo);
         free(a);
     }
+    fraktal_assert(glGetError() == GL_NO_ERROR);
 }
 
 void fraktal_zero_array(fArray *a)
 {
+    fraktal_assert(glGetError() == GL_NO_ERROR);
     fraktal_assert(a);
     fraktal_assert(a->access == FRAKTAL_READ_WRITE);
     fraktal_assert(a->fbo);
@@ -129,10 +132,12 @@ void fraktal_zero_array(fArray *a)
     glClearColor(0,0,0,0);
     glClear(GL_COLOR_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    fraktal_assert(glGetError() == GL_NO_ERROR);
 }
 
 void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a)
 {
+    fraktal_assert(glGetError() == GL_NO_ERROR);
     fraktal_assert(cpu_memory);
     fraktal_assert(a);
     fraktal_assert(a->color0);
@@ -143,4 +148,5 @@ void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a)
     glBindTexture(target, a->color0);
     glGetTexImage(target, 0, data_format, data_type, cpu_memory);
     glBindTexture(target, 0);
+    fraktal_assert(glGetError() == GL_NO_ERROR);
 }
