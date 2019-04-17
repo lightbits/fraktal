@@ -64,20 +64,20 @@ fLinkState *fraktal_create_link()
 
 void fraktal_destroy_link(fLinkState *link)
 {
-    fraktal_assert(glGetError() == GL_NO_ERROR);
+    fraktal_check_gl_error();
     if (link)
     {
         for (int i = 0; i < link->num_shaders; i++)
             if (link->shaders[i])
                 glDeleteShader(link->shaders[i]);
         free(link);
-        fraktal_assert(glGetError() == GL_NO_ERROR);
+        fraktal_check_gl_error();
     }
 }
 
 bool add_link_data(fLinkState *link, const void *data, const char *name)
 {
-    fraktal_assert(glGetError() == GL_NO_ERROR);
+    fraktal_check_gl_error();
     fraktal_assert(link);
     fraktal_assert(link->num_shaders < MAX_LINK_STATE_ITEMS);
     fraktal_assert(link->glsl_version);
@@ -92,7 +92,7 @@ bool add_link_data(fLinkState *link, const void *data, const char *name)
     if (!shader)
         return false;
     link->shaders[link->num_shaders++] = shader;
-    fraktal_assert(glGetError() == GL_NO_ERROR);
+    fraktal_check_gl_error();
     return true;
 }
 
@@ -122,7 +122,7 @@ bool fraktal_add_link_file(fLinkState *link, const char *path)
     }
     bool result = add_link_data(link, (const void*)data, path);
     free(data);
-    fraktal_assert(glGetError() == GL_NO_ERROR);
+    fraktal_check_gl_error();
     return result;
 }
 
@@ -134,7 +134,7 @@ bool fraktal_add_link_file(fLinkState *link, const char *path)
 // should eventually be destroyed with fraktal_destroy_kernel.
 fKernel *fraktal_link_kernel(fLinkState *link)
 {
-    fraktal_assert(glGetError() == GL_NO_ERROR);
+    fraktal_check_gl_error();
     fraktal_assert(link);
     fraktal_assert(link->num_shaders > 0 && "Atleast one kernel must be added to link state.");
 
@@ -175,20 +175,20 @@ fKernel *fraktal_link_kernel(fLinkState *link)
 
     fKernel *kernel = (fKernel*)calloc(1, sizeof(fKernel));
     kernel->program = program;
-    fraktal_assert(glGetError() == GL_NO_ERROR);
+    fraktal_check_gl_error();
     return kernel;
 }
 
 // If NULL is passed the function silently returns.
 void fraktal_destroy_kernel(fKernel *f)
 {
-    fraktal_assert(glGetError() == GL_NO_ERROR);
+    fraktal_check_gl_error();
     if (f)
     {
         if (f->program)
             glDeleteProgram(f->program);
         free(f);
-        fraktal_assert(glGetError() == GL_NO_ERROR);
+        fraktal_check_gl_error();
     }
 }
 

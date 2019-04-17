@@ -36,6 +36,7 @@ enum fEnum_
 };
 
 #define fraktal_assert assert
+#define fraktal_check_gl_error() fraktal_assert(glGetError() == GL_NO_ERROR)
 
 //
 // Implementation

@@ -9,10 +9,13 @@ struct fKernel
 
 int fraktal_get_param_offset(fKernel *f, const char *name)
 {
+    fraktal_check_gl_error();
     fraktal_assert(name);
     fraktal_assert(f);
     fraktal_assert(f->program);
-    return glGetUniformLocation(f->program, name);
+    int location = glGetUniformLocation(f->program, name);
+    fraktal_check_gl_error();
+    return location;
 }
 
 #if 0
