@@ -234,6 +234,7 @@ void main()
     // {
     //     fragColor.rgb = vec3(t/2.0);
     // }
+    // fragColor.a = 1.0;
 
     fragColor.rgb = vec3(1.0);
     float tModel = traceModel(ro, rd);

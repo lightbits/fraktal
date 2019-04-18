@@ -1,7 +1,8 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
-#resolution(200,200)
+// #widget(Resolution, width=200, height=200)
+#resolution(200, 200)
 #widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
 #widget(Floor)
 #widget(Material)
