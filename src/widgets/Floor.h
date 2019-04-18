@@ -36,7 +36,16 @@ struct Widget_Floor : Widget
         floor_specular_exponent = 500.0f;
         floor_reflectivity = 0.6f;
 
-        while (parse_next_in_list(cc)) ;
+        while (parse_next_in_list(cc)) {
+            if (parse_argument_float3(cc, "isolines_color", &isolines_color)) ;
+            else if (parse_argument_float(cc, "isolines_thickness", &isolines_thickness)) ;
+            else if (parse_argument_float(cc, "isolines_spacing", &isolines_spacing)) ;
+            else if (parse_argument_int(cc, "isolines_count", &isolines_count)) ;
+            else if (parse_argument_float(cc, "height", &floor_height)) ;
+            else if (parse_argument_float(cc, "specular_exponent", &floor_specular_exponent)) ;
+            else if (parse_argument_float(cc, "reflectivity", &floor_reflectivity)) ;
+            else parse_list_unexpected();
+        }
     }
     virtual void get_param_offsets(fKernel *f)
     {
