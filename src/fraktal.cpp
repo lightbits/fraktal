@@ -70,9 +70,9 @@ void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, in
 int main(int argc, char **argv)
 {
     fraktal_scene_def_t def = {0};
-    def.render_shader_path = "./data/render/publication.glsl";
-    def.model_shader_path = "./data/model/vase.glsl";
-    def.compose_shader_path = "./data/compose/mean_and_gamma_correct.glsl";
+    def.render_shader_path = "./data/render/publication.f";
+    def.model_shader_path = "./data/model/vase.f";
+    def.compose_shader_path = "./data/compose/mean_and_gamma_correct.f";
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
