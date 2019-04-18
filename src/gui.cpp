@@ -254,31 +254,33 @@ bool gui_load(guiState &scene,
     if (!scene.initialized || resolution_changed)
         gui_set_resolution(scene, params.resolution.x, params.resolution.y);
 
+    if (render || thickness)
+    {
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            free(scene.params.widgets[i]);
+        scene.params = params;
+    }
     if (render)
     {
         fraktal_destroy_kernel(scene.render_kernel);
         scene.render_kernel = render;
         scene.render_kernel_is_new = true;
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            scene.params.widgets[i]->get_param_offsets(scene.render_kernel);
     }
     if (thickness)
     {
         fraktal_destroy_kernel(scene.thickness_kernel);
         scene.thickness_kernel = thickness;
         scene.thickness_kernel_is_new = true;
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            scene.params.widgets[i]->get_param_offsets(scene.thickness_kernel);
     }
     if (compose)
     {
         fraktal_destroy_kernel(scene.compose_kernel);
         scene.compose_kernel = compose;
         scene.compose_kernel_is_new = true;
-    }
-    if (render || thickness)
-    {
-        for (int i = 0; i < scene.params.num_widgets; i++)
-            free(scene.params.widgets[i]);
-        scene.params = params;
-        for (int i = 0; i < scene.params.num_widgets; i++)
-            scene.params.widgets[i]->get_param_offsets(scene.render_kernel);
     }
 
     scene.should_clear = true;
@@ -339,7 +341,6 @@ void render_thickness(guiState &scene)
     assert(scene.thickness_kernel);
     assert(scene.render_buffer);
     assert(fraktal_is_valid_array(scene.render_buffer));
-    assert(fraktal_is_valid_array(scene.compose_buffer));
 
     fraktal_use_kernel(scene.thickness_kernel);
     fetch_uniform(thickness_kernel, iResolution);
