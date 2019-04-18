@@ -4,8 +4,8 @@
 #pragma once
 #include <string.h>
 #include <stdio.h>
+#include "fraktal_types.h"
 #include "log.h"
-#include "scene_params.h"
 
 void parse_alpha(const char **c)
 {
@@ -233,6 +233,7 @@ declare_parse_argument_(float2);
 declare_parse_argument_(float3);
 
 #include "widgets/Sun.h"
+#include "scene_params.h"
 
 bool parse_view(const char **c, scene_params_t *params)
 {

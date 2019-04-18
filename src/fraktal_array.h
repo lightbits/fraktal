@@ -153,3 +153,27 @@ void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a)
     glBindTexture(target, 0);
     fraktal_check_gl_error();
 }
+
+void fraktal_get_array_size(fArray *a, int *width, int *height)
+{
+    if (a)
+    {
+        *width = a->width;
+        *height = a->height;
+    }
+}
+
+bool fraktal_is_valid_array(fArray *a)
+{
+    return a &&
+           a->width > 0 &&
+           a->height >= 0 &&
+           (a->channels == 1 || a->channels == 2 || a->channels == 4) &&
+           (a->access == FRAKTAL_READ_ONLY || (a->access == FRAKTAL_READ_WRITE && a->fbo)) &&
+           (a->format == FRAKTAL_FLOAT || a->format == FRAKTAL_UINT8);
+}
+
+unsigned int fraktal_get_gl_handle(fArray *a)
+{
+    return a->color0;
+}

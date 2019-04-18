@@ -23,7 +23,16 @@
 #include <imgui_impl_opengl3.cpp>
 #include <open_sans_regular.h>
 #include "imgui_extensions.h"
+
+#include "gui.cpp"
+
+#define fraktal_assert assert
+#define fraktal_check_gl_error() fraktal_assert(glGetError() == GL_NO_ERROR)
 #include "fraktal.h"
+#include "fraktal_parse.h"
+#include "fraktal_array.h"
+#include "fraktal_kernel.h"
+#include "fraktal_link.h"
 
 void glfw_error_callback(int error, const char* description)
 {
