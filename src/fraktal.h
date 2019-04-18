@@ -4,7 +4,7 @@
 /*
 
 Index of this file:
-(you can jump to the relevant section by ctrl+f'ing the section header)
+(A decent code editor should let you jump quickly to a section or function)
 
 §1 Types and forward declarations
 ....fEnum
