@@ -1,6 +1,40 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
+/*
+Table of contents:
+
+§1 Types and forward declarations
+....fEnum
+§2 Arrays
+....fraktal_create_array
+....fraktal_destroy_array
+....fraktal_zero_array
+....fraktal_gpu_to_cpu
+§3 Kernels
+....fraktal_create_link
+....fraktal_destroy_link
+....fraktal_add_link_data
+....fraktal_link_kernel
+....fraktal_destroy_kernel
+....fraktal_load_kernel
+....fraktal_use_kernel
+....fraktal_run_kernel
+§4 Parameters
+....fraktal_get_param_offset
+....fraktal_param_1f
+....fraktal_param_2f
+....fraktal_param_3f
+....fraktal_param_4f
+....fraktal_param_1i
+....fraktal_param_2i
+....fraktal_param_3i
+....fraktal_param_4i
+....fraktal_param_matrix4f
+....fraktal_param_transpose_matrix4f
+....fraktal_param_array
+*/
+
 typedef int fEnum;
 enum fEnum_
 {
@@ -40,7 +74,13 @@ struct fLinkState;
     If the 'data' is NULL, the values of the array are uninitialized
     and undefined. The array may be cleared using fraktal_zero_array.
 */
-fArray *fraktal_create_array(const void *data, int width, int height, int channels, fEnum format, fEnum access);
+fArray *fraktal_create_array(
+    const void *data,
+    int width,
+    int height,
+    int channels,
+    fEnum format,
+    fEnum access);
 
 /*
     Frees all memory associated with an array.
@@ -92,7 +132,11 @@ void fraktal_destroy_link(fLinkState *link);
 
     No references are kept to 'data' (it can safely be freed afterward).
 */
-bool fraktal_add_link_data(fLinkState *link, const void *data, size_t size, const char *name);
+bool fraktal_add_link_data(
+    fLinkState *link,
+    const void *data,
+    size_t size,
+    const char *name);
 
 /*
     'link': Obtained from fraktal_create_link.
