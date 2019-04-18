@@ -2,7 +2,9 @@
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
 /*
-Table of contents:
+
+Index of this file:
+(you can jump to the relevant section by ctrl+f'ing the section header)
 
 §1 Types and forward declarations
 ....fEnum
@@ -35,6 +37,10 @@ Table of contents:
 ....fraktal_param_array
 */
 
+//-----------------------------------------------------------------------------
+// §1 Types and forward declarations
+//-----------------------------------------------------------------------------
+
 typedef int fEnum;
 enum fEnum_
 {
@@ -51,6 +57,10 @@ enum fEnum_
 struct fArray;
 struct fKernel;
 struct fLinkState;
+
+//-----------------------------------------------------------------------------
+// §2 Arrays
+//-----------------------------------------------------------------------------
 
 /*
     Creates a 1D or 2D GPU array of packed float or uint8 vector values
@@ -105,6 +115,10 @@ void fraktal_zero_array(fArray *a);
     'cpu_memory' must not be NULL and 'a' must be a valid array.
 */
 void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a);
+
+//-----------------------------------------------------------------------------
+// §3 Kernels
+//-----------------------------------------------------------------------------
 
 /*
     On success, the function returns a handle that should be passed
@@ -221,6 +235,10 @@ void fraktal_use_kernel(fKernel *f);
     cleared to zero using fraktal_zero_array(out).
 */
 void fraktal_run_kernel(fArray *out);
+
+//-----------------------------------------------------------------------------
+// §4 Parameters
+//-----------------------------------------------------------------------------
 
 /*
     The value -1 is returned if 'name' refers to a non-existent
