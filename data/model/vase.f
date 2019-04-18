@@ -5,6 +5,7 @@
 // #view(dir=(-20 deg, 30 deg), pos=(0,0,20))
 #camera(yfov=10deg, center=(100,100))
 #sun(size=30 deg, dir=(40 deg, -90 deg), color=(1,1,0.8), intensity=500)
+#widget(Sun, size=10deg)
 
 float fCylinder(vec3 p, float r, float height) {
     vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(r, height);

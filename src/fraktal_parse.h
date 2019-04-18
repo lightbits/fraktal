@@ -232,6 +232,8 @@ declare_parse_argument_(angle2);
 declare_parse_argument_(float2);
 declare_parse_argument_(float3);
 
+#include "widgets/Sun.h"
+
 bool parse_view(const char **c, scene_params_t *params)
 {
     parse_alpha(c);
@@ -329,6 +331,29 @@ bool scene_file_preprocessor(char *fs, scene_params_t *params)
             else if (parse_match(cc, "view"))       { if (!parse_view(cc, params)) return false; }
             else if (parse_match(cc, "camera"))     { if (!parse_camera(cc, params)) return false; }
             else if (parse_match(cc, "sun"))        { if (!parse_sun(cc, params)) return false; }
+            else if (parse_match(cc, "widget"))
+            {
+                Widget *w = NULL;
+
+                parse_alpha(cc);
+                parse_blank(cc);
+                if (!parse_begin_list(cc)) { log_err("Error parsing #widget directive: missing ( after '#sun'.\n"); return false; }
+
+                // horrible macro mess
+                #define PARSE_WIDGET(widget) \
+                    if (parse_match(cc, #widget)) { \
+                        if (!parse_char(cc, ',')) { log_err("Error parsing " #widget " #widget directive: missing comma after widget name.\n"); return false; } \
+                        Widget_##widget *ww = new Widget_##widget(cc); \
+                        if (!parse_end_list(cc)) { free(ww); log_err("Error parsing " #widget " #widget directive.\n"); return false; } \
+                        w = ww; \
+                    } else
+
+                PARSE_WIDGET(Sun)
+                // ...
+                // add new macros here!
+                // ...
+                { log_err("Error parsing #widget directive: unknown widget type.\n"); return false; }
+            }
             remove_directive_from_source(mark, c);
         }
         c++;
