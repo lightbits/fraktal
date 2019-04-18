@@ -156,6 +156,7 @@ bool gui_load(guiState &scene,
     fKernel *render = NULL;
     fKernel *thickness = NULL;
     fKernel *geometry = NULL;
+    fKernel *compose = NULL;
     if ((flags & GUI_LOAD_RENDER) ||
         (flags & GUI_LOAD_THICKNESS) ||
         (flags & GUI_LOAD_GEOMETRY))
@@ -208,7 +209,6 @@ bool gui_load(guiState &scene,
             goto failure;
     }
 
-    fKernel *compose = NULL;
     if (flags & GUI_LOAD_COMPOSE)
     {
         compose = fraktal_load_kernel(def.compose_shader_path);
