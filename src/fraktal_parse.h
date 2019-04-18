@@ -4,8 +4,8 @@
 #pragma once
 #include <string.h>
 #include <stdio.h>
+#include <log.h>
 #include "fraktal_types.h"
-#include "log.h"
 
 void parse_alpha(const char **c)
 {
