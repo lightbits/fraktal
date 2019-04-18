@@ -49,14 +49,21 @@ Index of this file:
 typedef int fEnum;
 enum fEnum_
 {
+    // Array access modes
     FRAKTAL_READ_ONLY,
     FRAKTAL_READ_WRITE,
+
+    // Array formats
+    FRAKTAL_FLOAT,
+    FRAKTAL_UINT8,
+
+    // Texture wrap modes
     FRAKTAL_CLAMP_TO_EDGE,
     FRAKTAL_REPEAT,
+
+    // Texture filter modes
     FRAKTAL_LINEAR,
     FRAKTAL_NEAREST,
-    FRAKTAL_FLOAT,
-    FRAKTAL_UINT8
 };
 
 struct fArray;
@@ -121,13 +128,26 @@ void fraktal_zero_array(fArray *a);
 */
 void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a);
 
+/*
+    If 'a' is NULL, nothing is written to width or height.
+*/
 void fraktal_get_array_size(fArray *a, int *width, int *height);
 
+/*
+    Returns true if the fArray satisfies the following properties:
+      * Width is > 0
+      * Height is >= 0 (0 means 'a' is a 1D array)
+      * Channels is 1, 2 or 4
+      * Access mode is among the modes listed in fEnum.
+      * Format is among the formats listed in fEnum.
+*/
 bool fraktal_is_valid_array(fArray *a);
 
 /*
     If the backend uses OpenGL 3.1, the result is a GLuint handle to
-    the array's underlying Texture Object.
+    the array's underlying Texture Object, which can be passed to
+    glBindTexture. The texture target is either GL_TEXTURE_1D, if
+    'a' is a 1D array, or GL_TEXTURE_2D, if 'a' is a 2D array.
 */
 unsigned int fraktal_get_gl_handle(fArray *a);
 
