@@ -11,6 +11,7 @@ enum guiLoadFlags_
     GUI_LOAD_RENDER       = 1 << 0,
     GUI_LOAD_COMPOSE      = 1 << 1,
     GUI_LOAD_THICKNESS    = 1 << 2,
+    GUI_LOAD_GEOMETRY     = 1 << 3,
 };
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -151,52 +152,13 @@ bool gui_load(guiState &scene,
 
     guiSceneParams params = scene.params;
 
+    bool parameters_changed = false;
     fKernel *render = NULL;
-    if (flags & GUI_LOAD_RENDER)
-    {
-        fLinkState *link = fraktal_create_link();
-
-        // model kernel
-        {
-            const char *path = def.model_shader_path;
-            char *data = read_file(path);
-            if (!data)
-            {
-                log_err("Failed to read source file.\n");
-                fraktal_destroy_link(link);
-                goto failure;
-            }
-            if (!scene_file_preprocessor(data, &params))
-            {
-                log_err("Failed to parse source file.\n");
-                fraktal_destroy_link(link);
-                free(data);
-                goto failure;
-            }
-            if (!fraktal_add_link_data(link, data, 0, path))
-            {
-                fraktal_destroy_link(link);
-                free(data);
-                goto failure;
-            }
-            free(data);
-        }
-
-        if (!fraktal_add_link_file(link, def.render_shader_path))
-        {
-            fraktal_destroy_link(link);
-            goto failure;
-        }
-
-        render = fraktal_link_kernel(link);
-        fraktal_destroy_link(link);
-
-        if (!render)
-            goto failure;
-    }
-
     fKernel *thickness = NULL;
-    if (flags & GUI_LOAD_THICKNESS)
+    fKernel *geometry = NULL;
+    if ((flags & GUI_LOAD_RENDER) ||
+        (flags & GUI_LOAD_THICKNESS) ||
+        (flags & GUI_LOAD_GEOMETRY))
     {
         fLinkState *link = fraktal_create_link();
 
@@ -224,18 +186,25 @@ bool gui_load(guiState &scene,
                 goto failure;
             }
             free(data);
+            parameters_changed = true;
         }
 
-        if (!fraktal_add_link_file(link, def.thickness_shader_path))
+        const char *path = NULL;
+        fKernel **kernel = NULL;
+        if (flags & GUI_LOAD_RENDER)    { path = def.render_shader_path; kernel = &render; }
+        if (flags & GUI_LOAD_THICKNESS) { path = def.thickness_shader_path; kernel = &thickness; }
+        if (flags & GUI_LOAD_GEOMETRY)  { path = def.geometry_shader_path; kernel = &geometry; }
+
+        if (!fraktal_add_link_file(link, path))
         {
             fraktal_destroy_link(link);
             goto failure;
         }
 
-        thickness = fraktal_link_kernel(link);
+        *kernel = fraktal_link_kernel(link);
         fraktal_destroy_link(link);
 
-        if (!thickness)
+        if (!(*kernel))
             goto failure;
     }
 
@@ -243,6 +212,12 @@ bool gui_load(guiState &scene,
     if (flags & GUI_LOAD_COMPOSE)
     {
         compose = fraktal_load_kernel(def.compose_shader_path);
+        if (!compose)
+            goto failure;
+    }
+    else if (flags & GUI_LOAD_GEOMETRY)
+    {
+        compose = fraktal_load_kernel(def.preview_geometry_shader_path);
         if (!compose)
             goto failure;
     }
@@ -254,7 +229,7 @@ bool gui_load(guiState &scene,
     if (!scene.initialized || resolution_changed)
         gui_set_resolution(scene, params.resolution.x, params.resolution.y);
 
-    if (render || thickness)
+    if (parameters_changed)
     {
         for (int i = 0; i < scene.params.num_widgets; i++)
             free(scene.params.widgets[i]);
@@ -276,6 +251,14 @@ bool gui_load(guiState &scene,
         for (int i = 0; i < scene.params.num_widgets; i++)
             scene.params.widgets[i]->get_param_offsets(scene.thickness_kernel);
     }
+    if (geometry)
+    {
+        fraktal_destroy_kernel(scene.geometry_kernel);
+        scene.geometry_kernel = geometry;
+        scene.geometry_kernel_is_new = true;
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            scene.params.widgets[i]->get_param_offsets(scene.geometry_kernel);
+    }
     if (compose)
     {
         fraktal_destroy_kernel(scene.compose_kernel);
@@ -295,6 +278,7 @@ failure:
     fraktal_destroy_kernel(render);
     fraktal_destroy_kernel(thickness);
     fraktal_destroy_kernel(compose);
+    fraktal_destroy_kernel(geometry);
     for (int i = 0; i < params.num_widgets; i++)
         free(params.widgets[i]);
     return false;
@@ -363,6 +347,33 @@ void render_thickness(guiState &scene)
     scene.samples = 0;
 }
 
+void render_geometry(guiState &scene)
+{
+    assert(scene.geometry_kernel);
+    assert(scene.render_buffer);
+    assert(fraktal_is_valid_array(scene.render_buffer));
+
+    fraktal_use_kernel(scene.geometry_kernel);
+    fetch_uniform(geometry_kernel, iResolution);
+    scene.geometry_kernel_is_new = false;
+
+    fArray *out = scene.render_buffer;
+
+    int width,height;
+    fraktal_get_array_size(out, &width, &height);
+    glUniform2f(loc_iResolution, (float)width, (float)height);
+
+    for (int i = 0; i < scene.params.num_widgets; i++)
+        scene.params.widgets[i]->set_params();
+
+    fraktal_zero_array(out);
+    scene.should_clear = false;
+    fraktal_run_kernel(out);
+    fraktal_use_kernel(NULL);
+
+    scene.samples = 0;
+}
+
 void compose_scene(guiState &scene)
 {
     assert(scene.compose_kernel);
@@ -388,10 +399,43 @@ void compose_scene(guiState &scene)
     fraktal_use_kernel(NULL);
 }
 
+void compose_preview_geometry(guiState &scene, int iDrawMode)
+{
+    assert(scene.compose_kernel);
+    fraktal_use_kernel(scene.compose_kernel);
+
+    fetch_uniform(compose_kernel, iResolution);
+    fetch_uniform(compose_kernel, iDrawMode);
+    fetch_uniform(compose_kernel, iChannel0);
+    fetch_uniform(compose_kernel, iMinDrawDistance);
+    fetch_uniform(compose_kernel, iMaxDrawDistance);
+    scene.compose_kernel_is_new = false;
+
+    fArray *out = scene.compose_buffer;
+    fArray *in = scene.render_buffer;
+    int width,height;
+    fraktal_get_array_size(out, &width, &height);
+    glUniform2f(loc_iResolution, (float)width, (float)height);
+    glUniform1i(loc_iDrawMode, iDrawMode);
+    glUniform1f(loc_iMinDrawDistance, 20.0f);
+    glUniform1f(loc_iMaxDrawDistance, 22.0f);
+    glUniform1i(loc_iChannel0, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fraktal_get_gl_handle(in));
+
+    fraktal_zero_array(out);
+    fraktal_run_kernel(out);
+    fraktal_use_kernel(NULL);
+}
+
 void gui_present(guiState &scene)
 {
-    static const int preview_mode_render = 0;
-    static const int preview_mode_thickness = 1;
+    enum preview_mode_ {
+        preview_mode_render=0,
+        preview_mode_thickness,
+        preview_mode_normals,
+        preview_mode_depth,
+    };
     static int preview_mode = preview_mode_render;
     static int last_preview_mode = preview_mode;
     bool preview_mode_changed = preview_mode != last_preview_mode;
@@ -404,6 +448,9 @@ void gui_present(guiState &scene)
             gui_load(scene, scene.def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE);
         else if (preview_mode == preview_mode_thickness)
             gui_load(scene, scene.def, GUI_LOAD_THICKNESS);
+        else if (preview_mode == preview_mode_normals ||
+                 preview_mode == preview_mode_depth)
+            gui_load(scene, scene.def, GUI_LOAD_GEOMETRY);
     }
 
     if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
@@ -422,10 +469,17 @@ void gui_present(guiState &scene)
         if (scene.auto_render || scene.thickness_kernel_is_new || scene.should_clear)
         {
             render_thickness(scene);
-            compose_scene(scene);
         }
     }
-
+    else if (preview_mode == preview_mode_normals ||
+             preview_mode == preview_mode_depth)
+    {
+        if (scene.auto_render || scene.geometry_kernel_is_new || scene.should_clear)
+        {
+            render_geometry(scene);
+            compose_preview_geometry(scene, preview_mode == preview_mode_normals ? 0 : 1);
+        }
+    }
 
     float pad = 2.0f;
 
@@ -457,16 +511,10 @@ void gui_present(guiState &scene)
             ImGui::MenuItem("Help");
             if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
             {
-                if (ImGui::BeginTabItem("Render"))
-                {
-                    next_preview_mode = preview_mode_render;
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Thickness"))
-                {
-                    next_preview_mode = preview_mode_thickness;
-                    ImGui::EndTabItem();
-                }
+                if (ImGui::BeginTabItem("Render"))    { next_preview_mode = preview_mode_render; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Thickness")) { next_preview_mode = preview_mode_thickness; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Normals"))   { next_preview_mode = preview_mode_normals; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Depth"))     { next_preview_mode = preview_mode_depth; ImGui::EndTabItem(); }
                 ImGui::EndTabBar();
             }
         }
@@ -553,8 +601,6 @@ void gui_present(guiState &scene)
         ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, main_menu_bar_height + pad));
         ImGui::Begin("Preview", NULL, flags);
 
-        if (preview_mode == preview_mode_render ||
-            preview_mode == preview_mode_thickness)
         {
             const int display_mode_1x = 0;
             const int display_mode_2x = 1;
@@ -586,7 +632,9 @@ void gui_present(guiState &scene)
                     fraktal_get_array_size(scene.render_buffer, &width, &height);
                     texture = fraktal_get_gl_handle(scene.render_buffer);
                 }
-                else
+                else if (preview_mode == preview_mode_render ||
+                         preview_mode == preview_mode_normals ||
+                         preview_mode == preview_mode_depth)
                 {
                     fraktal_get_array_size(scene.compose_buffer, &width, &height);
                     texture = fraktal_get_gl_handle(scene.compose_buffer);
