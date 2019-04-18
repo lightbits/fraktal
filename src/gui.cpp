@@ -235,7 +235,7 @@ void save_screenshot(const char *filename)
 }
 #endif
 
-void fraktal_set_resolution(guiState &scene, int x, int y)
+void gui_set_resolution(guiState &scene, int x, int y)
 {
     assert(x > 0);
     assert(y > 0);
@@ -250,9 +250,9 @@ void fraktal_set_resolution(guiState &scene, int x, int y)
     scene.should_clear = true;
 }
 
-bool GUI_load(guiState &scene,
-                  guiSceneDef def,
-                  guiLoadFlags flags)
+bool gui_load(guiState &scene,
+              guiSceneDef def,
+              guiLoadFlags flags)
 {
     if (!scene.initialized)
         scene.params = get_default_scene_params();
@@ -302,7 +302,7 @@ bool GUI_load(guiState &scene,
         fraktal_destroy_link(link);
     }
 
-    fKernel *compose = GUI_load_kernel(def.compose_shader_path);
+    fKernel *compose = fraktal_load_kernel(def.compose_shader_path);
 
     if (compose && render)
     {
@@ -311,7 +311,7 @@ bool GUI_load(guiState &scene,
             params.resolution.y != scene.params.resolution.y;
 
         if (!scene.initialized || resolution_changed)
-            fraktal_set_resolution(scene, params.resolution.x, params.resolution.y);
+            gui_set_resolution(scene, params.resolution.x, params.resolution.y);
 
         fraktal_destroy_kernel(scene.compose_kernel);
         fraktal_destroy_kernel(scene.render_kernel);
@@ -339,7 +339,7 @@ bool GUI_load(guiState &scene,
 
 #define fetch_uniform(kernel, name) static int loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
 
-void fraktal_render(guiState &scene)
+void render_scene(guiState &scene)
 {
     assert(scene.render_buffer);
     assert(fraktal_is_valid_array(scene.render_buffer));
@@ -439,7 +439,7 @@ void fraktal_render(guiState &scene)
     scene.samples++;
 }
 
-void fraktal_compose(guiState &scene)
+void compose_scene(guiState &scene)
 {
     fraktal_use_kernel(scene.compose_kernel);
 
@@ -493,10 +493,10 @@ bool handle_view_change_keys(guiState &scene)
     return moved;
 }
 
-void fraktal_present(guiState &scene)
+void gui_present(guiState &scene)
 {
     if (scene.keys.Shift.down && scene.keys.Enter.pressed)
-        GUI_load(scene, scene.def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE);
+        gui_load(scene, scene.def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE);
 
     if (handle_view_change_keys(scene))
         scene.should_clear = true;
@@ -506,8 +506,8 @@ void fraktal_present(guiState &scene)
 
     if (scene.auto_render || scene.render_kernel_is_new || scene.should_clear)
     {
-        fraktal_render(scene);
-        fraktal_compose(scene);
+        render_scene(scene);
+        compose_scene(scene);
     }
 
     float pad = 2.0f;

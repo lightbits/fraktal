@@ -141,7 +141,7 @@ int main(int argc, char **argv)
     }
 
     guiState scene = {0};
-    if (!fraktal_load(scene, def, 0))
+    if (!gui_load(scene, def, 0))
         return 1;
 
     while (!glfwWindowShouldClose(window))
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
             glClearColor(0.14f, 0.14f, 0.14f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
-            fraktal_present(scene);
+            gui_present(scene);
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
