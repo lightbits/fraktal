@@ -82,6 +82,7 @@ int main(int argc, char **argv)
     def.render_shader_path = "./data/render/publication.f";
     def.model_shader_path = "./data/model/vase.f";
     def.compose_shader_path = "./data/compose/mean_and_gamma_correct.f";
+    def.thickness_shader_path = "./data/render/thickness.f";
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())

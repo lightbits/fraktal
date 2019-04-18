@@ -21,6 +21,7 @@ struct guiSceneDef
     const char *model_shader_path;
     const char *render_shader_path;
     const char *compose_shader_path;
+    const char *thickness_shader_path;
     const char *glsl_version;
 };
 struct guiSceneParams

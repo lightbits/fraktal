@@ -8,10 +8,11 @@
 typedef int guiLoadFlags;
 enum guiLoadFlags_
 {
-    GUI_LOAD_ALL          = 0,
-    GUI_LOAD_MODEL        = 1,
-    GUI_LOAD_RENDER       = 2,
-    GUI_LOAD_COMPOSE      = 4
+    GUI_LOAD_ALL          = 1 << 0,
+    GUI_LOAD_MODEL        = 1 << 1,
+    GUI_LOAD_RENDER       = 1 << 2,
+    GUI_LOAD_COMPOSE      = 1 << 3,
+    GUI_LOAD_THICKNESS    = 1 << 4,
 };
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -193,7 +194,7 @@ bool gui_load(guiState &scene,
 
     fKernel *compose = fraktal_load_kernel(def.compose_shader_path);
 
-    if (compose && render)
+    if (compose && render && thickness)
     {
         bool resolution_changed =
             params.resolution.x != scene.params.resolution.x ||
@@ -204,6 +205,8 @@ bool gui_load(guiState &scene,
 
         fraktal_destroy_kernel(scene.compose_kernel);
         fraktal_destroy_kernel(scene.render_kernel);
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            free(scene.params.widgets[i]);
 
         scene.compose_kernel = compose;
         scene.render_kernel = render;
