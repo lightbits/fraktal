@@ -84,10 +84,6 @@ bool add_link_data(fLinkState *link, const void *data, const char *name)
     return true;
 }
 
-// On success, the function returns a handle that should be passed
-// to subsequent link_add_file or add_link_data calls. If the call
-// is successful, the caller owns the returned fLinkState, which
-// should eventually be destroyed with fraktal_destroy_link.
 fLinkState *fraktal_create_link()
 {
     fLinkState *link = (fLinkState*)calloc(1, sizeof(fLinkState));
@@ -96,10 +92,6 @@ fLinkState *fraktal_create_link()
     return link;
 }
 
-// Frees memory associated with a linking operation. On return, the
-// fLinkState handle is invalidated and should not be used anywhere.
-//
-// If 'link' is NULL the function silently returns.
 void fraktal_destroy_link(fLinkState *link)
 {
     fraktal_check_gl_error();
@@ -113,22 +105,11 @@ void fraktal_destroy_link(fLinkState *link)
     }
 }
 
-// 'link': Obtained from fraktal_create_link.
-// 'data': A pointer to a buffer containing kernel source text. Must be NULL-terminated.
-// 'size': Length of input data in bytes (excluding NULL-terminator). 0 can be passed if
-//         the input is a NULL-terminated string.
-// 'name': An optional name for this input in log messages.
-//
-// No references are kept to 'data' (it can safely be freed after the function returns).
 bool fraktal_add_link_data(fLinkState *link, const void *data, size_t size, const char *name)
 {
     return add_link_data(link, data, name);
 }
 
-// 'link': Obtained from fraktal_create_link.
-// 'path': A NULL-terminated path to a file containing kernel source text.
-//
-// This method is equivalent to calling add_link_data on the contents of the file.
 bool fraktal_add_link_file(fLinkState *link, const char *path)
 {
     char *data = read_file(path);
@@ -143,12 +124,6 @@ bool fraktal_add_link_file(fLinkState *link, const char *path)
     return result;
 }
 
-// On success, this function returns a fKernel handle that is required for
-// all kernel-specific operations, such as execution, setting parameters,
-// or obtaining information on active parameters.
-//
-// If the call is successful, the caller owns the returned fKernel, which
-// should eventually be destroyed with fraktal_destroy_kernel.
 fKernel *fraktal_link_kernel(fLinkState *link)
 {
     fraktal_check_gl_error();
@@ -196,10 +171,6 @@ fKernel *fraktal_link_kernel(fLinkState *link)
     return kernel;
 }
 
-// Frees memory associated with a kernel. On return, the fKernel handle
-// is invalidated and should not be used anywhere.
-//
-// If NULL is passed the function silently returns.
 void fraktal_destroy_kernel(fKernel *f)
 {
     fraktal_check_gl_error();
@@ -212,9 +183,6 @@ void fraktal_destroy_kernel(fKernel *f)
     }
 }
 
-// 'path': A NULL-terminated path to a file containing kernel source text.
-//
-// This method is equivalent to calling link_create -> link_add_file(path) -> link_kernel.
 fKernel *fraktal_load_kernel(const char *path)
 {
     fraktal_assert(path);

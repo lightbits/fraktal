@@ -1,4 +1,5 @@
 #pragma once
+#include "log.h"
 
 struct fArray
 {
@@ -112,14 +113,14 @@ fArray *fraktal_create_array(
 
 void fraktal_destroy_array(fArray *a)
 {
-    fraktal_check_gl_error();
     if (a)
     {
+        fraktal_check_gl_error();
         glDeleteTextures(1, &a->color0);
         glDeleteFramebuffers(1, &a->fbo);
         free(a);
+        fraktal_check_gl_error();
     }
-    fraktal_check_gl_error();
 }
 
 void fraktal_zero_array(fArray *a)

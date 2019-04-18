@@ -10,8 +10,6 @@ struct fKernel
 
 static fKernel *fraktal_current_kernel = NULL;
 
-// The value -1 is returned if 'name' refers to a non-existent
-// or unused parameter.
 int fraktal_get_param_offset(fKernel *f, const char *name)
 {
     fraktal_check_gl_error();
@@ -23,18 +21,6 @@ int fraktal_get_param_offset(fKernel *f, const char *name)
     return location;
 }
 
-// Calling this function modifies the GPU state of the current context as required
-// by fraktal_run_kernel and fraktal_param* functions. The state should be restored
-// by calling this function with NULL.
-//
-// A kernel can be run multiple times while in use. Switching to a different kernel
-// does not require the state to be restored, for example:
-//   fraktal_use_kernel(a);
-//   fraktal_run_kernel(a);
-//   fraktal_use_kernel(b);
-//   fraktal_run_kernel(b);
-//   fraktal_use_kernel(NULL);
-// runs two kernels and properly restores the GPU state.
 void fraktal_use_kernel(fKernel *f)
 {
     fraktal_check_gl_error();
