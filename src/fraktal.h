@@ -288,7 +288,7 @@ struct fraktal_scene_def_t
 #include <GL/gl3w.h>
 #include <file.h>
 #include "scene_params.h"
-#include "scene_parser.h"
+#include "fraktal_parse.h"
 
 #define fraktal_assert assert
 #define fraktal_check_gl_error() fraktal_assert(glGetError() == GL_NO_ERROR)
