@@ -3,6 +3,7 @@
 
 #resolution(200,200)
 #widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
+#widget(Floor)
 #widget(Sun, size=10deg, color=(1,1,0.8), intensity=250)
 
 float fCylinder(vec3 p, float r, float height) {

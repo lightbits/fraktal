@@ -28,6 +28,7 @@ enum guiLoadFlags_
 #include "widgets/Widget.h"
 #include "widgets/Sun.h"
 #include "widgets/Camera.h"
+#include "widgets/Floor.h"
 
 bool parse_resolution(const char **c, guiSceneParams *params)
 {
@@ -67,7 +68,7 @@ bool scene_file_preprocessor(char *fs, guiSceneParams *params)
                 // horrible macro mess
                 #define PARSE_WIDGET(widget) \
                     if (parse_match(cc, #widget)) { \
-                        if (!parse_char(cc, ',')) { log_err("Error parsing " #widget " #widget directive: missing comma after widget name.\n"); goto failure; } \
+                        parse_char(cc, ','); \
                         Widget_##widget *ww = new Widget_##widget(params, cc); \
                         if (!parse_end_list(cc)) { free(ww); log_err("Error parsing " #widget " #widget directive.\n"); goto failure; } \
                         params->widgets[params->num_widgets] = ww; \
@@ -75,6 +76,7 @@ bool scene_file_preprocessor(char *fs, guiSceneParams *params)
 
                 PARSE_WIDGET(Sun)
                 PARSE_WIDGET(Camera)
+                PARSE_WIDGET(Floor)
                 // ...
                 // add new macros here!
                 // ...
@@ -99,28 +101,6 @@ guiSceneParams get_default_scene_params()
     guiSceneParams params = {0};
     params.resolution.x = 200;
     params.resolution.y = 200;
-    params.view.dir.theta = -20.0f;
-    params.view.dir.phi = 30.0f;
-    params.view.pos.x = 0.0f;
-    params.view.pos.y = 0.0f;
-    params.view.pos.z = 24.0f;
-    params.camera.f = yfov2pinhole_f(10.0f, (float)params.resolution.y);
-    params.camera.center.x = params.resolution.x/2.0f;
-    params.camera.center.y = params.resolution.y/2.0f;
-    params.sun.size = 3.0f;
-    params.sun.dir.theta = 30.0f;
-    params.sun.dir.phi = 90.0f;
-    params.sun.color.x = 1.0f;
-    params.sun.color.y = 1.0f;
-    params.sun.color.z = 0.8f;
-    params.sun.intensity = 250.0f;
-    params.isolines.enabled = false;
-    params.isolines.color.x = 0.3f;
-    params.isolines.color.y = 0.3f;
-    params.isolines.color.z = 0.3f;
-    params.isolines.thickness = 0.25f*0.5f;
-    params.isolines.spacing = 0.4f;
-    params.isolines.count = 3;
     params.material.albedo.x = 0.6f;
     params.material.albedo.y = 0.1f;
     params.material.albedo.z = 0.1f;
@@ -129,10 +109,6 @@ guiSceneParams get_default_scene_params()
     params.material.specular_albedo.y = 0.3f;
     params.material.specular_albedo.z = 0.3f;
     params.material.specular_exponent = 32.0f;
-    params.floor.reflective = false;
-    params.floor.height = 0.0f;
-    params.floor.specular_exponent = 500.0f;
-    params.floor.reflectivity = 0.6f;
     return params;
 }
 
@@ -270,20 +246,11 @@ void render_scene(guiState &scene)
 
     fraktal_use_kernel(scene.render_kernel);
     fetch_uniform(render_kernel, iResolution);
-    fetch_uniform(render_kernel, iDrawIsolines);
-    fetch_uniform(render_kernel, iIsolineColor);
-    fetch_uniform(render_kernel, iIsolineThickness);
-    fetch_uniform(render_kernel, iIsolineSpacing);
-    fetch_uniform(render_kernel, iIsolineMax);
+    fetch_uniform(render_kernel, iSamples);
     fetch_uniform(render_kernel, iMaterialGlossy);
     fetch_uniform(render_kernel, iMaterialSpecularExponent);
     fetch_uniform(render_kernel, iMaterialSpecularAlbedo);
     fetch_uniform(render_kernel, iMaterialAlbedo);
-    fetch_uniform(render_kernel, iFloorReflective);
-    fetch_uniform(render_kernel, iFloorHeight);
-    fetch_uniform(render_kernel, iFloorSpecularExponent);
-    fetch_uniform(render_kernel, iFloorReflectivity);
-    fetch_uniform(render_kernel, iView);
     scene.render_kernel_is_new = false;
 
     fArray *out = scene.render_buffer;
@@ -297,28 +264,11 @@ void render_scene(guiState &scene)
         scene.params.widgets[i]->set_params();
 
     {
-        auto iso = scene.params.isolines;
-        glUniform1i(loc_iDrawIsolines, iso.enabled ? 1 : 0);
-        glUniform3fv(loc_iIsolineColor, 1, &iso.color.x);
-        glUniform1f(loc_iIsolineThickness, iso.thickness);
-        glUniform1f(loc_iIsolineSpacing, iso.spacing);
-        glUniform1f(loc_iIsolineMax, iso.count*iso.spacing + iso.thickness*0.5f);
-    }
-
-    {
         auto material = scene.params.material;
         glUniform1i(loc_iMaterialGlossy, material.glossy ? 1 : 0);
         glUniform1f(loc_iMaterialSpecularExponent, material.specular_exponent);
         glUniform3fv(loc_iMaterialSpecularAlbedo, 1, &material.specular_albedo.x);
         glUniform3fv(loc_iMaterialAlbedo, 1, &material.albedo.x);
-    }
-
-    {
-        auto floor = scene.params.floor;
-        glUniform1i(loc_iFloorReflective, floor.reflective ? 1 : 0);
-        glUniform1f(loc_iFloorHeight, floor.height);
-        glUniform1f(loc_iFloorSpecularExponent, floor.specular_exponent);
-        glUniform1f(loc_iFloorReflectivity, floor.reflectivity);
     }
 
     if (scene.should_clear)
@@ -463,30 +413,6 @@ void gui_present(guiState &scene)
                 for (int i = 0; i < scene.params.num_widgets; i++)
                     scene.should_clear |= scene.params.widgets[i]->update(scene);
 
-                if (ImGui::CollapsingHeader("Floor"))
-                {
-                    auto &floor = scene.params.floor;
-                    scene.should_clear |= ImGui::DragFloat("Height", &floor.height, 0.01f);
-
-                    if (ImGui::TreeNode("Isolines"))
-                    {
-                        auto &isolines = scene.params.isolines;
-                        scene.should_clear |= ImGui::Checkbox("Enabled##Isolines", &isolines.enabled);
-                        scene.should_clear |= ImGui::ColorEdit3("Color", &isolines.color.x);
-                        scene.should_clear |= ImGui::DragFloat("Thickness", &isolines.thickness, 0.01f);
-                        scene.should_clear |= ImGui::DragFloat("Spacing", &isolines.spacing, 0.01f);
-                        scene.should_clear |= ImGui::DragInt("Count", &isolines.count, 0.1f, 0, 100);
-                        ImGui::TreePop();
-                    }
-
-                    if (ImGui::TreeNode("Reflection"))
-                    {
-                        scene.should_clear |= ImGui::Checkbox("Enabled##Reflection", &floor.reflective);
-                        scene.should_clear |= ImGui::DragFloat("Exponent", &floor.specular_exponent, 1.0f, 0.0f, 10000.0f);
-                        scene.should_clear |= ImGui::SliderFloat("Reflectivity", &floor.reflectivity, 0.0f, 1.0f);
-                        ImGui::TreePop();
-                    }
-                }
                 if (ImGui::CollapsingHeader("Material"))
                 {
                     auto &material = scene.params.material;
