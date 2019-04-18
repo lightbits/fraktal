@@ -129,10 +129,11 @@ void fraktal_zero_array(fArray *a)
     fraktal_assert(a->access == FRAKTAL_READ_WRITE);
     fraktal_assert(a->fbo);
     fraktal_assert(a->color0);
+    GLint last_framebuffer; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &last_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, a->fbo);
     glClearColor(0,0,0,0);
     glClear(GL_COLOR_BUFFER_BIT);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, last_framebuffer);
     fraktal_check_gl_error();
 }
 

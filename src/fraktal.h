@@ -52,9 +52,9 @@ enum fEnum_
 #include <file.h>
 #include "scene_params.h"
 #include "scene_parser.h"
+#include "fraktal_array.h"
 #include "fraktal_kernel.h"
 #include "fraktal_link.h"
-#include "fraktal_array.h"
 
 struct fraktal_scene_t
 {
@@ -148,16 +148,6 @@ bool fraktal_load(fraktal_scene_t &scene,
     if (!scene.initialized)
         scene.params = get_default_scene_params();
 
-    if (!scene.quad)
-    {
-        static const float quad_data[] = { -1,-1, +1,-1, +1,+1, +1,+1, -1,+1, -1,-1 };
-        glGenBuffers(1, &scene.quad);
-        glBindBuffer(GL_ARRAY_BUFFER, scene.quad);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quad_data), quad_data, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-    assert(scene.quad && "Failed to create fullscreen-quad buffer");
-
     if (flags == 0)
         flags = 0xffffffff;
 
@@ -238,8 +228,7 @@ bool fraktal_load(fraktal_scene_t &scene,
     return true;
 }
 
-#define fetch_uniform(kernel, name) static GLint loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
-#define fetch_attrib(kernel, name) static GLint loc_##name; if (scene.kernel##_is_new) loc_##name = glGetAttribLocation(scene.kernel->program, #name);
+#define fetch_uniform(kernel, name) static int loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
 
 void fraktal_render(fraktal_scene_t &scene)
 {
@@ -253,18 +242,8 @@ void fraktal_render(fraktal_scene_t &scene)
     assert(scene.compose_buffer->width > 0);
     assert(scene.compose_buffer->height > 0);
     assert(scene.compose_buffer->channels > 0);
-    if (scene.should_clear)
-    {
-        glBindFramebuffer(GL_FRAMEBUFFER, scene.render_buffer->fbo);
-        glViewport(0, 0, scene.render_buffer->width, scene.render_buffer->height);
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        scene.samples = 0;
-        scene.should_clear = false;
-    }
 
-    fetch_attrib(render_kernel,  iPosition);
+    fraktal_use_kernel(scene.render_kernel);
     fetch_uniform(render_kernel, iResolution);
     fetch_uniform(render_kernel, iCameraCenter);
     fetch_uniform(render_kernel, iCameraF);
@@ -288,33 +267,23 @@ void fraktal_render(fraktal_scene_t &scene)
     fetch_uniform(render_kernel, iView);
     scene.render_kernel_is_new = false;
 
-    GLuint vao = 0;
-    glGenVertexArrays(1, &vao);
+    fArray *out = scene.render_buffer;
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
-    glBlendEquation(GL_FUNC_ADD);
+    glUniform2f(loc_iResolution, (float)out->width, (float)out->height);
+    glUniform2fv(loc_iCameraCenter, 1, &scene.params.camera.center.x);
+    glUniform1f(loc_iCameraF, scene.params.camera.f);
+    glUniform1i(loc_iSamples, scene.samples);
 
-    fArray *fb = scene.render_buffer;
-    glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
-    glViewport(0, 0, fb->width, fb->height);
-
-    glUseProgram(scene.render_kernel->program);
-
-    float iView[4*4];
     {
+        float iView[4*4];
         float3 r = {
             deg2rad(scene.params.view.dir.theta),
             deg2rad(scene.params.view.dir.phi),
             0.0f
         };
         compute_view_matrix(iView, scene.params.view.pos, r);
+        glUniformMatrix4fv(loc_iView, 1, GL_TRUE, iView);
     }
-
-    glUniform2f(loc_iResolution, (float)fb->width, (float)fb->height);
-    glUniform2fv(loc_iCameraCenter, 1, &scene.params.camera.center.x);
-    glUniform1f(loc_iCameraF, scene.params.camera.f);
-    glUniform1i(loc_iSamples, scene.samples);
 
     {
         auto sun = scene.params.sun;
@@ -354,71 +323,38 @@ void fraktal_render(fraktal_scene_t &scene)
         glUniform1f(loc_iFloorReflectivity, floor.reflectivity);
     }
 
-    glUniformMatrix4fv(loc_iView, 1, GL_TRUE, iView);
-
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, scene.quad);
-    glEnableVertexAttribArray(loc_iPosition);
-    glVertexAttribPointer(loc_iPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 2, 0);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glDisableVertexAttribArray(loc_iPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glDisable(GL_BLEND);
-    glDeleteVertexArrays(1, &vao);
+    if (scene.should_clear)
+    {
+        fraktal_zero_array(out);
+        scene.samples = 0;
+        scene.should_clear = false;
+    }
+    fraktal_run_kernel(out);
+    fraktal_use_kernel(NULL);
 
     scene.samples++;
 }
 
 void fraktal_compose(fraktal_scene_t &scene)
 {
-    fetch_attrib(compose_kernel,  iPosition);
+    fraktal_use_kernel(scene.compose_kernel);
+
     fetch_uniform(compose_kernel, iResolution);
     fetch_uniform(compose_kernel, iChannel0);
     fetch_uniform(compose_kernel, iSamples);
     scene.compose_kernel_is_new = false;
 
-    GLuint vao = 0;
-    glGenVertexArrays(1, &vao);
-
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-
-    fArray *fb = scene.compose_buffer;
-    glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
-
-    glViewport(0, 0, fb->width, fb->height);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(scene.compose_kernel->program);
-
-    glUniform2f(loc_iResolution, (float)fb->width, (float)fb->height);
+    fArray *out = scene.compose_buffer;
+    fArray *in = scene.render_buffer;
+    glUniform2f(loc_iResolution, (float)out->width, (float)out->height);
     glUniform1i(loc_iSamples, scene.samples);
     glUniform1i(loc_iChannel0, 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, scene.render_buffer->color0);
+        glBindTexture(GL_TEXTURE_2D, in->color0);
 
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, scene.quad);
-    glEnableVertexAttribArray(loc_iPosition);
-    glVertexAttribPointer(loc_iPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 2, 0);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glDisableVertexAttribArray(loc_iPosition);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glDisable(GL_BLEND);
-    glDeleteVertexArrays(1, &vao);
+    fraktal_zero_array(out);
+    fraktal_run_kernel(out);
+    fraktal_use_kernel(NULL);
 }
 
 bool handle_view_change_keys(fraktal_scene_t &scene)
