@@ -142,7 +142,7 @@ int main(int argc, char **argv)
     }
 
     guiState scene = {0};
-    if (!gui_load(scene, def, 0))
+    if (!gui_load(scene, def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE))
         return 1;
 
     while (!glfwWindowShouldClose(window))

@@ -8,11 +8,9 @@
 typedef int guiLoadFlags;
 enum guiLoadFlags_
 {
-    GUI_LOAD_ALL          = 1 << 0,
-    GUI_LOAD_MODEL        = 1 << 1,
-    GUI_LOAD_RENDER       = 1 << 2,
-    GUI_LOAD_COMPOSE      = 1 << 3,
-    GUI_LOAD_THICKNESS    = 1 << 4,
+    GUI_LOAD_RENDER       = 1 << 0,
+    GUI_LOAD_COMPOSE      = 1 << 1,
+    GUI_LOAD_THICKNESS    = 1 << 2,
 };
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -147,12 +145,14 @@ bool gui_load(guiState &scene,
     if (!scene.initialized)
         scene.params = get_default_scene_params();
 
-    if (flags == 0)
-        flags = 0xffffffff;
+    assert(flags != 0);
+    assert(!((flags & GUI_LOAD_RENDER) && (flags & GUI_LOAD_THICKNESS)));
+    assert(!((flags & GUI_LOAD_THICKNESS) && (flags & GUI_LOAD_COMPOSE)));
 
     guiSceneParams params = scene.params;
 
     fKernel *render = NULL;
+    if (flags & GUI_LOAD_RENDER)
     {
         fLinkState *link = fraktal_create_link();
 
@@ -164,20 +164,20 @@ bool gui_load(guiState &scene,
             {
                 log_err("Failed to read source file.\n");
                 fraktal_destroy_link(link);
-                return false;
+                goto failure;
             }
             if (!scene_file_preprocessor(data, &params))
             {
                 log_err("Failed to parse source file.\n");
                 fraktal_destroy_link(link);
                 free(data);
-                return false;
+                goto failure;
             }
             if (!fraktal_add_link_data(link, data, 0, path))
             {
                 fraktal_destroy_link(link);
                 free(data);
-                return false;
+                goto failure;
             }
             free(data);
         }
@@ -185,58 +185,130 @@ bool gui_load(guiState &scene,
         if (!fraktal_add_link_file(link, def.render_shader_path))
         {
             fraktal_destroy_link(link);
-            return false;
+            goto failure;
         }
 
         render = fraktal_link_kernel(link);
         fraktal_destroy_link(link);
+
+        if (!render)
+            goto failure;
     }
 
-    fKernel *compose = fraktal_load_kernel(def.compose_shader_path);
-
-    if (compose && render && thickness)
+    fKernel *thickness = NULL;
+    if (flags & GUI_LOAD_THICKNESS)
     {
-        bool resolution_changed =
-            params.resolution.x != scene.params.resolution.x ||
-            params.resolution.y != scene.params.resolution.y;
+        fLinkState *link = fraktal_create_link();
 
-        if (!scene.initialized || resolution_changed)
-            gui_set_resolution(scene, params.resolution.x, params.resolution.y);
+        // model kernel
+        {
+            const char *path = def.model_shader_path;
+            char *data = read_file(path);
+            if (!data)
+            {
+                log_err("Failed to read source file.\n");
+                fraktal_destroy_link(link);
+                goto failure;
+            }
+            if (!scene_file_preprocessor(data, &params))
+            {
+                log_err("Failed to parse source file.\n");
+                fraktal_destroy_link(link);
+                free(data);
+                goto failure;
+            }
+            if (!fraktal_add_link_data(link, data, 0, path))
+            {
+                fraktal_destroy_link(link);
+                free(data);
+                goto failure;
+            }
+            free(data);
+        }
 
-        fraktal_destroy_kernel(scene.compose_kernel);
+        if (!fraktal_add_link_file(link, def.thickness_shader_path))
+        {
+            fraktal_destroy_link(link);
+            goto failure;
+        }
+
+        thickness = fraktal_link_kernel(link);
+        fraktal_destroy_link(link);
+
+        if (!thickness)
+            goto failure;
+    }
+
+    fKernel *compose = NULL;
+    if (flags & GUI_LOAD_COMPOSE)
+    {
+        compose = fraktal_load_kernel(def.compose_shader_path);
+        if (!compose)
+            goto failure;
+    }
+
+    bool resolution_changed =
+        params.resolution.x != scene.params.resolution.x ||
+        params.resolution.y != scene.params.resolution.y;
+
+    if (!scene.initialized || resolution_changed)
+        gui_set_resolution(scene, params.resolution.x, params.resolution.y);
+
+    if (flags & GUI_LOAD_RENDER)
+    {
         fraktal_destroy_kernel(scene.render_kernel);
+        scene.render_kernel = render;
+
         for (int i = 0; i < scene.params.num_widgets; i++)
             free(scene.params.widgets[i]);
-
-        scene.compose_kernel = compose;
-        scene.render_kernel = render;
         scene.params = params;
-        scene.compose_kernel_is_new = true;
         scene.render_kernel_is_new = true;
-        scene.should_clear = true;
-        scene.def = def;
-        scene.initialized = true;
 
         for (int i = 0; i < scene.params.num_widgets; i++)
             scene.params.widgets[i]->get_param_offsets(scene.render_kernel);
-
-        return true;
     }
-    else
+    if (flags & GUI_LOAD_THICKNESS)
     {
-        log_err("Failed to compile kernels\n");
-        fraktal_destroy_kernel(render);
-        fraktal_destroy_kernel(compose);
-        return false;
+        fraktal_destroy_kernel(scene.thickness_kernel);
+        scene.thickness_kernel = thickness;
+
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            free(scene.params.widgets[i]);
+        scene.params = params;
+        scene.thickness_kernel_is_new = true;
+
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            scene.params.widgets[i]->get_param_offsets(scene.thickness_kernel);
     }
+    if (flags & GUI_LOAD_COMPOSE)
+    {
+        fraktal_destroy_kernel(scene.compose_kernel);
+        scene.compose_kernel = compose;
+        scene.compose_kernel_is_new = true;
+    }
+
+    scene.should_clear = true;
+    scene.def = def;
+    scene.initialized = true;
 
     return true;
+
+failure:
+    log_err("Failed to compile kernels.\n");
+    // Free any potentially allocated memory
+    fraktal_destroy_kernel(render);
+    fraktal_destroy_kernel(thickness);
+    fraktal_destroy_kernel(compose);
+    for (int i = 0; i < params.num_widgets; i++)
+        free(params.widgets[i]);
+    return false;
 }
 
 #define fetch_uniform(kernel, name) static int loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
 
 void render_scene(guiState &scene)
 {
+    assert(scene.render_kernel);
     assert(scene.render_buffer);
     assert(fraktal_is_valid_array(scene.render_buffer));
     assert(fraktal_is_valid_array(scene.compose_buffer));
@@ -268,8 +340,37 @@ void render_scene(guiState &scene)
     scene.samples++;
 }
 
+void render_thickness(guiState &scene)
+{
+    assert(scene.thickness_kernel);
+    assert(scene.render_buffer);
+    assert(fraktal_is_valid_array(scene.render_buffer));
+    assert(fraktal_is_valid_array(scene.compose_buffer));
+
+    fraktal_use_kernel(scene.thickness_kernel);
+    fetch_uniform(thickness_kernel, iResolution);
+    scene.thickness_kernel_is_new = false;
+
+    fArray *out = scene.render_buffer;
+
+    int width,height;
+    fraktal_get_array_size(out, &width, &height);
+    glUniform2f(loc_iResolution, (float)width, (float)height);
+
+    for (int i = 0; i < scene.params.num_widgets; i++)
+        scene.params.widgets[i]->set_params();
+
+    fraktal_zero_array(out);
+    scene.should_clear = false;
+    fraktal_run_kernel(out);
+    fraktal_use_kernel(NULL);
+
+    scene.samples = 0;
+}
+
 void compose_scene(guiState &scene)
 {
+    assert(scene.compose_kernel);
     fraktal_use_kernel(scene.compose_kernel);
 
     fetch_uniform(compose_kernel, iResolution);
@@ -294,17 +395,42 @@ void compose_scene(guiState &scene)
 
 void gui_present(guiState &scene)
 {
-    if (scene.keys.Shift.down && scene.keys.Enter.pressed)
-        gui_load(scene, scene.def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE);
+    static const int preview_mode_render = 0;
+    static const int preview_mode_thickness = 1;
+    static int preview_mode = preview_mode_render;
+    static int last_preview_mode = preview_mode;
+    bool preview_mode_changed = preview_mode != last_preview_mode;
+    last_preview_mode = preview_mode;
+
+    bool reload_key = scene.keys.Shift.down && scene.keys.Enter.pressed;
+    if (reload_key || preview_mode_changed)
+    {
+        if (preview_mode == preview_mode_render)
+            gui_load(scene, scene.def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE);
+        else if (preview_mode == preview_mode_thickness)
+            gui_load(scene, scene.def, GUI_LOAD_THICKNESS);
+    }
 
     if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
         scene.auto_render = !scene.auto_render;
 
-    if (scene.auto_render || scene.render_kernel_is_new || scene.should_clear)
+    if (preview_mode == preview_mode_render)
     {
-        render_scene(scene);
-        compose_scene(scene);
+        if (scene.auto_render || scene.render_kernel_is_new || scene.should_clear)
+        {
+            render_scene(scene);
+            compose_scene(scene);
+        }
     }
+    else if (preview_mode == preview_mode_thickness)
+    {
+        if (scene.auto_render || scene.thickness_kernel_is_new || scene.should_clear)
+        {
+            render_thickness(scene);
+            compose_scene(scene);
+        }
+    }
+
 
     float pad = 2.0f;
 
@@ -325,10 +451,7 @@ void gui_present(guiState &scene)
 
     // main menu bar
     float main_menu_bar_height = 0.0f;
-    int preview_mode_render = 0;
-    int preview_mode_mesh = 1;
-    int preview_mode_point_cloud = 2;
-    int preview_mode = preview_mode_render;
+    int next_preview_mode = preview_mode;
     {
         ImGui::BeginMainMenuBar();
         {
@@ -341,17 +464,12 @@ void gui_present(guiState &scene)
             {
                 if (ImGui::BeginTabItem("Render"))
                 {
-                    preview_mode = preview_mode_render;
+                    next_preview_mode = preview_mode_render;
                     ImGui::EndTabItem();
                 }
-                if (ImGui::BeginTabItem("Mesh"))
+                if (ImGui::BeginTabItem("Thickness"))
                 {
-                    preview_mode = preview_mode_mesh;
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Point cloud"))
-                {
-                    preview_mode = preview_mode_point_cloud;
+                    next_preview_mode = preview_mode_thickness;
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
@@ -440,7 +558,8 @@ void gui_present(guiState &scene)
         ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, main_menu_bar_height + pad));
         ImGui::Begin("Preview", NULL, flags);
 
-        if (preview_mode == preview_mode_render)
+        if (preview_mode == preview_mode_render ||
+            preview_mode == preview_mode_thickness)
         {
             const int display_mode_1x = 0;
             const int display_mode_2x = 1;
@@ -466,7 +585,17 @@ void gui_present(guiState &scene)
             ImDrawList *draw = ImGui::GetWindowDrawList();
             {
                 int width,height;
-                fraktal_get_array_size(scene.compose_buffer, &width, &height);
+                unsigned int texture = 0;
+                if (preview_mode == preview_mode_thickness)
+                {
+                    fraktal_get_array_size(scene.render_buffer, &width, &height);
+                    texture = fraktal_get_gl_handle(scene.render_buffer);
+                }
+                else
+                {
+                    fraktal_get_array_size(scene.compose_buffer, &width, &height);
+                    texture = fraktal_get_gl_handle(scene.compose_buffer);
+                }
                 ImVec2 image_size = ImVec2((float)width, (float)height);
                 if (io.DisplayFramebufferScale.x > 0.0f &&
                     io.DisplayFramebufferScale.y > 0.0f)
@@ -511,8 +640,7 @@ void gui_present(guiState &scene)
                 ImU32 tint = 0xFFFFFFFF;
                 ImVec2 uv0 = ImVec2(0.0f,0.0f);
                 ImVec2 uv1 = ImVec2(1.0f,1.0f);
-                draw->AddImage((void*)(intptr_t)fraktal_get_gl_handle(scene.compose_buffer),
-                               pos0, pos1, uv0, uv1, tint);
+                draw->AddImage((void*)(intptr_t)texture, pos0, pos1, uv0, uv1, tint);
             }
         }
 
@@ -521,6 +649,8 @@ void gui_present(guiState &scene)
         ImGui::PopStyleVar();
         ImGui::PopStyleVar();
     }
+
+    preview_mode = next_preview_mode;
 
     ImGui::PopStyleVar();
     ImGui::PopStyleVar();

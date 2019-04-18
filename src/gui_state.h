@@ -76,8 +76,10 @@ struct guiState
     fArray *render_buffer;
     fArray *compose_buffer;
     fKernel *render_kernel;
+    fKernel *thickness_kernel;
     fKernel *compose_kernel;
     bool render_kernel_is_new;
+    bool thickness_kernel_is_new;
     bool compose_kernel_is_new;
     int samples;
     bool should_clear;
