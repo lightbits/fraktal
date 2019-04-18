@@ -29,6 +29,7 @@ enum guiLoadFlags_
 #include "widgets/Sun.h"
 #include "widgets/Camera.h"
 #include "widgets/Floor.h"
+#include "widgets/Material.h"
 
 bool parse_resolution(const char **c, guiSceneParams *params)
 {
@@ -77,6 +78,7 @@ bool scene_file_preprocessor(char *fs, guiSceneParams *params)
                 PARSE_WIDGET(Sun)
                 PARSE_WIDGET(Camera)
                 PARSE_WIDGET(Floor)
+                PARSE_WIDGET(Material)
                 // ...
                 // add new macros here!
                 // ...
@@ -101,14 +103,6 @@ guiSceneParams get_default_scene_params()
     guiSceneParams params = {0};
     params.resolution.x = 200;
     params.resolution.y = 200;
-    params.material.albedo.x = 0.6f;
-    params.material.albedo.y = 0.1f;
-    params.material.albedo.z = 0.1f;
-    params.material.glossy = true;
-    params.material.specular_albedo.x = 0.3f;
-    params.material.specular_albedo.y = 0.3f;
-    params.material.specular_albedo.z = 0.3f;
-    params.material.specular_exponent = 32.0f;
     return params;
 }
 
@@ -247,10 +241,6 @@ void render_scene(guiState &scene)
     fraktal_use_kernel(scene.render_kernel);
     fetch_uniform(render_kernel, iResolution);
     fetch_uniform(render_kernel, iSamples);
-    fetch_uniform(render_kernel, iMaterialGlossy);
-    fetch_uniform(render_kernel, iMaterialSpecularExponent);
-    fetch_uniform(render_kernel, iMaterialSpecularAlbedo);
-    fetch_uniform(render_kernel, iMaterialAlbedo);
     scene.render_kernel_is_new = false;
 
     fArray *out = scene.render_buffer;
@@ -262,14 +252,6 @@ void render_scene(guiState &scene)
 
     for (int i = 0; i < scene.params.num_widgets; i++)
         scene.params.widgets[i]->set_params();
-
-    {
-        auto material = scene.params.material;
-        glUniform1i(loc_iMaterialGlossy, material.glossy ? 1 : 0);
-        glUniform1f(loc_iMaterialSpecularExponent, material.specular_exponent);
-        glUniform3fv(loc_iMaterialSpecularAlbedo, 1, &material.specular_albedo.x);
-        glUniform3fv(loc_iMaterialAlbedo, 1, &material.albedo.x);
-    }
 
     if (scene.should_clear)
     {
@@ -412,15 +394,6 @@ void gui_present(guiState &scene)
 
                 for (int i = 0; i < scene.params.num_widgets; i++)
                     scene.should_clear |= scene.params.widgets[i]->update(scene);
-
-                if (ImGui::CollapsingHeader("Material"))
-                {
-                    auto &material = scene.params.material;
-                    scene.should_clear |= ImGui::Checkbox("Glossy", &material.glossy);
-                    scene.should_clear |= ImGui::ColorEdit3("Albedo", &material.albedo.x);
-                    scene.should_clear |= ImGui::ColorEdit3("Specular", &material.specular_albedo.x);
-                    scene.should_clear |= ImGui::DragFloat("Exponent", &material.specular_exponent, 1.0f, 0.0f, 1000.0f);
-                }
 
                 ImGui::EndChild();
                 ImGui::EndTabItem();

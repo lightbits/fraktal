@@ -73,6 +73,16 @@ bool parse_match(const char **c, const char *match)
         return false;
 }
 
+bool parse_bool(const char **c, bool *x)
+{
+    if (parse_match(c, "true"))       *x = true;
+    else if (parse_match(c, "True"))  *x = true;
+    else if (parse_match(c, "false")) *x = false;
+    else if (parse_match(c, "False")) *x = false;
+    else                              return false;
+    return true;
+}
+
 bool parse_int(const char **c, int *x)
 {
     int b;
@@ -224,6 +234,7 @@ void parse_list_unexpected()
         return false; \
     }
 
+declare_parse_argument_(bool);
 declare_parse_argument_(int);
 declare_parse_argument_(int2);
 declare_parse_argument_(float);
