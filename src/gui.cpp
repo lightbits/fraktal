@@ -279,8 +279,6 @@ failure:
     fraktal_destroy_kernel(thickness);
     fraktal_destroy_kernel(compose);
     fraktal_destroy_kernel(geometry);
-    for (int i = 0; i < params.num_widgets; i++)
-        free(params.widgets[i]);
     return false;
 }
 
