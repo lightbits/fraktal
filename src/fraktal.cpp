@@ -78,7 +78,7 @@ void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, in
 
 int main(int argc, char **argv)
 {
-    fraktal_scene_def_t def = {0};
+    guiSceneDef def = {0};
     def.render_shader_path = "./data/render/publication.f";
     def.model_shader_path = "./data/model/vase.f";
     def.compose_shader_path = "./data/compose/mean_and_gamma_correct.f";
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
         io.Fonts->AddFontFromMemoryCompressedTTF(data, size, 18.0f, &config, glyph_ranges.Data);
     }
 
-    fraktal_scene_t scene = {0};
+    guiState scene = {0};
     if (!fraktal_load(scene, def, 0))
         return 1;
 

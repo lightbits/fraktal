@@ -3,7 +3,16 @@
 
 #include "fraktal.h"
 #include "fraktal_parse.h"
-#include "gui.h"
+#include "gui_state.h"
+
+typedef int guiLoadFlags;
+enum guiLoadFlags_
+{
+    FRAKTAL_LOAD_ALL          = 0,
+    FRAKTAL_LOAD_MODEL        = 1,
+    FRAKTAL_LOAD_RENDER       = 2,
+    FRAKTAL_LOAD_COMPOSE      = 4
+};
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -15,37 +24,178 @@
 #include <GL/gl3w.h>
 #include <file.h>
 
-struct fraktal_scene_t
+#include "gui_state.h"
+#include "widgets/Widget.h"
+#include "widgets/Sun.h"
+
+bool parse_view(const char **c, guiSceneParams *params)
 {
-    fraktal_scene_def_t def;
-    fArray *render_buffer;
-    fArray *compose_buffer;
-    fKernel *render_kernel;
-    fKernel *compose_kernel;
-    bool render_kernel_is_new;
-    bool compose_kernel_is_new;
-    int samples;
-    bool should_clear;
-    bool initialized;
-    bool auto_render;
-    GLuint quad;
+    parse_alpha(c);
+    parse_blank(c);
+    if (!parse_begin_list(c)) { log_err("Error parsing #view directive: missing ( after '#view'.\n"); return false; }
+    while (parse_next_in_list(c)) {
+        if (parse_argument_angle2(c, "dir", &params->view.dir)) ;
+        else if (parse_argument_float3(c, "pos", &params->view.pos)) ;
+        else parse_list_unexpected();
+    }
+    if (!parse_end_list(c)) { log_err("Error parsing #view directive.\n"); return false; }
+    return true;
+}
 
-    scene_params_t params;
+bool parse_camera(const char **c, guiSceneParams *params)
+{
+    parse_alpha(c);
+    parse_blank(c);
+    if (!parse_begin_list(c)) { log_err("Error parsing #camera directive: missing ( after '#camera'.\n"); return false; }
+    while (parse_next_in_list(c)) {
+        float yfov;
+        if (parse_argument_angle(c, "yfov", &yfov))
+        {
+            if (params->resolution.y == 0.0f) { log_err("Error parsing #camera directive: #resolution must be set when specifying FOV ('yfov').\n"); return false; }
+            params->camera.f = yfov2pinhole_f(yfov, (float)params->resolution.y);
+        }
+        else if (parse_argument_float(c, "f", &params->camera.f)) ;
+        else if (parse_argument_float2(c, "center", &params->camera.center)) ;
+        else parse_list_unexpected();
+    }
+    if (!parse_end_list(c)) { log_err("Error parsing #camera directive.\n"); return false; }
+    return true;
+}
 
-    struct key_t
+bool parse_sun(const char **c, guiSceneParams *params)
+{
+    parse_alpha(c);
+    parse_blank(c);
+    if (!parse_begin_list(c)) { log_err("Error parsing #sun directive: missing ( after '#sun'.\n"); return false; }
+    while (parse_next_in_list(c)) {
+        if (parse_argument_angle(c, "size", &params->sun.size)) ;
+        else if (parse_argument_angle2(c, "dir", &params->sun.dir)) ;
+        else if (parse_argument_float3(c, "color", &params->sun.color)) ;
+        else if (parse_argument_float(c, "intensity", &params->sun.intensity)) ;
+        else parse_list_unexpected();
+    }
+    if (!parse_end_list(c)) { log_err("Error parsing #sun directive.\n"); return false; }
+    return true;
+}
+
+#if 0
+bool parse_material(const char **c, int index, guiSceneParams *params)
+{
+    assert(index >= 0 && index < NUM_MATERIALS);
+    params->material[index].active = true;
+    parse_alpha(c);
+    parse_blank(c);
+    if (!parse_begin_list(c)) { log_err("Error parsing #material directive: missing ( after '#material'.\n"); return false; }
+    while (parse_next_in_list(c)) {
+        if (parse_argument_float(c, "roughness", &params->material[index].roughness)) ;
+        else if (parse_argument_float3(c, "albedo", &params->material[index].albedo)) ;
+        else parse_list_unexpected();
+    }
+    if (!parse_end_list(c)) { log_err("Error parsing #material directive.\n"); return false; }
+    return true;
+}
+#endif
+
+bool parse_resolution(const char **c, guiSceneParams *params)
+{
+    parse_alpha(c);
+    parse_blank(c);
+    if (!parse_int2(c, &params->resolution)) { log_err("Error parsing #resolution(x,y) directive: expected int2 after token.\n"); return false; }
+    return true;
+}
+
+void remove_directive_from_source(char *from, char *to)
+{
+    for (char *c = from; c < to; c++)
+        *c = ' ';
+}
+
+bool scene_file_preprocessor(char *fs, guiSceneParams *params)
+{
+    char *c = fs;
+    while (*c)
     {
-        bool pressed;
-        bool released;
-        bool down;
-    };
-    struct keys_t
-    {
-        key_t Space,Enter;
-        key_t Ctrl,Alt,Shift;
-        key_t Left,Right,Up,Down;
-        key_t W,A,S,D;
-    } keys;
-};
+        parse_comment((const char **)&c);
+        if (*c == '#')
+        {
+            char *mark = c;
+            c++;
+            const char **cc = (const char **)&c;
+                 if (parse_match(cc, "resolution")) { if (!parse_resolution(cc, params)) return false; }
+            else if (parse_match(cc, "view"))       { if (!parse_view(cc, params)) return false; }
+            else if (parse_match(cc, "camera"))     { if (!parse_camera(cc, params)) return false; }
+            else if (parse_match(cc, "sun"))        { if (!parse_sun(cc, params)) return false; }
+            else if (parse_match(cc, "widget"))
+            {
+                Widget *w = NULL;
+
+                parse_alpha(cc);
+                parse_blank(cc);
+                if (!parse_begin_list(cc)) { log_err("Error parsing #widget directive: missing ( after '#sun'.\n"); return false; }
+
+                // horrible macro mess
+                #define PARSE_WIDGET(widget) \
+                    if (parse_match(cc, #widget)) { \
+                        if (!parse_char(cc, ',')) { log_err("Error parsing " #widget " #widget directive: missing comma after widget name.\n"); return false; } \
+                        Widget_##widget *ww = new Widget_##widget(cc); \
+                        if (!parse_end_list(cc)) { free(ww); log_err("Error parsing " #widget " #widget directive.\n"); return false; } \
+                        w = ww; \
+                    } else
+
+                PARSE_WIDGET(Sun)
+                // ...
+                // add new macros here!
+                // ...
+                { log_err("Error parsing #widget directive: unknown widget type.\n"); return false; }
+            }
+            remove_directive_from_source(mark, c);
+        }
+        c++;
+    }
+    return true;
+}
+
+guiSceneParams get_default_scene_params()
+{
+    guiSceneParams params = {0};
+    params.resolution.x = 200;
+    params.resolution.y = 200;
+    params.view.dir.theta = -20.0f;
+    params.view.dir.phi = 30.0f;
+    params.view.pos.x = 0.0f;
+    params.view.pos.y = 0.0f;
+    params.view.pos.z = 24.0f;
+    params.camera.f = yfov2pinhole_f(10.0f, (float)params.resolution.y);
+    params.camera.center.x = params.resolution.x/2.0f;
+    params.camera.center.y = params.resolution.y/2.0f;
+    params.sun.size = 3.0f;
+    params.sun.dir.theta = 30.0f;
+    params.sun.dir.phi = 90.0f;
+    params.sun.color.x = 1.0f;
+    params.sun.color.y = 1.0f;
+    params.sun.color.z = 0.8f;
+    params.sun.intensity = 250.0f;
+    params.isolines.enabled = false;
+    params.isolines.color.x = 0.3f;
+    params.isolines.color.y = 0.3f;
+    params.isolines.color.z = 0.3f;
+    params.isolines.thickness = 0.25f*0.5f;
+    params.isolines.spacing = 0.4f;
+    params.isolines.count = 3;
+    params.material.albedo.x = 0.6f;
+    params.material.albedo.y = 0.1f;
+    params.material.albedo.z = 0.1f;
+    params.material.glossy = true;
+    params.material.specular_albedo.x = 0.3f;
+    params.material.specular_albedo.y = 0.3f;
+    params.material.specular_albedo.z = 0.3f;
+    params.material.specular_exponent = 32.0f;
+    params.floor.reflective = false;
+    params.floor.height = 0.0f;
+    params.floor.specular_exponent = 500.0f;
+    params.floor.reflectivity = 0.6f;
+    return params;
+}
 
 void compute_view_matrix(float dst[4*4], float3 t, float3 r)
 {
@@ -85,7 +235,7 @@ void save_screenshot(const char *filename)
 }
 #endif
 
-void fraktal_set_resolution(fraktal_scene_t &scene, int x, int y)
+void fraktal_set_resolution(guiState &scene, int x, int y)
 {
     assert(x > 0);
     assert(y > 0);
@@ -100,9 +250,9 @@ void fraktal_set_resolution(fraktal_scene_t &scene, int x, int y)
     scene.should_clear = true;
 }
 
-bool fraktal_load(fraktal_scene_t &scene,
-                  fraktal_scene_def_t def,
-                  fraktal_load_flags_t flags)
+bool fraktal_load(guiState &scene,
+                  guiSceneDef def,
+                  guiLoadFlags flags)
 {
     if (!scene.initialized)
         scene.params = get_default_scene_params();
@@ -110,7 +260,7 @@ bool fraktal_load(fraktal_scene_t &scene,
     if (flags == 0)
         flags = 0xffffffff;
 
-    scene_params_t params = scene.params;
+    guiSceneParams params = scene.params;
 
     fKernel *render = NULL;
     {
@@ -189,7 +339,7 @@ bool fraktal_load(fraktal_scene_t &scene,
 
 #define fetch_uniform(kernel, name) static int loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
 
-void fraktal_render(fraktal_scene_t &scene)
+void fraktal_render(guiState &scene)
 {
     assert(scene.render_buffer);
     assert(fraktal_is_valid_array(scene.render_buffer));
@@ -289,7 +439,7 @@ void fraktal_render(fraktal_scene_t &scene)
     scene.samples++;
 }
 
-void fraktal_compose(fraktal_scene_t &scene)
+void fraktal_compose(guiState &scene)
 {
     fraktal_use_kernel(scene.compose_kernel);
 
@@ -313,7 +463,7 @@ void fraktal_compose(fraktal_scene_t &scene)
     fraktal_use_kernel(NULL);
 }
 
-bool handle_view_change_keys(fraktal_scene_t &scene)
+bool handle_view_change_keys(guiState &scene)
 {
     bool moved = false;
 
@@ -343,7 +493,7 @@ bool handle_view_change_keys(fraktal_scene_t &scene)
     return moved;
 }
 
-void fraktal_present(fraktal_scene_t &scene)
+void fraktal_present(guiState &scene)
 {
     if (scene.keys.Shift.down && scene.keys.Enter.pressed)
         fraktal_load(scene, scene.def, FRAKTAL_LOAD_RENDER|FRAKTAL_LOAD_COMPOSE);
