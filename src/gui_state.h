@@ -1,5 +1,7 @@
 #pragma once
 
+enum { NUM_MATERIALS = 5 };
+enum { MAX_WIDGETS = 1024 };
 struct Widget;
 struct guiKey
 {
@@ -21,7 +23,6 @@ struct guiSceneDef
     const char *compose_shader_path;
     const char *glsl_version;
 };
-enum { NUM_MATERIALS = 5 };
 struct guiSceneParams
 {
     int2 resolution;
@@ -64,6 +65,9 @@ struct guiSceneParams
         float specular_exponent;
         float reflectivity;
     } floor;
+
+    Widget *widgets[MAX_WIDGETS];
+    int num_widgets;
 };
 struct guiState
 {
@@ -82,7 +86,4 @@ struct guiState
     guiKeys keys;
 
     guiSceneParams params;
-
-    enum { MAX_WIDGETS = 1024 };
-    Widget *widgets[MAX_WIDGETS];
 };

@@ -27,74 +27,7 @@ enum guiLoadFlags_
 #include "gui_state.h"
 #include "widgets/Widget.h"
 #include "widgets/Sun.h"
-
-bool parse_view(const char **c, guiSceneParams *params)
-{
-    parse_alpha(c);
-    parse_blank(c);
-    if (!parse_begin_list(c)) { log_err("Error parsing #view directive: missing ( after '#view'.\n"); return false; }
-    while (parse_next_in_list(c)) {
-        if (parse_argument_angle2(c, "dir", &params->view.dir)) ;
-        else if (parse_argument_float3(c, "pos", &params->view.pos)) ;
-        else parse_list_unexpected();
-    }
-    if (!parse_end_list(c)) { log_err("Error parsing #view directive.\n"); return false; }
-    return true;
-}
-
-bool parse_camera(const char **c, guiSceneParams *params)
-{
-    parse_alpha(c);
-    parse_blank(c);
-    if (!parse_begin_list(c)) { log_err("Error parsing #camera directive: missing ( after '#camera'.\n"); return false; }
-    while (parse_next_in_list(c)) {
-        float yfov;
-        if (parse_argument_angle(c, "yfov", &yfov))
-        {
-            if (params->resolution.y == 0.0f) { log_err("Error parsing #camera directive: #resolution must be set when specifying FOV ('yfov').\n"); return false; }
-            params->camera.f = yfov2pinhole_f(yfov, (float)params->resolution.y);
-        }
-        else if (parse_argument_float(c, "f", &params->camera.f)) ;
-        else if (parse_argument_float2(c, "center", &params->camera.center)) ;
-        else parse_list_unexpected();
-    }
-    if (!parse_end_list(c)) { log_err("Error parsing #camera directive.\n"); return false; }
-    return true;
-}
-
-bool parse_sun(const char **c, guiSceneParams *params)
-{
-    parse_alpha(c);
-    parse_blank(c);
-    if (!parse_begin_list(c)) { log_err("Error parsing #sun directive: missing ( after '#sun'.\n"); return false; }
-    while (parse_next_in_list(c)) {
-        if (parse_argument_angle(c, "size", &params->sun.size)) ;
-        else if (parse_argument_angle2(c, "dir", &params->sun.dir)) ;
-        else if (parse_argument_float3(c, "color", &params->sun.color)) ;
-        else if (parse_argument_float(c, "intensity", &params->sun.intensity)) ;
-        else parse_list_unexpected();
-    }
-    if (!parse_end_list(c)) { log_err("Error parsing #sun directive.\n"); return false; }
-    return true;
-}
-
-#if 0
-bool parse_material(const char **c, int index, guiSceneParams *params)
-{
-    assert(index >= 0 && index < NUM_MATERIALS);
-    params->material[index].active = true;
-    parse_alpha(c);
-    parse_blank(c);
-    if (!parse_begin_list(c)) { log_err("Error parsing #material directive: missing ( after '#material'.\n"); return false; }
-    while (parse_next_in_list(c)) {
-        if (parse_argument_float(c, "roughness", &params->material[index].roughness)) ;
-        else if (parse_argument_float3(c, "albedo", &params->material[index].albedo)) ;
-        else parse_list_unexpected();
-    }
-    if (!parse_end_list(c)) { log_err("Error parsing #material directive.\n"); return false; }
-    return true;
-}
-#endif
+#include "widgets/Camera.h"
 
 bool parse_resolution(const char **c, guiSceneParams *params)
 {
@@ -112,6 +45,7 @@ void remove_directive_from_source(char *from, char *to)
 
 bool scene_file_preprocessor(char *fs, guiSceneParams *params)
 {
+    params->num_widgets = 0;
     char *c = fs;
     while (*c)
     {
@@ -121,38 +55,43 @@ bool scene_file_preprocessor(char *fs, guiSceneParams *params)
             char *mark = c;
             c++;
             const char **cc = (const char **)&c;
-                 if (parse_match(cc, "resolution")) { if (!parse_resolution(cc, params)) return false; }
-            else if (parse_match(cc, "view"))       { if (!parse_view(cc, params)) return false; }
-            else if (parse_match(cc, "camera"))     { if (!parse_camera(cc, params)) return false; }
-            else if (parse_match(cc, "sun"))        { if (!parse_sun(cc, params)) return false; }
+                 if (parse_match(cc, "resolution")) { if (!parse_resolution(cc, params)) goto failure; }
             else if (parse_match(cc, "widget"))
             {
-                Widget *w = NULL;
+                if (params->num_widgets == MAX_WIDGETS) { log_err("Exceeded the maximum number of widgets.\n"); goto failure; }
 
                 parse_alpha(cc);
                 parse_blank(cc);
-                if (!parse_begin_list(cc)) { log_err("Error parsing #widget directive: missing ( after '#sun'.\n"); return false; }
+                if (!parse_begin_list(cc)) { log_err("Error parsing #widget directive: missing ( after '#sun'.\n"); goto failure; }
 
                 // horrible macro mess
                 #define PARSE_WIDGET(widget) \
                     if (parse_match(cc, #widget)) { \
-                        if (!parse_char(cc, ',')) { log_err("Error parsing " #widget " #widget directive: missing comma after widget name.\n"); return false; } \
-                        Widget_##widget *ww = new Widget_##widget(cc); \
-                        if (!parse_end_list(cc)) { free(ww); log_err("Error parsing " #widget " #widget directive.\n"); return false; } \
-                        w = ww; \
+                        if (!parse_char(cc, ',')) { log_err("Error parsing " #widget " #widget directive: missing comma after widget name.\n"); goto failure; } \
+                        Widget_##widget *ww = new Widget_##widget(params, cc); \
+                        if (!parse_end_list(cc)) { free(ww); log_err("Error parsing " #widget " #widget directive.\n"); goto failure; } \
+                        params->widgets[params->num_widgets] = ww; \
                     } else
 
                 PARSE_WIDGET(Sun)
+                PARSE_WIDGET(Camera)
                 // ...
                 // add new macros here!
                 // ...
-                { log_err("Error parsing #widget directive: unknown widget type.\n"); return false; }
+                { log_err("Error parsing #widget directive: unknown widget type.\n"); goto failure; }
+
+                params->num_widgets++;
             }
             remove_directive_from_source(mark, c);
         }
         c++;
     }
     return true;
+
+failure:
+    for (int i = 0; i < params->num_widgets; i++)
+        free(params->widgets[i]);
+    return false;
 }
 
 guiSceneParams get_default_scene_params()
@@ -195,26 +134,6 @@ guiSceneParams get_default_scene_params()
     params.floor.specular_exponent = 500.0f;
     params.floor.reflectivity = 0.6f;
     return params;
-}
-
-void compute_view_matrix(float dst[4*4], float3 t, float3 r)
-{
-    float cx = cosf(r.x);
-    float cy = cosf(r.y);
-    float cz = cosf(r.z);
-    float sx = sinf(r.x);
-    float sy = sinf(r.y);
-    float sz = sinf(r.z);
-
-    float dtx = t.z*(sx*sz + cx*cz*sy) - t.y*(cx*sz - cz*sx*sy) + t.x*cy*cz;
-    float dty = t.y*(cx*cz + sx*sy*sz) - t.z*(cz*sx - cx*sy*sz) + t.x*cy*sz;
-    float dtz = t.z*cx*cy              - t.x*sy                 + t.y*cy*sx;
-
-    // T(tx,ty,tz)Rz(rz)Ry(ry)Rx(rx)
-    dst[ 0] = cy*cz; dst[ 1] = cz*sx*sy - cx*sz; dst[ 2] = sx*sz + cx*cz*sy; dst[ 3] = dtx;
-    dst[ 4] = cy*sz; dst[ 5] = cx*cz + sx*sy*sz; dst[ 6] = cx*sy*sz - cz*sx; dst[ 7] = dty;
-    dst[ 8] = -sy;   dst[ 9] = cy*sx;            dst[10] = cx*cy;            dst[11] = dtz;
-    dst[12] = 0.0f;  dst[13] = 0.0f;             dst[14] = 0.0f;             dst[15] = 0.0f;
 }
 
 #if 0
@@ -324,6 +243,10 @@ bool gui_load(guiState &scene,
         scene.should_clear = true;
         scene.def = def;
         scene.initialized = true;
+
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            scene.params.widgets[i]->get_param_offsets(scene.render_kernel);
+
         return true;
     }
     else
@@ -347,12 +270,6 @@ void render_scene(guiState &scene)
 
     fraktal_use_kernel(scene.render_kernel);
     fetch_uniform(render_kernel, iResolution);
-    fetch_uniform(render_kernel, iCameraCenter);
-    fetch_uniform(render_kernel, iCameraF);
-    fetch_uniform(render_kernel, iSamples);
-    fetch_uniform(render_kernel, iToSun);
-    fetch_uniform(render_kernel, iSunStrength);
-    fetch_uniform(render_kernel, iCosSunSize);
     fetch_uniform(render_kernel, iDrawIsolines);
     fetch_uniform(render_kernel, iIsolineColor);
     fetch_uniform(render_kernel, iIsolineThickness);
@@ -374,33 +291,10 @@ void render_scene(guiState &scene)
     int width,height;
     fraktal_get_array_size(out, &width, &height);
     glUniform2f(loc_iResolution, (float)width, (float)height);
-    glUniform2fv(loc_iCameraCenter, 1, &scene.params.camera.center.x);
-    glUniform1f(loc_iCameraF, scene.params.camera.f);
     glUniform1i(loc_iSamples, scene.samples);
 
-    {
-        float iView[4*4];
-        float3 r = {
-            deg2rad(scene.params.view.dir.theta),
-            deg2rad(scene.params.view.dir.phi),
-            0.0f
-        };
-        compute_view_matrix(iView, scene.params.view.pos, r);
-        glUniformMatrix4fv(loc_iView, 1, GL_TRUE, iView);
-    }
-
-    {
-        auto sun = scene.params.sun;
-        float3 iSunStrength = sun.color;
-        iSunStrength.x *= sun.intensity;
-        iSunStrength.y *= sun.intensity;
-        iSunStrength.z *= sun.intensity;
-        float3 iToSun = angle2float3(sun.dir);
-        float iCosSunSize = cosf(deg2rad(sun.size));
-        glUniform3fv(loc_iSunStrength, 1, &iSunStrength.x);
-        glUniform3fv(loc_iToSun, 1, &iToSun.x);
-        glUniform1f(loc_iCosSunSize, iCosSunSize);
-    }
+    for (int i = 0; i < scene.params.num_widgets; i++)
+        scene.params.widgets[i]->set_params();
 
     {
         auto iso = scene.params.isolines;
@@ -463,43 +357,10 @@ void compose_scene(guiState &scene)
     fraktal_use_kernel(NULL);
 }
 
-bool handle_view_change_keys(guiState &scene)
-{
-    bool moved = false;
-
-    // rotation
-    int rotate_step = 5;
-    angle2 &dir = scene.params.view.dir;
-    if (scene.keys.Left.pressed)  { dir.phi   -= rotate_step; moved = true; }
-    if (scene.keys.Right.pressed) { dir.phi   += rotate_step; moved = true; }
-    if (scene.keys.Up.pressed)    { dir.theta -= rotate_step; moved = true; }
-    if (scene.keys.Down.pressed)  { dir.theta += rotate_step; moved = true; }
-
-    // translation
-    // Note: The z_over_f factor ensures that a key press yields the same
-    // displacement of the object in image pixels, irregardless of how far
-    // away the camera is.
-    float3 &pos = scene.params.view.pos;
-    float z_over_f = fabsf(pos.z)/scene.params.camera.f;
-    float x_move_step = (scene.params.resolution.x*0.05f)*z_over_f;
-    float y_move_step = (scene.params.resolution.y*0.05f)*z_over_f;
-    float z_move_step = 0.1f*fabsf(scene.params.view.pos.z);
-    if (scene.keys.Ctrl.pressed)  { pos.y -= y_move_step; moved = true; }
-    if (scene.keys.Space.pressed) { pos.y += y_move_step; moved = true; }
-    if (scene.keys.A.pressed)     { pos.x -= x_move_step; moved = true; }
-    if (scene.keys.D.pressed)     { pos.x += x_move_step; moved = true; }
-    if (scene.keys.W.pressed)     { pos.z -= z_move_step; moved = true; }
-    if (scene.keys.S.pressed)     { pos.z += z_move_step; moved = true; }
-    return moved;
-}
-
 void gui_present(guiState &scene)
 {
     if (scene.keys.Shift.down && scene.keys.Enter.pressed)
         gui_load(scene, scene.def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE);
-
-    if (handle_view_change_keys(scene))
-        scene.should_clear = true;
 
     if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
         scene.auto_render = !scene.auto_render;
@@ -598,29 +459,10 @@ void gui_present(guiState &scene)
                     ImGui::InputInt("x##resolution", &scene.params.resolution.x);
                     ImGui::InputInt("y##resolution", &scene.params.resolution.y);
                 }
-                if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
-                {
-                    float3 &pos = scene.params.view.pos;
-                    float z_over_f = fabsf(pos.z)/scene.params.camera.f;
-                    float3 drag_speeds;
-                    drag_speeds.x = (scene.params.resolution.x*0.005f)*z_over_f;
-                    drag_speeds.y = (scene.params.resolution.y*0.005f)*z_over_f;
-                    drag_speeds.z = 0.01f*fabsf(scene.params.view.pos.z);
 
-                    scene.should_clear |= ImGui::SliderFloat("\xce\xb8##view_dir", &scene.params.view.dir.theta, -90.0f, +90.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::SliderFloat("\xcf\x86##view_dir", &scene.params.view.dir.phi, -180.0f, +180.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::DragFloat3("pos##view_pos", &pos.x, &drag_speeds.x);
-                    scene.should_clear |= ImGui::DragFloat("f##camera_f", &scene.params.camera.f);
-                    scene.should_clear |= ImGui::DragFloat2("center##camera_center", &scene.params.camera.center.x);
-                }
-                if (ImGui::CollapsingHeader("Sun"))
-                {
-                    scene.should_clear |= ImGui::SliderFloat("size##sun_size", &scene.params.sun.size, 0.0f, 180.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::SliderFloat("\xce\xb8##sun_dir", &scene.params.sun.dir.theta, -90.0f, +90.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::SliderFloat("\xcf\x86##sun_dir", &scene.params.sun.dir.phi, -180.0f, +180.0f, "%.0f deg");
-                    scene.should_clear |= ImGui::SliderFloat3("color##sun_color", &scene.params.sun.color.x, 0.0f, 1.0f);
-                    scene.should_clear |= ImGui::DragFloat("intensity##sun_intensity", &scene.params.sun.intensity);
-                }
+                for (int i = 0; i < scene.params.num_widgets; i++)
+                    scene.should_clear |= scene.params.widgets[i]->update(scene);
+
                 if (ImGui::CollapsingHeader("Floor"))
                 {
                     auto &floor = scene.params.floor;
