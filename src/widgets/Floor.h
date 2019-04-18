@@ -38,6 +38,7 @@ struct Widget_Floor : Widget
 
         while (parse_next_in_list(cc)) {
             if (parse_argument_float3(cc, "isolines_color", &isolines_color)) ;
+            else if (parse_argument_bool(cc, "draw_isolines", &isolines_enabled)) ;
             else if (parse_argument_float(cc, "isolines_thickness", &isolines_thickness)) ;
             else if (parse_argument_float(cc, "isolines_spacing", &isolines_spacing)) ;
             else if (parse_argument_int(cc, "isolines_count", &isolines_count)) ;
