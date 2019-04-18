@@ -8,10 +8,10 @@
 typedef int guiLoadFlags;
 enum guiLoadFlags_
 {
-    FRAKTAL_LOAD_ALL          = 0,
-    FRAKTAL_LOAD_MODEL        = 1,
-    FRAKTAL_LOAD_RENDER       = 2,
-    FRAKTAL_LOAD_COMPOSE      = 4
+    GUI_LOAD_ALL          = 0,
+    GUI_LOAD_MODEL        = 1,
+    GUI_LOAD_RENDER       = 2,
+    GUI_LOAD_COMPOSE      = 4
 };
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -250,7 +250,7 @@ void fraktal_set_resolution(guiState &scene, int x, int y)
     scene.should_clear = true;
 }
 
-bool fraktal_load(guiState &scene,
+bool GUI_load(guiState &scene,
                   guiSceneDef def,
                   guiLoadFlags flags)
 {
@@ -302,7 +302,7 @@ bool fraktal_load(guiState &scene,
         fraktal_destroy_link(link);
     }
 
-    fKernel *compose = fraktal_load_kernel(def.compose_shader_path);
+    fKernel *compose = GUI_load_kernel(def.compose_shader_path);
 
     if (compose && render)
     {
@@ -496,7 +496,7 @@ bool handle_view_change_keys(guiState &scene)
 void fraktal_present(guiState &scene)
 {
     if (scene.keys.Shift.down && scene.keys.Enter.pressed)
-        fraktal_load(scene, scene.def, FRAKTAL_LOAD_RENDER|FRAKTAL_LOAD_COMPOSE);
+        GUI_load(scene, scene.def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE);
 
     if (handle_view_change_keys(scene))
         scene.should_clear = true;
