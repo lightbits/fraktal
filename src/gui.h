@@ -411,7 +411,6 @@ void gui_present(guiState &scene)
                     scene.should_exit = true;
                 ImGui::EndMenu();
             }
-            ImGui::MenuItem("Window");
 
             if (ImGui::MenuItem("Help"))
                 ImGui::OpenPopup("Help##Popup");
