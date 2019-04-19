@@ -56,5 +56,5 @@ endif
 ## BUILD RULES
 ##---------------------------------------------------------------------
 
-all: src/app_glfw.cpp
-	$(CXX) src/app_glfw.cpp $(CXXFLAGS) $(LIBS) -o $(EXE)
+all: src/gui_glfw.cpp
+	$(CXX) src/gui_glfw.cpp $(CXXFLAGS) $(LIBS) -o $(EXE)
