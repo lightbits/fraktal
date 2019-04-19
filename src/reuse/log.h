@@ -23,6 +23,16 @@ void log_init()
     assert(logfile.begin);
 }
 
+void log_clear()
+{
+    if (!logfile.begin)
+        log_init();
+    assert(logfile.begin);
+    logfile.str = logfile.begin;
+    logfile.str[0] = '\0';
+    logfile.bytes = 0;
+}
+
 void log_err(const char *fmt, ...)
 {
     va_list args;

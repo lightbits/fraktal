@@ -315,7 +315,13 @@ void gui_present(guiState &scene)
 
     bool reload_key = scene.keys.Shift.down && scene.keys.Enter.pressed;
     if (reload_key || mode_changed)
-        gui_load(scene, scene.def);
+    {
+        log_clear();
+        if (!gui_load(scene, scene.def))
+            scene.got_error = true;
+        else
+            scene.got_error = false;
+    }
 
     if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
         scene.auto_render = !scene.auto_render;
@@ -449,7 +455,10 @@ void gui_present(guiState &scene)
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Log"))
+            ImGuiTabItemFlags flags = 0;
+            if (scene.got_error)
+                flags |= ImGuiTabItemFlags_UnsavedDocument;
+            if (ImGui::BeginTabItem("Log", NULL, flags))
             {
                 ImGui::BeginChild("Log##child");
                 ImGui::TextWrapped(log_get_buffer());

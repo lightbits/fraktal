@@ -60,4 +60,6 @@ struct guiState
     guiSceneParams params;
 
     guiPreviewMode mode;
+
+    bool got_error;
 };
