@@ -348,7 +348,7 @@ void gui_present(guiState &scene)
             render_geometry(scene);
     }
 
-    if (scene.keys.PrintScreen.released)
+    if (scene.keys.P.pressed)
     {
         const char *name = "screenshot.png";
         if (scene.mode == guiPreviewMode_Color) name = "color.png";

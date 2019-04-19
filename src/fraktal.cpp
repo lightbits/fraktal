@@ -194,6 +194,7 @@ int main(int argc, char **argv)
             copy_key_event(A, GLFW_KEY_A);
             copy_key_event(S, GLFW_KEY_S);
             copy_key_event(D, GLFW_KEY_D);
+            copy_key_event(P, GLFW_KEY_P);
             copy_key_event(PrintScreen, GLFW_KEY_PRINT_SCREEN);
             mark_key_events_as_processed();
 
