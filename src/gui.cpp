@@ -219,7 +219,7 @@ bool gui_load(guiState &scene, guiSceneDef def)
 
 #define fetch_uniform(kernel, name) static int loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
 
-void render_accumulate_compose(guiState &scene)
+void render_color(guiState &scene)
 {
     assert(scene.render_kernel);
     assert(scene.compose_kernel);
@@ -280,33 +280,85 @@ void render_accumulate_compose(guiState &scene)
 
 typedef int guiPreviewMode;
 enum guiPreviewMode_ {
-    guiPreviewMode_Render=0,
+    guiPreviewMode_Color=0,
     guiPreviewMode_Thickness,
     guiPreviewMode_Normals,
     guiPreviewMode_Depth,
+    guiPreviewMode_GBuffer,
 };
+
+void render_geometry(guiState &scene, guiPreviewMode mode)
+{
+    assert(scene.render_kernel);
+    assert(fraktal_is_valid_array(scene.compose_buffer));
+
+    // accumulation pass
+    fraktal_use_kernel(scene.render_kernel);
+    {
+        fetch_uniform(render_kernel, iResolution);
+        fetch_uniform(render_kernel, iDrawMode);
+        fetch_uniform(render_kernel, iMinDistance);
+        fetch_uniform(render_kernel, iMaxDistance);
+        scene.render_kernel_is_new = false;
+
+        fArray *out = scene.compose_buffer;
+
+        int width,height;
+        fraktal_array_size(out, &width, &height);
+        glUniform2f(loc_iResolution, (float)width, (float)height);
+        if      (mode == guiPreviewMode_Normals) glUniform1i(loc_iDrawMode, 0);
+        else if (mode == guiPreviewMode_Depth) glUniform1i(loc_iDrawMode, 1);
+        else if (mode == guiPreviewMode_Thickness) glUniform1i(loc_iDrawMode, 2);
+        else if (mode == guiPreviewMode_GBuffer) glUniform1i(loc_iDrawMode, 3);
+        glUniform1f(loc_iMinDistance, 10.0f);
+        glUniform1f(loc_iMaxDistance, 30.0f);
+
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            scene.params.widgets[i]->set_params();
+
+        fraktal_zero_array(out);
+        fraktal_run_kernel(out);
+        scene.samples = 0;
+        scene.should_clear = false;
+    }
+    fraktal_use_kernel(NULL);
+}
 
 void gui_present(guiState &scene)
 {
-    static guiPreviewMode mode = guiPreviewMode_Render;
+    static guiPreviewMode mode = guiPreviewMode_Color;
     static int last_mode = mode;
     bool mode_changed = mode != last_mode;
     last_mode = mode;
 
     bool reload_key = scene.keys.Shift.down && scene.keys.Enter.pressed;
     if (reload_key || mode_changed)
+    {
+        if (mode == guiPreviewMode_Color)
+            scene.def.render_shader_path = "./data/render/publication.f";
+        else
+            scene.def.render_shader_path = "./data/render/geometry.f";
         gui_load(scene, scene.def);
+    }
 
     if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
         scene.auto_render = !scene.auto_render;
 
-    if (scene.auto_render || scene.should_clear)
-        render_accumulate_compose(scene);
+    if (mode == guiPreviewMode_Color)
+    {
+        if (scene.auto_render || scene.should_clear)
+            render_color(scene);
+    }
+    else
+    {
+        if (scene.should_clear)
+            render_geometry(scene, mode);
+    }
 
     if (scene.keys.PrintScreen.released)
     {
         const char *name = "screenshot.png";
-        if (mode == guiPreviewMode_Render) name = "render.png";
+        if (mode == guiPreviewMode_Color) name = "color.png";
         else if (mode == guiPreviewMode_Thickness) name = "thickness.png";
         else if (mode == guiPreviewMode_Normals) name = "normals.png";
         else if (mode == guiPreviewMode_Depth) name = "depth.png";
@@ -343,7 +395,7 @@ void gui_present(guiState &scene)
             ImGui::MenuItem("Help");
             if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
             {
-                if (ImGui::BeginTabItem("Render"))    { next_mode = guiPreviewMode_Render; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Color"))     { next_mode = guiPreviewMode_Color; ImGui::EndTabItem(); }
                 if (ImGui::BeginTabItem("Thickness")) { next_mode = guiPreviewMode_Thickness; ImGui::EndTabItem(); }
                 if (ImGui::BeginTabItem("Normals"))   { next_mode = guiPreviewMode_Normals; ImGui::EndTabItem(); }
                 if (ImGui::BeginTabItem("Depth"))     { next_mode = guiPreviewMode_Depth; ImGui::EndTabItem(); }

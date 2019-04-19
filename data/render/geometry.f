@@ -6,7 +6,10 @@ uniform int       iFrame;
 uniform vec2      iCameraCenter;
 uniform float     iCameraF;
 uniform mat4      iView;
-out vec4          fragColor;
+uniform int       iDrawMode;
+uniform float     iMinDistance;
+uniform float     iMaxDistance;
+out vec4 fragColor;
 
 float model(vec3 p); // forward-declaration
 
@@ -36,6 +39,28 @@ vec3 normal(vec3 p)
     return normalize(n);
 }
 
+float calcThickness(vec3 ro, vec3 rd)
+{
+    float t = 0.0;
+    float thickness = 0.0;
+    for (int i = ZERO; i < STEPS; i++)
+    {
+        vec3 p = ro + t*rd;
+        float d = model(p);
+        if (d >= -EPSILON)
+        {
+            t += max(EPSILON, d);
+        }
+        else
+        {
+            t += max(EPSILON, -d);
+            thickness += max(EPSILON, -d);
+        }
+        if (t > MAX_DISTANCE) break;
+    }
+    return thickness;
+}
+
 float traceModel(vec3 ro, vec3 rd)
 {
     float t = 0.0;
@@ -50,23 +75,49 @@ float traceModel(vec3 ro, vec3 rd)
     return -1.0;
 }
 
+#define DRAW_MODE_NORMALS   0
+#define DRAW_MODE_DEPTH     1
+#define DRAW_MODE_THICKNESS 2
+#define DRAW_MODE_GBUFFER   3
+
 void main()
 {
     vec3 rd = rayPinhole(vec2(0.0));
     vec3 ro = (iView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
 
+    fragColor = vec4(0.0);
+
     float t = traceModel(ro, rd);
     if (t > 0.0)
     {
         vec3 p = ro + t*rd;
         vec3 n = normal(p);
-        fragColor.rg = n.xy;
-        fragColor.b = t;
-        fragColor.a = 1.0;
-    }
-    else
-    {
-        fragColor.rgba = vec4(0.0);
+        float thickness = calcThickness(p, rd);
+
+        float t_normalized = (t - iMinDistance) /
+                             (iMaxDistance - iMinDistance);
+
+        if (iDrawMode == DRAW_MODE_NORMALS)
+        {
+            fragColor.rgb = vec3(0.5) + 0.5*n;
+            fragColor.a = 1.0;
+        }
+        else if (iDrawMode == DRAW_MODE_DEPTH)
+        {
+            fragColor.rgb = vec3(t_normalized);
+            fragColor.a = 1.0;
+        }
+        else if (iDrawMode == DRAW_MODE_THICKNESS)
+        {
+            fragColor.rgb = vec3(thickness/2.0);
+            fragColor.a = 1.0;
+        }
+        else if (iDrawMode == DRAW_MODE_GBUFFER)
+        {
+            fragColor.rg = 0.5 + 0.5*n.xy;
+            fragColor.b = t_normalized;
+            fragColor.a = thickness;
+        }
     }
 }
