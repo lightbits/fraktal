@@ -13,7 +13,7 @@ set LFLAGS=/MACHINE:X64 /subsystem:WINDOWS /ENTRY:mainCRTStartup ..\res\resource
 REM This packs the application icon into a resource.res file, which gets linked in to the final exe
 rc -nologo ..\res\resources.rc
 
-cl ..\src\fraktal.cpp %CFLAGS% %INCLUDES% /link %LIBS% %LFLAGS%
+cl ..\src\app_glfw.cpp %CFLAGS% %INCLUDES% /link %LIBS% %LFLAGS% /out:fraktal.exe
 popd
 
 if not errorlevel 1 bin\fraktal.exe

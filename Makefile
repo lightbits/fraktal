@@ -15,7 +15,6 @@
 #CXX = clang++
 
 EXE = bin/fraktal
-SOURCES = src/fraktal.cpp
 UNAME_S := $(shell uname -s)
 
 CXXFLAGS = -I./src/reuse/gl3w -I./src/reuse -I./src/reuse/glfw/include -I./src/reuse/imgui
@@ -57,5 +56,5 @@ endif
 ## BUILD RULES
 ##---------------------------------------------------------------------
 
-all: src/fraktal.cpp
-	$(CXX) src/fraktal.cpp $(CXXFLAGS) $(LIBS) -o $(EXE)
+all: src/app_glfw.cpp
+	$(CXX) src/app_glfw.cpp $(CXXFLAGS) $(LIBS) -o $(EXE)
