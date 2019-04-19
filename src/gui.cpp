@@ -476,7 +476,14 @@ void gui_present(guiState &scene)
     }
 
     if (scene.keys.PrintScreen.released)
-        save_screenshot("screenshot.png", scene.compose_buffer);
+    {
+        const char *name = "screenshot.png";
+        if (preview_mode == preview_mode_render) name = "render.png";
+        else if (preview_mode == preview_mode_thickness) name = "thickness.png";
+        else if (preview_mode == preview_mode_normals) name = "normals.png";
+        else if (preview_mode == preview_mode_depth) name = "depth.png";
+        save_screenshot(name, scene.compose_buffer);
+    }
 
     float pad = 2.0f;
 
