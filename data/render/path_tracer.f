@@ -1,20 +1,34 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
+uniform vec2      iResolution;
+uniform int       iFrame;
+uniform vec2      iCameraCenter;
+uniform float     iCameraF;
+uniform mat4      iView;
+uniform int       iSamples;
+uniform vec3      iToSun;
+uniform vec3      iSunStrength;
+uniform float     iCosSunSize;
+out vec4          fragColor;
+
+#ifdef FRAKTAL_GUI
+#widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
+#widget(Floor, height=-0.5)
+#widget(Material, specular_exponent=256.0)
+#widget(Sun, size=10deg, color=(1,1,0.8), intensity=250)
+#endif
+
 #define EPSILON 0.001
 #define STEPS 512
-#define DENOISE 1
+#define DENOISE 0
 #define BOUNCES 2
-
-#define MATERIAL0 0.0
-#define MATERIAL1 1.0
-
 #define M_PI 3.1415926535897932384626433832795
-#define ZERO (min(iFrame,0))
+#define MAX_DISTANCE 100.0
 
 // forward declaration
-vec2 model(vec3 p);
-vec4 material(vec3 p, float matIndex);
+float model(vec3 p);
+vec3 material(vec3 p);
 
 const vec3 skyDomeColor = vec3(0.1,0.2,0.7);
 
@@ -76,33 +90,30 @@ vec3 normal(vec3 p)
 {
     const float ep = 0.0001;
     vec2 e = vec2(1.0,-1.0)*0.5773*ep;
-    return normalize( e.xyy*model( p + e.xyy ).x +
-                      e.yyx*model( p + e.yyx ).x +
-                      e.yxy*model( p + e.yxy ).x +
-                      e.xxx*model( p + e.xxx ).x );
+    return normalize( e.xyy*model( p + e.xyy ) +
+                      e.yyx*model( p + e.yyx ) +
+                      e.yxy*model( p + e.yxy ) +
+                      e.xxx*model( p + e.xxx ) );
 }
 
-vec3 trace(vec3 ro, vec3 rd)
+float trace(vec3 ro, vec3 rd)
 {
     float t = 0.0;
-    float min_d = 1000.0;
     for (int i = ZERO; i < STEPS; i++)
     {
         vec3 p = ro + t*rd;
-        vec2 dm = model(p);
-        float d = dm.x;
+        float d = model(p);
+        if (d <= EPSILON) return t;
         t += d;
-        min_d = min(d, min_d);
-        if (d <= EPSILON)
-            return vec3(t, min_d, dm.y);
+        if (t > MAX_DISTANCE) break;
     }
-    return vec3(t, min_d, MATERIAL0);
+    return -1.0;
 }
 
 // This integrator implements only one material: Lambertian.
 // Uses multiple importance sample, sampling from either BSDF
 // or sun light source.
-vec3 color(vec3 p, vec3 ro, float matIndex)
+vec3 color(vec3 p, vec3 ro)
 {
     vec3 fCosTheta = vec3(1.0);
     float pdf = 1.0;
@@ -110,7 +121,7 @@ vec3 color(vec3 p, vec3 ro, float matIndex)
     {
         vec3 n = normal(p);
         ro = p + n*2.0*EPSILON;
-        vec4 m = material(p, matIndex);
+        vec3 m = material(p);
 
         // choose one of two sampling strategies
         if (noise2f().x > 0.5)
@@ -122,16 +133,11 @@ vec3 color(vec3 p, vec3 ro, float matIndex)
             pdf *= (0.5*pdf_bsdf + 0.5*pdf_light);
             fCosTheta *= m.rgb/M_PI; // note: cos(theta) gets cancelled when dividing by pdf
 
-            vec3 tr = trace(ro, rd);
-            if (tr.y > EPSILON)
-            {
-                return sky(rd)*fCosTheta/pdf;
-            }
+            float t = trace(ro, rd);
+            if (t >= 0.0)
+                p = ro + rd*t;
             else
-            {
-                p = ro + rd*tr.x;
-                matIndex = tr.z;
-            }
+                return sky(rd)*fCosTheta/pdf;
         }
         else
         {
@@ -142,16 +148,11 @@ vec3 color(vec3 p, vec3 ro, float matIndex)
             pdf *= (0.5*pdf_bsdf + 0.5*pdf_light);
             fCosTheta *= m.rgb*(max(0.0,dot(n,rd))/M_PI);
 
-            vec3 tr = trace(ro, rd);
-            if (tr.y > EPSILON)
-            {
-                return iSunStrength*fCosTheta/pdf;
-            }
+            float t = trace(ro, rd);
+            if (t >= 0.0)
+                p = ro + rd*t;
             else
-            {
-                p = ro + rd*tr.x;
-                matIndex = tr.z;
-            }
+                return iSunStrength*fCosTheta/pdf;
         }
     }
 
@@ -176,11 +177,11 @@ void main()
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
 
     fragColor.rgb = sky(rd);
-    vec3 tr = trace(ro, rd);
-    if (tr.y <= EPSILON)
+    float t = trace(ro, rd);
+    if (t >= 0.0)
     {
-        vec3 p = ro + tr.x*rd;
-        fragColor.rgb = color(p, ro, tr.z);
+        vec3 p = ro + t*rd;
+        fragColor.rgb = color(p, ro);
     }
     fragColor.a = 1.0;
 }
