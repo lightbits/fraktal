@@ -72,6 +72,8 @@ bool add_link_data(fLinkState *link, const void *data, const char *name)
     fraktal_assert(data && "'data' must be a non-NULL pointer to a buffer containing kernel source text.");
     const char *sources[] = {
         link->glsl_version,
+        "\nuniform int Dummy;\n"
+        "#define ZERO (min(0, Dummy))\n"
         "\n#line 0\n",
         (const char*)data,
     };

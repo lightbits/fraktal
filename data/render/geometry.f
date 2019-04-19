@@ -2,7 +2,6 @@
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
 uniform vec2      iResolution;
-uniform int       iFrame;
 uniform vec2      iCameraCenter;
 uniform float     iCameraF;
 uniform mat4      iView;
@@ -11,13 +10,14 @@ uniform float     iMinDistance;
 uniform float     iMaxDistance;
 out vec4 fragColor;
 
-float model(vec3 p); // forward-declaration
-
 #define EPSILON 0.0001
 #define STEPS 512
-#define M_PI 3.1415926535897932384626433832795
 #define MAX_DISTANCE 100.0
-#define ZERO (min(iFrame,0))
+
+#define DRAW_MODE_NORMALS   0
+#define DRAW_MODE_DEPTH     1
+#define DRAW_MODE_THICKNESS 2
+#define DRAW_MODE_GBUFFER   3
 
 vec3 rayPinhole(vec2 fragOffset)
 {
@@ -25,6 +25,8 @@ vec3 rayPinhole(vec2 fragOffset)
     float d = 1.0/length(vec3(uv, iCameraF));
     return vec3(uv*d, -iCameraF*d);
 }
+
+float model(vec3 p); // forward-declaration
 
 // Adapted from Inigo Quilez
 // Source: http://iquilezles.org/www/articles/normalsSDF/normalsSDF.htm
@@ -74,11 +76,6 @@ float traceModel(vec3 ro, vec3 rd)
     }
     return -1.0;
 }
-
-#define DRAW_MODE_NORMALS   0
-#define DRAW_MODE_DEPTH     1
-#define DRAW_MODE_THICKNESS 2
-#define DRAW_MODE_GBUFFER   3
 
 void main()
 {
