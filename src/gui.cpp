@@ -476,14 +476,7 @@ void gui_present(guiState &scene)
     }
 
     if (scene.keys.PrintScreen.released)
-    {
-        fArray *out = NULL;
-        if (preview_mode == preview_mode_render) out = scene.compose_buffer;
-        else if (preview_mode == preview_mode_thickness) out = scene.render_buffer;
-        else if (preview_mode == preview_mode_normals) out = scene.render_buffer;
-        else if (preview_mode == preview_mode_depth) out = scene.render_buffer;
-        save_screenshot("screenshot.png", out);
-    }
+        save_screenshot("screenshot.png", scene.compose_buffer);
 
     float pad = 2.0f;
 
