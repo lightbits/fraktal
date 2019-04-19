@@ -26,6 +26,7 @@
 
 #include "gui.cpp"
 
+#define FRAKTAL_GUI
 #define fraktal_assert assert
 #define fraktal_check_gl_error() fraktal_assert(glGetError() == GL_NO_ERROR)
 #include "fraktal.h"

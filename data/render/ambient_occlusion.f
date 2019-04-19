@@ -8,7 +8,9 @@ uniform mat4      iView;
 uniform int       iSamples;
 out vec4          fragColor;
 
+#ifdef FRAKTAL_GUI
 #widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
+#endif
 
 #define EPSILON 0.0001
 #define STEPS 512

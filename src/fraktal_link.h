@@ -74,6 +74,9 @@ bool add_link_data(fLinkState *link, const void *data, const char *name)
         link->glsl_version,
         "\nuniform int Dummy;\n"
         "#define ZERO (min(0, Dummy))\n"
+        #ifdef FRAKTAL_GUI
+        "#define FRAKTAL_GUI\n"
+        #endif
         "\n#line 0\n",
         (const char*)data,
     };
