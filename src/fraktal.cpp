@@ -83,6 +83,8 @@ int main(int argc, char **argv)
     def.color_kernel_path = "./data/render/publication.f";
     def.compose_kernel_path = "./data/compose/mean_and_gamma_correct.f";
     def.geometry_kernel_path = "./data/render/geometry.f";
+    def.resolution_x = 200;
+    def.resolution_y = 200;
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())

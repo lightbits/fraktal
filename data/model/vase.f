@@ -1,13 +1,6 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
-// #widget(Resolution, width=200, height=200)
-#resolution(200, 200)
-#widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
-#widget(Floor, height=-0.5)
-#widget(Material, specular_exponent=256.0)
-#widget(Sun, size=10deg, color=(1,1,0.8), intensity=250)
-
 float fCylinder(vec3 p, float r, float height) {
     vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(r, height);
     return min(max(d.x,d.y),0.0) + length(max(d,0.0));

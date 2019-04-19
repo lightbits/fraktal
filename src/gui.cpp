@@ -22,14 +22,6 @@
 #include "widgets/Floor.h"
 #include "widgets/Material.h"
 
-bool parse_resolution(const char **c, guiSceneParams *params)
-{
-    parse_alpha(c);
-    parse_blank(c);
-    if (!parse_int2(c, &params->resolution)) { log_err("Error parsing #resolution(x,y) directive: expected int2 after token.\n"); return false; }
-    return true;
-}
-
 void remove_directive_from_source(char *from, char *to)
 {
     for (char *c = from; c < to; c++)
@@ -48,8 +40,7 @@ bool scene_file_preprocessor(char *fs, guiSceneParams *params)
             char *mark = c;
             c++;
             const char **cc = (const char **)&c;
-                 if (parse_match(cc, "resolution")) { if (!parse_resolution(cc, params)) goto failure; }
-            else if (parse_match(cc, "widget"))
+            if (parse_match(cc, "widget"))
             {
                 if (params->num_widgets == MAX_WIDGETS) { log_err("Exceeded the maximum number of widgets.\n"); goto failure; }
 
@@ -76,8 +67,8 @@ bool scene_file_preprocessor(char *fs, guiSceneParams *params)
                 { log_err("Error parsing #widget directive: unknown widget type.\n"); goto failure; }
 
                 params->num_widgets++;
+                remove_directive_from_source(mark, c);
             }
-            remove_directive_from_source(mark, c);
         }
         c++;
     }
@@ -87,14 +78,6 @@ failure:
     for (int i = 0; i < params->num_widgets; i++)
         free(params->widgets[i]);
     return false;
-}
-
-guiSceneParams get_default_scene_params()
-{
-    guiSceneParams params = {0};
-    params.resolution.x = 200;
-    params.resolution.y = 200;
-    return params;
 }
 
 void save_screenshot(const char *filename, fArray *f)
@@ -118,9 +101,16 @@ fKernel *load_render_shader(
 {
     fLinkState *link = fraktal_create_link();
 
-    // model kernel
+    if (!fraktal_add_link_file(link, model_kernel_path))
     {
-        const char *path = model_kernel_path;
+        log_err("Failed to load render kernel: bad model.\n");
+        fraktal_destroy_link(link);
+        return NULL;
+    }
+
+    // render kernel
+    {
+        const char *path = render_kernel_path;
         char *data = read_file(path);
         if (!data)
         {
@@ -145,13 +135,6 @@ fKernel *load_render_shader(
         free(data);
     }
 
-    if (!fraktal_add_link_file(link, render_kernel_path))
-    {
-        log_err("Failed to compile render shader.\n");
-        fraktal_destroy_link(link);
-        return NULL;
-    }
-
     fKernel *kernel = fraktal_link_kernel(link);
     fraktal_destroy_link(link);
     return kernel;
@@ -159,10 +142,12 @@ fKernel *load_render_shader(
 
 bool gui_load(guiState &scene, guiSceneDef def)
 {
-    if (!scene.initialized)
-        scene.params = get_default_scene_params();
-
+    assert(def.resolution_x > 0 && def.resolution_y > 0);
     guiSceneParams params = scene.params;
+
+    params.resolution.x = def.resolution_x;
+    params.resolution.y = def.resolution_y;
+
     fKernel *render = NULL;
     {
         if (scene.mode == guiPreviewMode_Color) render = load_render_shader(def.model_kernel_path, def.color_kernel_path, &params);

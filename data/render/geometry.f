@@ -10,6 +10,11 @@ uniform float     iMinDistance;
 uniform float     iMaxDistance;
 out vec4 fragColor;
 
+#widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
+#widget(Floor, height=-0.5)
+#widget(Material, specular_exponent=256.0)
+#widget(Sun, size=10deg, color=(1,1,0.8), intensity=250)
+
 #define EPSILON 0.0001
 #define STEPS 512
 #define MAX_DISTANCE 100.0
