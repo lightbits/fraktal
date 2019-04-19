@@ -535,6 +535,25 @@ void gui_present(guiState &scene)
                     pos1.x = (float)(int)(top_left.x + avail.x*0.5f + w*0.5f);
                     pos1.y = (float)(int)(top_left.y + avail.y);
                 }
+
+                {
+                    draw->PushClipRect(pos0, pos1);
+                    int num_checkers_x = 8;
+                    int num_checkers_y = 8;
+                    float checker_size_x = (pos1.x - pos0.x) / num_checkers_x;
+                    float checker_size_y = (pos1.y - pos0.y) / num_checkers_y;
+                    for (int yi = 0; yi < num_checkers_y; yi++)
+                    for (int xi = 0; xi < num_checkers_x; xi += 2)
+                    {
+                        float x = (yi % 2 == 0) ?
+                            pos0.x + xi*checker_size_x :
+                            pos0.x + (xi+1)*checker_size_x;
+                        float y = pos0.y + yi*checker_size_y;
+                        draw->AddRectFilled(ImVec2(x, y), ImVec2(x + checker_size_x, y + checker_size_y), IM_COL32(0,0,0,50));
+                    }
+                    draw->PopClipRect();
+                }
+
                 ImU32 tint = 0xFFFFFFFF;
                 ImVec2 uv0 = ImVec2(0.0f,0.0f);
                 ImVec2 uv1 = ImVec2(1.0f,1.0f);
