@@ -60,12 +60,13 @@ vec3 rayPinhole(vec2 fragOffset)
 // Source: http://iquilezles.org/www/articles/normalsSDF/normalsSDF.htm
 vec3 normal(vec3 p)
 {
-    const float ep = 0.0001;
-    vec2 e = vec2(1.0,-1.0)*0.5773*ep;
-    return normalize( e.xyy*model( p + e.xyy ) +
-                      e.yyx*model( p + e.yyx ) +
-                      e.yxy*model( p + e.yxy ) +
-                      e.xxx*model( p + e.xxx ) );
+    vec3 n = vec3(0.0);
+    for (int i = ZERO; i < 4; i++)
+    {
+        vec3 e = 0.5773*(2.0*vec3((((i+3)>>1)&1),((i>>1)&1),(i&1))-1.0);
+        n += e*model(p + e*0.002);
+    }
+    return normalize(n);
 }
 
 float traceFloor(vec3 ro, vec3 rd)
