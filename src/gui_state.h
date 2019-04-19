@@ -52,6 +52,7 @@ struct guiState
     bool compose_kernel_is_new;
     int samples;
     bool should_clear;
+    bool should_exit;
     bool initialized;
     bool auto_render;
 

@@ -21,7 +21,7 @@ out vec4          fragColor;
 
 #define EPSILON 0.001
 #define STEPS 512
-#define DENOISE 0
+#define DENOISE 1
 #define BOUNCES 2
 #define M_PI 3.1415926535897932384626433832795
 #define MAX_DISTANCE 100.0

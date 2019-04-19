@@ -77,8 +77,8 @@ int main(int argc, char **argv)
     guiSceneDef def = {0};
     arg_int32(&def.resolution_x,          200,                                       "-width",    "Render resolution (x)");
     arg_int32(&def.resolution_y,          200,                                       "-height",   "Render resolution (y)");
-    arg_string(&def.model_kernel_path,    "./data/model/vase.f",                     "-model",    "Path to a .f kernel containing model definition");
-    arg_string(&def.color_kernel_path,    "./data/render/publication.f",             "-color",    "Path to a .f kernel containing color renderer definition");
+    arg_string(&def.model_kernel_path,    "./data/model/roof.f",                     "-model",    "Path to a .f kernel containing model definition");
+    arg_string(&def.color_kernel_path,    "./data/render/path_tracer.f",             "-color",    "Path to a .f kernel containing color renderer definition");
     arg_string(&def.compose_kernel_path,  "./data/compose/mean_and_gamma_correct.f", "-compose",  "Path to a .f kernel containing color composer definition");
     arg_string(&def.geometry_kernel_path, "./data/render/geometry.f",                "-geometry", "Path to a .f kernel containing geometry renderer definition");
     if (!arg_parse(argc, argv))
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window) && !scene.should_exit)
     {
         static int settle_frames = 3;
         if (scene.auto_render || settle_frames > 0)
@@ -184,9 +184,9 @@ int main(int argc, char **argv)
             ImGui::NewFrame();
 
             #define copy_key_event(struct_name, glfw_key) \
-                scene.keys.struct_name.pressed = glfw_keys[glfw_key].was_pressed; \
-                scene.keys.struct_name.released = glfw_keys[glfw_key].was_released; \
-                scene.keys.struct_name.down = glfw_keys[glfw_key].is_down;
+                scene.keys.struct_name.pressed = glfw_keys[glfw_key].was_pressed && !ImGui::GetIO().WantCaptureKeyboard; \
+                scene.keys.struct_name.released = glfw_keys[glfw_key].was_released && !ImGui::GetIO().WantCaptureKeyboard; \
+                scene.keys.struct_name.down = glfw_keys[glfw_key].is_down && !ImGui::GetIO().WantCaptureKeyboard;
             copy_key_event(Enter, GLFW_KEY_ENTER);
             copy_key_event(Space, GLFW_KEY_SPACE);
             copy_key_event(Ctrl, GLFW_KEY_LEFT_CONTROL);

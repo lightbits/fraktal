@@ -105,7 +105,7 @@ fKernel *load_render_shader(
 
     if (!fraktal_add_link_file(link, model_kernel_path))
     {
-        log_err("Failed to load render kernel: bad model.\n");
+        log_err("Failed to load render kernel: error compiling model.\n");
         fraktal_destroy_link(link);
         return NULL;
     }
@@ -116,20 +116,20 @@ fKernel *load_render_shader(
         char *data = read_file(path);
         if (!data)
         {
-            log_err("Failed to read source file.\n");
+            log_err("Failed to load render kernel: could not read file '%s'.\n", path);
             fraktal_destroy_link(link);
             return NULL;
         }
         if (!scene_file_preprocessor(data, params))
         {
-            log_err("Failed to parse source file.\n");
+            log_err("Failed to load render kernel: could not parse file '%s'.\n", path);
             fraktal_destroy_link(link);
             free(data);
             return NULL;
         }
         if (!fraktal_add_link_data(link, data, 0, path))
         {
-            log_err("Failed to compile kernel source.\n");
+            log_err("Failed to load render kernel: error compiling '%s'.\n", path);
             fraktal_destroy_link(link);
             free(data);
             return NULL;
@@ -158,7 +158,7 @@ bool gui_load(guiState &scene, guiSceneDef def)
 
     if (!render)
     {
-        log_err("Failed to load scene.\n");
+        log_err("Failed to load scene: error compiling render kernel.\n");
         return false;
     }
 
@@ -168,7 +168,7 @@ bool gui_load(guiState &scene, guiSceneDef def)
     fKernel *compose = fraktal_load_kernel(def.compose_kernel_path);
     if (!compose)
     {
-        log_err("Failed to load scene.\n");
+        log_err("Failed to load scene: error compiling compose kernel.\n");
         fraktal_destroy_kernel(render);
         return false;
     }
@@ -307,15 +307,41 @@ void render_geometry(guiState &scene)
     fraktal_use_kernel(NULL);
 }
 
+bool open_file_dialog(bool should_open, const char *label, char *buffer, size_t sizeof_buffer)
+{
+    if (should_open)
+        ImGui::OpenPopup(label);
+
+    bool result = false;
+    if (ImGui::BeginPopupModal(label, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::InputText("Filename", buffer, sizeof_buffer);
+        bool enter_key = ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter));
+        if (ImGui::Button("OK", ImVec2(120, 0)) || enter_key)
+        {
+            result = true;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+        ImGui::EndPopup();
+    }
+    return result;
+}
+
 void gui_present(guiState &scene)
 {
     static int last_mode = scene.mode;
+    static bool open_model_succeeded = false;
+    static bool open_color_succeeded = false;
     bool mode_changed = scene.mode != last_mode;
     last_mode = scene.mode;
 
     bool reload_key = scene.keys.Shift.down && scene.keys.Enter.pressed;
-    if (reload_key || mode_changed)
+    if (reload_key || mode_changed || open_model_succeeded || open_color_succeeded)
     {
+        open_model_succeeded = false;
+        open_color_succeeded = false;
         log_clear();
         if (!gui_load(scene, scene.def))
             scene.got_error = true;
@@ -367,13 +393,26 @@ void gui_present(guiState &scene)
 
     // main menu bar
     float main_menu_bar_height = 0.0f;
+    bool open_screenshot_popup = false;
+    bool open_model_popup = false;
+    bool open_color_popup = false;
     {
         ImGui::BeginMainMenuBar();
         {
             main_menu_bar_height = ImGui::GetWindowHeight();
             ImGui::Text("\xce\xb8"); // placeholder for Fraktal icon
-            ImGui::MenuItem("File");
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Load model kernel##MainMenu")) open_model_popup = true;
+                if (ImGui::MenuItem("Load color kernel##MainMenu")) open_color_popup = true;
+                if (ImGui::MenuItem("Save as PNG##MainMenu", "P"))  open_screenshot_popup = true;
+                ImGui::Separator();
+                if (ImGui::MenuItem("Exit##MainMenu"))
+                    scene.should_exit = true;
+                ImGui::EndMenu();
+            }
             ImGui::MenuItem("Window");
+
             if (ImGui::MenuItem("Help"))
                 ImGui::OpenPopup("Help##Popup");
 
@@ -596,6 +635,24 @@ void gui_present(guiState &scene)
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         ImGui::PopStyleVar();
+    }
+
+    {
+        static char path[1024];
+        open_model_succeeded = open_file_dialog(open_model_popup, "Open model kernel##Popup", path, sizeof(path));
+        if (open_model_succeeded)
+            scene.def.model_kernel_path = path;
+    }
+    {
+        static char path[1024];
+        open_color_succeeded = open_file_dialog(open_color_popup, "Open color kernel##Popup", path, sizeof(path));
+        if (open_color_succeeded)
+            scene.def.color_kernel_path = path;
+    }
+    {
+        static char path[1024];
+        if (open_file_dialog(open_screenshot_popup, "Save as PNG##Popup", path, sizeof(path)))
+            save_screenshot(path, scene.compose_buffer);
     }
 
     ImGui::PopStyleVar();
