@@ -79,12 +79,9 @@ void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, in
 int main(int argc, char **argv)
 {
     guiSceneDef def = {0};
-    def.render_shader_path = "./data/render/publication.f";
     def.model_shader_path = "./data/model/vase.f";
+    def.render_shader_path = "./data/render/publication.f";
     def.compose_shader_path = "./data/compose/mean_and_gamma_correct.f";
-    def.thickness_shader_path = "./data/render/thickness.f";
-    def.geometry_shader_path = "./data/render/geometry.f";
-    def.preview_geometry_shader_path = "./data/compose/preview_geometry.f";
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -144,7 +141,7 @@ int main(int argc, char **argv)
     }
 
     guiState scene = {0};
-    if (!gui_load(scene, def, GUI_LOAD_RENDER|GUI_LOAD_COMPOSE))
+    if (!gui_load(scene, def))
         return 1;
 
     while (!glfwWindowShouldClose(window))

@@ -22,9 +22,6 @@ struct guiSceneDef
     const char *model_shader_path;
     const char *render_shader_path;
     const char *compose_shader_path;
-    const char *thickness_shader_path;
-    const char *geometry_shader_path;
-    const char *preview_geometry_shader_path;
     const char *glsl_version;
 };
 struct guiSceneParams
@@ -79,12 +76,8 @@ struct guiState
     fArray *render_buffer;
     fArray *compose_buffer;
     fKernel *render_kernel;
-    fKernel *thickness_kernel;
-    fKernel *geometry_kernel;
     fKernel *compose_kernel;
     bool render_kernel_is_new;
-    bool thickness_kernel_is_new;
-    bool geometry_kernel_is_new;
     bool compose_kernel_is_new;
     int samples;
     bool should_clear;
