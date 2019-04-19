@@ -15,6 +15,7 @@ struct guiKeys
     guiKey Ctrl,Alt,Shift;
     guiKey Left,Right,Up,Down;
     guiKey W,A,S,D;
+    guiKey PrintScreen;
 };
 struct guiSceneDef
 {

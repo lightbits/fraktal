@@ -106,23 +106,19 @@ guiSceneParams get_default_scene_params()
     return params;
 }
 
-#if 0
-void save_screenshot(const char *filename)
+void save_screenshot(const char *filename, fArray *f)
 {
-    int w = app.fb_width;
-    int h = app.fb_height;
-    int n = 4;
-    int stride = w*n;
+    assert(filename);
+    assert(f);
+    assert(fraktal_array_format(f) == FRAKTAL_UINT8);
+    int w,h; fraktal_array_size(f, &w,&h);
+    int n = fraktal_array_channels(f);
+    assert(w > 0 && h > 0 && n > 0);
     unsigned char *pixels = (unsigned char*)malloc(w*h*n);
-    unsigned char *last_row = pixels + stride*(h-1);
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glReadBuffer(GL_FRONT);
-    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    // writing from last row with negative stride flips the image vertically
-    stbi_write_png(filename, w, h, n, last_row, -stride);
+    fraktal_gpu_to_cpu(pixels, f);
+    stbi_write_png(filename, w, h, n, pixels, w*n);
     free(pixels);
 }
-#endif
 
 void gui_set_resolution(guiState &scene, int x, int y)
 {
@@ -299,7 +295,7 @@ void render_scene(guiState &scene)
     fArray *out = scene.render_buffer;
 
     int width,height;
-    fraktal_get_array_size(out, &width, &height);
+    fraktal_array_size(out, &width, &height);
     glUniform2f(loc_iResolution, (float)width, (float)height);
     glUniform1i(loc_iSamples, scene.samples);
 
@@ -331,7 +327,7 @@ void render_thickness(guiState &scene)
     fArray *out = scene.render_buffer;
 
     int width,height;
-    fraktal_get_array_size(out, &width, &height);
+    fraktal_array_size(out, &width, &height);
     glUniform2f(loc_iResolution, (float)width, (float)height);
 
     for (int i = 0; i < scene.params.num_widgets; i++)
@@ -358,7 +354,7 @@ void render_geometry(guiState &scene)
     fArray *out = scene.render_buffer;
 
     int width,height;
-    fraktal_get_array_size(out, &width, &height);
+    fraktal_array_size(out, &width, &height);
     glUniform2f(loc_iResolution, (float)width, (float)height);
 
     for (int i = 0; i < scene.params.num_widgets; i++)
@@ -385,7 +381,7 @@ void compose_scene(guiState &scene)
     fArray *out = scene.compose_buffer;
     fArray *in = scene.render_buffer;
     int width,height;
-    fraktal_get_array_size(out, &width, &height);
+    fraktal_array_size(out, &width, &height);
     glUniform2f(loc_iResolution, (float)width, (float)height);
     glUniform1i(loc_iSamples, scene.samples);
     glUniform1i(loc_iChannel0, 0);
@@ -412,7 +408,7 @@ void compose_preview_geometry(guiState &scene, int iDrawMode)
     fArray *out = scene.compose_buffer;
     fArray *in = scene.render_buffer;
     int width,height;
-    fraktal_get_array_size(out, &width, &height);
+    fraktal_array_size(out, &width, &height);
     glUniform2f(loc_iResolution, (float)width, (float)height);
     glUniform1i(loc_iDrawMode, iDrawMode);
     glUniform1f(loc_iMinDrawDistance, 20.0f);
@@ -477,6 +473,16 @@ void gui_present(guiState &scene)
             render_geometry(scene);
             compose_preview_geometry(scene, preview_mode == preview_mode_normals ? 0 : 1);
         }
+    }
+
+    if (scene.keys.PrintScreen.released)
+    {
+        fArray *out = NULL;
+        if (preview_mode == preview_mode_render) out = scene.compose_buffer;
+        else if (preview_mode == preview_mode_thickness) out = scene.render_buffer;
+        else if (preview_mode == preview_mode_normals) out = scene.render_buffer;
+        else if (preview_mode == preview_mode_depth) out = scene.render_buffer;
+        save_screenshot("screenshot.png", out);
     }
 
     float pad = 2.0f;
@@ -627,14 +633,14 @@ void gui_present(guiState &scene)
                 unsigned int texture = 0;
                 if (preview_mode == preview_mode_thickness)
                 {
-                    fraktal_get_array_size(scene.render_buffer, &width, &height);
+                    fraktal_array_size(scene.render_buffer, &width, &height);
                     texture = fraktal_get_gl_handle(scene.render_buffer);
                 }
                 else if (preview_mode == preview_mode_render ||
                          preview_mode == preview_mode_normals ||
                          preview_mode == preview_mode_depth)
                 {
-                    fraktal_get_array_size(scene.compose_buffer, &width, &height);
+                    fraktal_array_size(scene.compose_buffer, &width, &height);
                     texture = fraktal_get_gl_handle(scene.compose_buffer);
                 }
                 ImVec2 image_size = ImVec2((float)width, (float)height);

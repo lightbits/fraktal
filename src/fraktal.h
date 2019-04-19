@@ -13,7 +13,9 @@ Index of this file:
 ....fraktal_destroy_array
 ....fraktal_zero_array
 ....fraktal_gpu_to_cpu
-....fraktal_get_array_size
+....fraktal_array_format
+....fraktal_array_size
+....fraktal_array_channels
 ....fraktal_is_valid_array
 ....fraktal_get_gl_handle
 §3 Kernels
@@ -129,9 +131,11 @@ void fraktal_zero_array(fArray *a);
 void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a);
 
 /*
-    If 'a' is NULL, nothing is written to width or height.
+    These methods return information about an array.
 */
-void fraktal_get_array_size(fArray *a, int *width, int *height);
+void fraktal_array_size(fArray *a, int *width, int *height);
+fEnum fraktal_array_format(fArray *a); // -1 if 'a' is NULL
+int fraktal_array_channels(fArray *a); // 0 is 'a' is NULL
 
 /*
     Returns true if the fArray satisfies the following properties:

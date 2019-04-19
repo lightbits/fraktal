@@ -154,13 +154,25 @@ void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a)
     fraktal_check_gl_error();
 }
 
-void fraktal_get_array_size(fArray *a, int *width, int *height)
+void fraktal_array_size(fArray *a, int *width, int *height)
 {
     if (a)
     {
-        *width = a->width;
-        *height = a->height;
+        if (width) *width = a->width;
+        if (height) *height = a->height;
     }
+}
+
+int fraktal_array_channels(fArray *a)
+{
+    if (a) return a->channels;
+    return 0;
+}
+
+fEnum fraktal_array_format(fArray *a)
+{
+    if (a) return a->format;
+    return -1;
 }
 
 bool fraktal_is_valid_array(fArray *a)
