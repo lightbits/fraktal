@@ -79,9 +79,10 @@ void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, in
 int main(int argc, char **argv)
 {
     guiSceneDef def = {0};
-    def.model_shader_path = "./data/model/vase.f";
-    def.render_shader_path = "./data/render/publication.f";
-    def.compose_shader_path = "./data/compose/mean_and_gamma_correct.f";
+    def.model_kernel_path = "./data/model/vase.f";
+    def.color_kernel_path = "./data/render/publication.f";
+    def.compose_kernel_path = "./data/compose/mean_and_gamma_correct.f";
+    def.geometry_kernel_path = "./data/render/geometry.f";
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())

@@ -19,9 +19,10 @@ struct guiKeys
 };
 struct guiSceneDef
 {
-    const char *model_shader_path;
-    const char *render_shader_path;
-    const char *compose_shader_path;
+    const char *model_kernel_path;
+    const char *color_kernel_path;
+    const char *geometry_kernel_path;
+    const char *compose_kernel_path;
     const char *glsl_version;
 };
 struct guiSceneParams
@@ -70,6 +71,14 @@ struct guiSceneParams
     Widget *widgets[MAX_WIDGETS];
     int num_widgets;
 };
+typedef int guiPreviewMode;
+enum guiPreviewMode_ {
+    guiPreviewMode_Color=0,
+    guiPreviewMode_Thickness,
+    guiPreviewMode_Normals,
+    guiPreviewMode_Depth,
+    guiPreviewMode_GBuffer,
+};
 struct guiState
 {
     guiSceneDef def;
@@ -87,4 +96,6 @@ struct guiState
     guiKeys keys;
 
     guiSceneParams params;
+
+    guiPreviewMode mode;
 };

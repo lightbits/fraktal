@@ -111,13 +111,16 @@ void save_screenshot(const char *filename, fArray *f)
     free(pixels);
 }
 
-fKernel *load_render_shader(guiSceneDef def, guiSceneParams *params)
+fKernel *load_render_shader(
+    const char *model_kernel_path,
+    const char *render_kernel_path,
+    guiSceneParams *params)
 {
     fLinkState *link = fraktal_create_link();
 
     // model kernel
     {
-        const char *path = def.model_shader_path;
+        const char *path = model_kernel_path;
         char *data = read_file(path);
         if (!data)
         {
@@ -142,7 +145,7 @@ fKernel *load_render_shader(guiSceneDef def, guiSceneParams *params)
         free(data);
     }
 
-    if (!fraktal_add_link_file(link, def.render_shader_path))
+    if (!fraktal_add_link_file(link, render_kernel_path))
     {
         log_err("Failed to compile render shader.\n");
         fraktal_destroy_link(link);
@@ -160,7 +163,12 @@ bool gui_load(guiState &scene, guiSceneDef def)
         scene.params = get_default_scene_params();
 
     guiSceneParams params = scene.params;
-    fKernel *render = load_render_shader(def, &params);
+    fKernel *render = NULL;
+    {
+        if (scene.mode == guiPreviewMode_Color) render = load_render_shader(def.model_kernel_path, def.color_kernel_path, &params);
+        else render = load_render_shader(def.model_kernel_path, def.geometry_kernel_path, &params);
+    }
+
     if (!render)
     {
         log_err("Failed to load scene.\n");
@@ -170,7 +178,7 @@ bool gui_load(guiState &scene, guiSceneDef def)
     for (int i = 0; i < params.num_widgets; i++)
         params.widgets[i]->get_param_offsets(render);
 
-    fKernel *compose = fraktal_load_kernel(def.compose_shader_path);
+    fKernel *compose = fraktal_load_kernel(def.compose_kernel_path);
     if (!compose)
     {
         log_err("Failed to load scene.\n");
@@ -278,16 +286,7 @@ void render_color(guiState &scene)
     fraktal_use_kernel(NULL);
 }
 
-typedef int guiPreviewMode;
-enum guiPreviewMode_ {
-    guiPreviewMode_Color=0,
-    guiPreviewMode_Thickness,
-    guiPreviewMode_Normals,
-    guiPreviewMode_Depth,
-    guiPreviewMode_GBuffer,
-};
-
-void render_geometry(guiState &scene, guiPreviewMode mode)
+void render_geometry(guiState &scene)
 {
     assert(scene.render_kernel);
     assert(fraktal_is_valid_array(scene.compose_buffer));
@@ -306,10 +305,11 @@ void render_geometry(guiState &scene, guiPreviewMode mode)
         int width,height;
         fraktal_array_size(out, &width, &height);
         glUniform2f(loc_iResolution, (float)width, (float)height);
-        if      (mode == guiPreviewMode_Normals) glUniform1i(loc_iDrawMode, 0);
-        else if (mode == guiPreviewMode_Depth) glUniform1i(loc_iDrawMode, 1);
-        else if (mode == guiPreviewMode_Thickness) glUniform1i(loc_iDrawMode, 2);
-        else if (mode == guiPreviewMode_GBuffer) glUniform1i(loc_iDrawMode, 3);
+        if      (scene.mode == guiPreviewMode_Normals) glUniform1i(loc_iDrawMode, 0);
+        else if (scene.mode == guiPreviewMode_Depth) glUniform1i(loc_iDrawMode, 1);
+        else if (scene.mode == guiPreviewMode_Thickness) glUniform1i(loc_iDrawMode, 2);
+        else if (scene.mode == guiPreviewMode_GBuffer) glUniform1i(loc_iDrawMode, 3);
+        else assert(false);
         glUniform1f(loc_iMinDistance, 10.0f);
         glUniform1f(loc_iMaxDistance, 30.0f);
 
@@ -326,25 +326,18 @@ void render_geometry(guiState &scene, guiPreviewMode mode)
 
 void gui_present(guiState &scene)
 {
-    static guiPreviewMode mode = guiPreviewMode_Color;
-    static int last_mode = mode;
-    bool mode_changed = mode != last_mode;
-    last_mode = mode;
+    static int last_mode = scene.mode;
+    bool mode_changed = scene.mode != last_mode;
+    last_mode = scene.mode;
 
     bool reload_key = scene.keys.Shift.down && scene.keys.Enter.pressed;
     if (reload_key || mode_changed)
-    {
-        if (mode == guiPreviewMode_Color)
-            scene.def.render_shader_path = "./data/render/publication.f";
-        else
-            scene.def.render_shader_path = "./data/render/geometry.f";
         gui_load(scene, scene.def);
-    }
 
     if (!scene.keys.Shift.down && scene.keys.Enter.pressed)
         scene.auto_render = !scene.auto_render;
 
-    if (mode == guiPreviewMode_Color)
+    if (scene.mode == guiPreviewMode_Color)
     {
         if (scene.auto_render || scene.should_clear)
             render_color(scene);
@@ -352,16 +345,16 @@ void gui_present(guiState &scene)
     else
     {
         if (scene.should_clear)
-            render_geometry(scene, mode);
+            render_geometry(scene);
     }
 
     if (scene.keys.PrintScreen.released)
     {
         const char *name = "screenshot.png";
-        if (mode == guiPreviewMode_Color) name = "color.png";
-        else if (mode == guiPreviewMode_Thickness) name = "thickness.png";
-        else if (mode == guiPreviewMode_Normals) name = "normals.png";
-        else if (mode == guiPreviewMode_Depth) name = "depth.png";
+        if (scene.mode == guiPreviewMode_Color) name = "color.png";
+        else if (scene.mode == guiPreviewMode_Thickness) name = "thickness.png";
+        else if (scene.mode == guiPreviewMode_Normals) name = "normals.png";
+        else if (scene.mode == guiPreviewMode_Depth) name = "depth.png";
         save_screenshot(name, scene.compose_buffer);
     }
 
@@ -384,7 +377,6 @@ void gui_present(guiState &scene)
 
     // main menu bar
     float main_menu_bar_height = 0.0f;
-    int next_mode = mode;
     {
         ImGui::BeginMainMenuBar();
         {
@@ -395,10 +387,10 @@ void gui_present(guiState &scene)
             ImGui::MenuItem("Help");
             if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
             {
-                if (ImGui::BeginTabItem("Color"))     { next_mode = guiPreviewMode_Color; ImGui::EndTabItem(); }
-                if (ImGui::BeginTabItem("Thickness")) { next_mode = guiPreviewMode_Thickness; ImGui::EndTabItem(); }
-                if (ImGui::BeginTabItem("Normals"))   { next_mode = guiPreviewMode_Normals; ImGui::EndTabItem(); }
-                if (ImGui::BeginTabItem("Depth"))     { next_mode = guiPreviewMode_Depth; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Color"))     { scene.mode = guiPreviewMode_Color; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Thickness")) { scene.mode = guiPreviewMode_Thickness; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Normals"))   { scene.mode = guiPreviewMode_Normals; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("Depth"))     { scene.mode = guiPreviewMode_Depth; ImGui::EndTabItem(); }
                 ImGui::EndTabBar();
             }
         }
@@ -566,8 +558,6 @@ void gui_present(guiState &scene)
         ImGui::PopStyleVar();
         ImGui::PopStyleVar();
     }
-
-    mode = next_mode;
 
     ImGui::PopStyleVar();
     ImGui::PopStyleVar();
