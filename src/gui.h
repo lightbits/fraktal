@@ -368,7 +368,33 @@ void gui_present(guiState &scene)
             ImGui::Text("\xce\xb8"); // placeholder for Fraktal icon
             ImGui::MenuItem("File");
             ImGui::MenuItem("Window");
-            ImGui::MenuItem("Help");
+            if (ImGui::MenuItem("Help"))
+                ImGui::OpenPopup("Help##Popup");
+
+            if (ImGui::BeginPopupModal("Help##Popup", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Separator();
+                ImGui::Text("Keys");
+                ImGui::Separator();
+                ImGui::Columns(2);
+                ImGui::BulletText("P");                  ImGui::NextColumn(); ImGui::Text("Take screenshot"); ImGui::NextColumn();
+                ImGui::BulletText("Ctrl,Space,W,A,S,D"); ImGui::NextColumn(); ImGui::Text("Translate camera"); ImGui::NextColumn();
+                ImGui::BulletText("Arrow keys");         ImGui::NextColumn(); ImGui::Text("Rotate camera"); ImGui::NextColumn();
+                ImGui::BulletText("Enter");              ImGui::NextColumn(); ImGui::Text("Auto-render"); ImGui::NextColumn();
+                ImGui::BulletText("Shift+Enter");        ImGui::NextColumn(); ImGui::Text("Reload kernel"); ImGui::NextColumn();
+                ImGui::Columns(1);
+
+                ImGui::Separator();
+                ImGui::Text("Fraktal is built with the help of the following libraries:");
+                ImGui::Separator();
+                ImGui::BulletText("Dear ImGui");
+                ImGui::BulletText("GLFW");
+                ImGui::BulletText("GL3W");
+                ImGui::BulletText("stb_image and stb_image_write");
+                if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
+            }
+
             if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
             {
                 if (ImGui::BeginTabItem("Color"))     { scene.mode = guiPreviewMode_Color; ImGui::EndTabItem(); }
