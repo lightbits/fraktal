@@ -34,6 +34,8 @@
 #include "fraktal_kernel.h"
 #include "fraktal_link.h"
 
+#include <args.h>
+
 void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
@@ -79,12 +81,17 @@ void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, in
 int main(int argc, char **argv)
 {
     guiSceneDef def = {0};
-    def.model_kernel_path = "./data/model/vase.f";
-    def.color_kernel_path = "./data/render/publication.f";
-    def.compose_kernel_path = "./data/compose/mean_and_gamma_correct.f";
-    def.geometry_kernel_path = "./data/render/geometry.f";
-    def.resolution_x = 200;
-    def.resolution_y = 200;
+    arg_int32(&def.resolution_x,          200,                                       "-width",    "Render resolution (x)");
+    arg_int32(&def.resolution_y,          200,                                       "-height",   "Render resolution (y)");
+    arg_string(&def.model_kernel_path,    "./data/model/vase.f",                     "-model",    "Path to a .f kernel containing model definition");
+    arg_string(&def.color_kernel_path,    "./data/render/publication.f",             "-color",    "Path to a .f kernel containing color renderer definition");
+    arg_string(&def.compose_kernel_path,  "./data/compose/mean_and_gamma_correct.f", "-compose",  "Path to a .f kernel containing color composer definition");
+    arg_string(&def.geometry_kernel_path, "./data/render/geometry.f",                "-geometry", "Path to a .f kernel containing geometry renderer definition");
+    if (!arg_parse(argc, argv))
+    {
+        arg_help();
+        return 1;
+    }
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())

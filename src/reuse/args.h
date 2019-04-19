@@ -35,6 +35,7 @@ void arg_help   ();
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #ifndef arg_err
 #define arg_err(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
 #endif
@@ -201,7 +202,7 @@ void arg_help()
         size_t len = strlen(arg->key);
         arg_err("  %s ", arg->key);
         for (int j = len; j < 8; j++)
-            arg_err(".");
+            arg_err("%s", ".");
         arg_err("... %s ", arg->msg);
         if      (arg->type == arg_type_int32)   arg_err("[%d]\n", *(int32_t*)arg->ptr);
         else if (arg->type == arg_type_uint32)  arg_err("[%u]\n", *(uint32_t*)arg->ptr);
