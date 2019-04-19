@@ -21,6 +21,7 @@
 #include "widgets/Camera.h"
 #include "widgets/Floor.h"
 #include "widgets/Material.h"
+#include "widgets/Geometry.h"
 
 void remove_directive_from_source(char *from, char *to)
 {
@@ -61,6 +62,7 @@ bool scene_file_preprocessor(char *fs, guiSceneParams *params)
                 PARSE_WIDGET(Camera)
                 PARSE_WIDGET(Floor)
                 PARSE_WIDGET(Material)
+                PARSE_WIDGET(Geometry)
                 // ...
                 // add new macros here!
                 // ...
