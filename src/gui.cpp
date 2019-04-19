@@ -355,6 +355,7 @@ void gui_present(guiState &scene)
         else if (scene.mode == guiPreviewMode_Thickness) name = "thickness.png";
         else if (scene.mode == guiPreviewMode_Normals) name = "normals.png";
         else if (scene.mode == guiPreviewMode_Depth) name = "depth.png";
+        else if (scene.mode == guiPreviewMode_GBuffer) name = "gbuffer.png";
         save_screenshot(name, scene.compose_buffer);
     }
 
@@ -391,6 +392,7 @@ void gui_present(guiState &scene)
                 if (ImGui::BeginTabItem("Thickness")) { scene.mode = guiPreviewMode_Thickness; ImGui::EndTabItem(); }
                 if (ImGui::BeginTabItem("Normals"))   { scene.mode = guiPreviewMode_Normals; ImGui::EndTabItem(); }
                 if (ImGui::BeginTabItem("Depth"))     { scene.mode = guiPreviewMode_Depth; ImGui::EndTabItem(); }
+                if (ImGui::BeginTabItem("GBuffer"))   { scene.mode = guiPreviewMode_GBuffer; ImGui::EndTabItem(); }
                 ImGui::EndTabBar();
             }
         }
