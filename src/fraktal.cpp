@@ -152,7 +152,10 @@ int main(int argc, char **argv)
 
     guiState scene = {0};
     if (!gui_load(scene, def))
+    {
+        fprintf(stderr, "Failed to load scene. Make sure that your executable can access the data directory in the Fraktal repository, or to any overridden kernel paths.");
         return 1;
+    }
 
     while (!glfwWindowShouldClose(window))
     {
