@@ -8,6 +8,10 @@ uniform mat4      iView;
 uniform int       iDrawMode;
 uniform float     iMinDistance;
 uniform float     iMaxDistance;
+uniform float     iMinThickness;
+uniform float     iMaxThickness;
+uniform sampler1D iColormap;
+uniform int       iApplyColormap;
 out vec4 fragColor;
 
 #ifdef FRAKTAL_GUI
@@ -97,8 +101,8 @@ void main()
         vec3 n = normal(p);
         float thickness = calcThickness(p, rd);
 
-        float t_normalized = (t - iMinDistance) /
-                             (iMaxDistance - iMinDistance);
+        float t_normalized = (t - iMinDistance) / (iMaxDistance - iMinDistance);
+        float thickness_normalized = (thickness - iMinThickness) / (iMaxThickness - iMinThickness);
 
         if (iDrawMode == DRAW_MODE_NORMALS)
         {
@@ -107,12 +111,14 @@ void main()
         }
         else if (iDrawMode == DRAW_MODE_DEPTH)
         {
-            fragColor.rgb = vec3(t_normalized);
+            if (iApplyColormap == 1) fragColor.rgb = texture(iColormap, t_normalized).rgb;
+            else fragColor.rgb = vec3(t_normalized);
             fragColor.a = 1.0;
         }
         else if (iDrawMode == DRAW_MODE_THICKNESS)
         {
-            fragColor.rgb = vec3(thickness/2.0);
+            if (iApplyColormap == 1) fragColor.rgb = texture(iColormap, thickness_normalized).rgb;
+            else fragColor.rgb = vec3(thickness_normalized);
             fragColor.a = 1.0;
         }
         else if (iDrawMode == DRAW_MODE_GBUFFER)

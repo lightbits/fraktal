@@ -283,22 +283,18 @@ void render_geometry(guiState &scene)
     {
         fetch_uniform(render_kernel, iResolution);
         fetch_uniform(render_kernel, iDrawMode);
-        fetch_uniform(render_kernel, iMinDistance);
-        fetch_uniform(render_kernel, iMaxDistance);
         scene.render_kernel_is_new = false;
 
         fArray *out = scene.compose_buffer;
 
         int width,height;
         fraktal_array_size(out, &width, &height);
-        glUniform2f(loc_iResolution, (float)width, (float)height);
+        fraktal_param_2f(loc_iResolution, (float)width, (float)height);
         if      (scene.mode == guiPreviewMode_Normals) glUniform1i(loc_iDrawMode, 0);
         else if (scene.mode == guiPreviewMode_Depth) glUniform1i(loc_iDrawMode, 1);
         else if (scene.mode == guiPreviewMode_Thickness) glUniform1i(loc_iDrawMode, 2);
         else if (scene.mode == guiPreviewMode_GBuffer) glUniform1i(loc_iDrawMode, 3);
         else assert(false);
-        glUniform1f(loc_iMinDistance, 10.0f);
-        glUniform1f(loc_iMaxDistance, 30.0f);
 
         for (int i = 0; i < scene.params.num_widgets; i++)
             scene.params.widgets[i]->set_params();
