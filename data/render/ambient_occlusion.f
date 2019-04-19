@@ -1,12 +1,21 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
-#define EPSILON 0.001
+uniform vec2      iResolution;
+uniform vec2      iCameraCenter;
+uniform float     iCameraF;
+uniform mat4      iView;
+uniform int       iSamples;
+out vec4          fragColor;
+
+#define EPSILON 0.0001
 #define STEPS 512
 #define DENOISE 1
+#define MAX_DISTANCE 100.0
 #define MAX_AO_DISTANCE 1.0
 #define M_PI 3.1415926535897932384626433832795
-#define ZERO (min(iFrame,0))
+
+float model(vec3 p); // forward-declaration
 
 #if DENOISE
 vec2 seed = vec2(-1,1)*(iSamples*(1.0/12.0) + 1.0);
@@ -45,27 +54,24 @@ vec3 normal(vec3 p)
 {
     const float ep = 0.0001;
     vec2 e = vec2(1.0,-1.0)*0.5773*ep;
-    return normalize( e.xyy*model( p + e.xyy ).x +
-                      e.yyx*model( p + e.yyx ).x +
-                      e.yxy*model( p + e.yxy ).x +
-                      e.xxx*model( p + e.xxx ).x );
+    return normalize( e.xyy*model( p + e.xyy ) +
+                      e.yyx*model( p + e.yyx ) +
+                      e.yxy*model( p + e.yxy ) +
+                      e.xxx*model( p + e.xxx ) );
 }
 
-vec3 trace(vec3 ro, vec3 rd)
+float trace(vec3 ro, vec3 rd)
 {
     float t = 0.0;
-    float min_d = 1000.0;
     for (int i = ZERO; i < STEPS; i++)
     {
         vec3 p = ro + t*rd;
-        vec2 dm = model(p);
-        float d = dm.x;
+        float d = model(p);
+        if (d <= EPSILON) return t;
         t += d;
-        min_d = min(d, min_d);
-        if (d <= EPSILON)
-            return vec3(t, min_d, dm.y);
+        if (t > MAX_DISTANCE) break;
     }
-    return vec3(t, min_d, MATERIAL0);
+    return -1.0;
 }
 
 float ambientOcclusion(vec3 p)
@@ -77,7 +83,7 @@ float ambientOcclusion(vec3 p)
     for (int i = ZERO; i < STEPS && t < MAX_AO_DISTANCE; i++)
     {
         vec3 p = ro + t*rd;
-        float d = model(p).x;
+        float d = model(p);
         t += d;
         if (d <= EPSILON)
             return 0.0;
@@ -91,9 +97,8 @@ void main()
     vec3 ro = (iView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
     rd = normalize((iView * vec4(rd, 0.0)).xyz);
 
-    vec3 tr = trace(ro, rd);
-    if (tr.y > EPSILON)
-        fragColor = vec4(1.0);
-    else
-        fragColor = vec4(vec3(1.0)*ambientOcclusion(ro + tr.x*rd), 1.0);
+    fragColor = vec4(1.0);
+    float t = trace(ro, rd);
+    if (t > 0.0)
+        fragColor.rgb = vec3(1.0)*ambientOcclusion(ro + t*rd);
 }
