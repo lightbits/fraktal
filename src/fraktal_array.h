@@ -12,7 +12,7 @@ struct fArray
     fEnum access;
 };
 
-bool fraktal_format_to_gl_format(int channels,
+static bool fraktal_format_to_gl_format(int channels,
                                  fEnum format,
                                  GLenum *internal_format,
                                  GLenum *data_format,

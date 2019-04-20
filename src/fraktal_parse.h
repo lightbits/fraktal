@@ -7,7 +7,7 @@
 #include <log.h>
 #include "fraktal_types.h"
 
-void parse_alpha(const char **c)
+static void parse_alpha(const char **c)
 {
     while (**c)
     {
@@ -20,18 +20,18 @@ void parse_alpha(const char **c)
     }
 }
 
-bool parse_is_blank(char c)
+static bool parse_is_blank(char c)
 {
     return c == ' ' || c == '\n' || c == '\r' || c == '\t';
 }
 
-void parse_blank(const char **c)
+static void parse_blank(const char **c)
 {
     while (**c && parse_is_blank(**c))
         (*c)++;
 }
 
-void parse_comment(const char **c)
+static void parse_comment(const char **c)
 {
     char c0 = (*c)[0];
     char c1 = (*c)[1];
@@ -50,7 +50,7 @@ void parse_comment(const char **c)
     }
 }
 
-bool parse_char(const char **c, char match)
+static bool parse_char(const char **c, char match)
 {
     if (**c && **c == match)
     {
@@ -61,7 +61,7 @@ bool parse_char(const char **c, char match)
         return false;
 }
 
-bool parse_match(const char **c, const char *match)
+static bool parse_match(const char **c, const char *match)
 {
     size_t n = strlen(match);
     if (strncmp(*c, match, n) == 0)
@@ -73,7 +73,7 @@ bool parse_match(const char **c, const char *match)
         return false;
 }
 
-bool parse_bool(const char **c, bool *x)
+static bool parse_bool(const char **c, bool *x)
 {
     if (parse_match(c, "true"))       *x = true;
     else if (parse_match(c, "True"))  *x = true;
@@ -83,7 +83,7 @@ bool parse_bool(const char **c, bool *x)
     return true;
 }
 
-bool parse_int(const char **c, int *x)
+static bool parse_int(const char **c, int *x)
 {
     int b;
     int _x;
@@ -96,7 +96,7 @@ bool parse_int(const char **c, int *x)
     return false;
 }
 
-bool parse_float(const char **c, float *x)
+static bool parse_float(const char **c, float *x)
 {
     int b;
     float _x;
@@ -109,7 +109,7 @@ bool parse_float(const char **c, float *x)
     return false;
 }
 
-bool parse_angle(const char **c, float *x)
+static bool parse_angle(const char **c, float *x)
 {
     int b;
     float _x;
@@ -132,7 +132,7 @@ bool parse_angle(const char **c, float *x)
     return false;
 }
 
-bool parse_int2(const char **c, int2 *v)
+static bool parse_int2(const char **c, int2 *v)
 {
     if (!parse_char(c, '('))  { log_err("Error parsing integer tuple: must begin with parenthesis.\n"); return false; }
     if (!parse_int(c, &v->x)) { log_err("Error parsing integer tuple: first component must be an integer.\n"); return false; }
@@ -142,7 +142,7 @@ bool parse_int2(const char **c, int2 *v)
     return true;
 }
 
-bool parse_angle2(const char **c, angle2 *v)
+static bool parse_angle2(const char **c, angle2 *v)
 {
     if (!parse_char(c, '('))        { log_err("Error parsing angle tuple: must begin with parenthesis.\n"); return false; }
     if (!parse_angle(c, &v->theta)) { log_err("Error parsing angle tuple: first component must be a number.\n"); return false; }
@@ -152,7 +152,7 @@ bool parse_angle2(const char **c, angle2 *v)
     return true;
 }
 
-bool parse_float2(const char **c, float2 *v)
+static bool parse_float2(const char **c, float2 *v)
 {
     if (!parse_char(c, '('))    { log_err("Error parsing tuple: must begin with parenthesis.\n"); return false; }
     if (!parse_float(c, &v->x)) { log_err("Error parsing tuple: first component must be a number.\n"); return false; }
@@ -162,7 +162,7 @@ bool parse_float2(const char **c, float2 *v)
     return true;
 }
 
-bool parse_float3(const char **c, float3 *v)
+static bool parse_float3(const char **c, float3 *v)
 {
     if (!parse_char(c, '('))   { log_err("Error parsing tuple: must begin with parenthesis.\n"); return false; }
     if (!parse_float(c, &v->x)) { log_err("Error parsing tuple: first component must be a number.\n"); return false; }
@@ -178,7 +178,7 @@ static bool parse_inside_list = false;
 static bool parse_list_first = false;
 static bool parse_list_error = false;
 
-bool parse_begin_list(const char **c)
+static bool parse_begin_list(const char **c)
 {
     if (**c == '(')
     {
@@ -191,7 +191,7 @@ bool parse_begin_list(const char **c)
     return false;
 }
 
-bool parse_next_in_list(const char **c)
+static bool parse_next_in_list(const char **c)
 {
     assert(parse_inside_list);
     if (parse_list_error)
@@ -206,7 +206,7 @@ bool parse_next_in_list(const char **c)
     return true;
 }
 
-bool parse_end_list(const char **c)
+static bool parse_end_list(const char **c)
 {
     assert(parse_inside_list);
     parse_inside_list = false;
@@ -215,14 +215,14 @@ bool parse_end_list(const char **c)
     return true;
 }
 
-void parse_list_unexpected()
+static void parse_list_unexpected()
 {
     log_err("Error parsing list of arguments: unexpected argument.\n");
     parse_list_error = true;
 }
 
 #define declare_parse_argument_(type) \
-    bool parse_argument_##type(const char **c, const char *name, type *v) \
+    static bool parse_argument_##type(const char **c, const char *name, type *v) \
     { \
         if (parse_match(c, name)) \
         { \

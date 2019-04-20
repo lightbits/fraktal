@@ -140,9 +140,10 @@ int main(int argc, char **argv)
         ImFontConfig config;
         config.MergeMode = true;
         ImFontGlyphRangesBuilder builder;
-        builder.AddText("\xce\xb8\xcf\x86"); // theta, phi
+        builder.AddText("\xce\xb8\xcf\x86\xe0\x04"); // theta, phi
         builder.BuildRanges(&glyph_ranges);
         io.Fonts->AddFontFromMemoryCompressedTTF(data, size, 18.0f, &config, glyph_ranges.Data);
+        io.Fonts->AddFontFromFileTTF("res/fraktal-logo-3.ttf", 18.0f, &config, glyph_ranges.Data);
     }
 
     guiState scene = {0};
