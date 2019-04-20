@@ -39,7 +39,7 @@ struct Widget_Sun : Widget
         bool changed = false;
         if (ImGui::CollapsingHeader("Sun"))
         {
-            changed |= ImGui::SliderFloat("size##sun_size", &size, 0.0f, 180.0f, "%.0f deg");
+            changed |= ImGui::SliderFloat("size##sun_size", &size, 0.0f, 180.0f, "%.0f deg", 2.0f);
             changed |= ImGui::SliderFloat("\xce\xb8##sun_dir", &dir.theta, -90.0f, +90.0f, "%.0f deg");
             changed |= ImGui::SliderFloat("\xcf\x86##sun_dir", &dir.phi, -180.0f, +180.0f, "%.0f deg");
             changed |= ImGui::SliderFloat3("color##sun_color", &color.x, 0.0f, 1.0f);
@@ -54,7 +54,7 @@ struct Widget_Sun : Widget
         iSunStrength.y *= intensity;
         iSunStrength.z *= intensity;
         float3 iToSun = angle2float3(dir);
-        float iCosSunSize = cosf(deg2rad(size));
+        float iCosSunSize = cosf(deg2rad(size)/2.0f);
         fraktal_param_3f(loc_iSunStrength, iSunStrength.x, iSunStrength.y, iSunStrength.z);
         fraktal_param_3f(loc_iToSun, iToSun.x, iToSun.y, iToSun.z);
         fraktal_param_1f(loc_iCosSunSize, iCosSunSize);

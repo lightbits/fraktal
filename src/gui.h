@@ -229,6 +229,12 @@ void render_color(guiState &scene)
         scene.render_kernel_is_new = false;
 
         fArray *out = scene.render_buffer;
+        if (scene.should_clear)
+        {
+            fraktal_zero_array(out);
+            scene.samples = 0;
+            scene.should_clear = false;
+        }
 
         int width,height;
         fraktal_array_size(out, &width, &height);
@@ -238,12 +244,6 @@ void render_color(guiState &scene)
         for (int i = 0; i < scene.params.num_widgets; i++)
             scene.params.widgets[i]->set_params();
 
-        if (scene.should_clear)
-        {
-            fraktal_zero_array(out);
-            scene.samples = 0;
-            scene.should_clear = false;
-        }
         fraktal_run_kernel(out);
         scene.samples++;
     }
