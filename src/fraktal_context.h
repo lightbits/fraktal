@@ -63,7 +63,7 @@ fContext *fraktal_create_context()
 
 void fraktal_share_context()
 {
-    fraktal_assert(fraktal_default_context && "fraktal_share_context must be called before any other fraktal function.");
+    fraktal_assert(!fraktal_default_context && "fraktal_share_context must be called before any other fraktal function.");
     fContext *ctx = (fContext*)calloc(1, sizeof(fContext));
     ctx->window = NULL;
     fraktal_default_context = ctx;
@@ -104,6 +104,7 @@ static void fraktal_ensure_context()
             // default context.
             fraktal_default_context = fraktal_create_context();
             fraktal_assert(fraktal_default_context && "Failed to create default GPU context (OpenGL)");
+            fraktal_num_user_created_contexts--; // that one didn't count...
         }
     }
     else
