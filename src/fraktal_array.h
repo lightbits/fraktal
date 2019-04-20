@@ -43,6 +43,7 @@ fArray *fraktal_create_array(
     fEnum format,
     fEnum access)
 {
+    fraktal_ensure_context();
     fraktal_check_gl_error();
     fraktal_assert(channels > 0 && channels <= 4);
     fraktal_assert(width > 0 && height >= 0);
@@ -115,6 +116,7 @@ void fraktal_destroy_array(fArray *a)
 {
     if (a)
     {
+        fraktal_ensure_context();
         fraktal_check_gl_error();
         glDeleteTextures(1, &a->color0);
         glDeleteFramebuffers(1, &a->fbo);
@@ -125,11 +127,12 @@ void fraktal_destroy_array(fArray *a)
 
 void fraktal_zero_array(fArray *a)
 {
-    fraktal_check_gl_error();
     fraktal_assert(a);
     fraktal_assert(a->access == FRAKTAL_READ_WRITE);
     fraktal_assert(a->fbo);
     fraktal_assert(a->color0);
+    fraktal_ensure_context();
+    fraktal_check_gl_error();
     GLint last_framebuffer; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &last_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, a->fbo);
     glClearColor(0,0,0,0);
@@ -140,10 +143,11 @@ void fraktal_zero_array(fArray *a)
 
 void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a)
 {
-    fraktal_check_gl_error();
     fraktal_assert(cpu_memory);
     fraktal_assert(a);
     fraktal_assert(a->color0);
+    fraktal_ensure_context();
+    fraktal_check_gl_error();
     GLenum target = a->height == 0 ? GL_TEXTURE_1D : GL_TEXTURE_2D;
     GLenum internal_format,data_format,data_type;
     fraktal_assert(fraktal_format_to_gl_format(a->channels, a->format, &internal_format, &data_format, &data_type));

@@ -11,8 +11,9 @@ struct fLinkState
     int num_shaders;
 };
 
-GLuint compile_shader(const char *name, const char **sources, int num_sources, GLenum type)
+static GLuint compile_shader(const char *name, const char **sources, int num_sources, GLenum type)
 {
+    fraktal_ensure_context();
     fraktal_check_gl_error();
     fraktal_assert(sources && "Missing shader source list");
     fraktal_assert(num_sources > 0 && "Must have atleast one shader");
@@ -46,8 +47,9 @@ GLuint compile_shader(const char *name, const char **sources, int num_sources, G
     return shader;
 }
 
-bool program_link_status(GLuint program)
+static bool program_link_status(GLuint program)
 {
+    fraktal_ensure_context();
     fraktal_check_gl_error();
     GLint status; glGetProgramiv(program, GL_LINK_STATUS, &status);
     if (!status)
@@ -64,13 +66,14 @@ bool program_link_status(GLuint program)
     return true;
 }
 
-bool add_link_data(fLinkState *link, const void *data, const char *name)
+static bool add_link_data(fLinkState *link, const void *data, const char *name)
 {
-    fraktal_check_gl_error();
     fraktal_assert(link);
     fraktal_assert(link->num_shaders < MAX_LINK_STATE_ITEMS);
     fraktal_assert(link->glsl_version);
     fraktal_assert(data && "'data' must be a non-NULL pointer to a buffer containing kernel source text.");
+    fraktal_ensure_context();
+    fraktal_check_gl_error();
     const char *sources[] = {
         link->glsl_version,
         "\nuniform int Dummy;\n"
@@ -92,6 +95,7 @@ bool add_link_data(fLinkState *link, const void *data, const char *name)
 
 fLinkState *fraktal_create_link()
 {
+    fraktal_ensure_context();
     fLinkState *link = (fLinkState*)calloc(1, sizeof(fLinkState));
     link->num_shaders = 0;
     link->glsl_version = "#version 150";
@@ -100,9 +104,10 @@ fLinkState *fraktal_create_link()
 
 void fraktal_destroy_link(fLinkState *link)
 {
-    fraktal_check_gl_error();
     if (link)
     {
+        fraktal_ensure_context();
+        fraktal_check_gl_error();
         for (int i = 0; i < link->num_shaders; i++)
             if (link->shaders[i])
                 glDeleteShader(link->shaders[i]);
@@ -126,15 +131,15 @@ bool fraktal_add_link_file(fLinkState *link, const char *path)
     }
     bool result = add_link_data(link, (const void*)data, path);
     free(data);
-    fraktal_check_gl_error();
     return result;
 }
 
 fKernel *fraktal_link_kernel(fLinkState *link)
 {
-    fraktal_check_gl_error();
     fraktal_assert(link);
     fraktal_assert(link->num_shaders > 0 && "Atleast one kernel must be added to link state.");
+    fraktal_ensure_context();
+    fraktal_check_gl_error();
 
     static GLuint vs = 0;
     if (!vs)
@@ -179,9 +184,10 @@ fKernel *fraktal_link_kernel(fLinkState *link)
 
 void fraktal_destroy_kernel(fKernel *f)
 {
-    fraktal_check_gl_error();
     if (f)
     {
+        fraktal_ensure_context();
+        fraktal_check_gl_error();
         if (f->program)
             glDeleteProgram(f->program);
         free(f);

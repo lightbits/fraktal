@@ -49,11 +49,13 @@ code before including this file.
 #endif
 
 #ifndef FRAKTAL_OMIT_GL_SYMBOLS
-#include "fraktal_gl.h"
+#include <GL/gl3w.h>
+#include <GL/gl3w.c>
 #endif
 
 #define fraktal_check_gl_error() fraktal_assert(glGetError() == GL_NO_ERROR)
 
+#include "fraktal_context.h"
 #include "fraktal_parse.h"
 #include "fraktal_array.h"
 #include "fraktal_kernel.h"

@@ -12,10 +12,11 @@ static fKernel *fraktal_current_kernel = NULL;
 
 int fraktal_get_param_offset(fKernel *f, const char *name)
 {
-    fraktal_check_gl_error();
     fraktal_assert(name);
     fraktal_assert(f);
     fraktal_assert(f->program);
+    fraktal_ensure_context();
+    fraktal_check_gl_error();
     int location = glGetUniformLocation(f->program, name);
     fraktal_check_gl_error();
     return location;
@@ -23,6 +24,7 @@ int fraktal_get_param_offset(fKernel *f, const char *name)
 
 void fraktal_use_kernel(fKernel *f)
 {
+    fraktal_ensure_context();
     fraktal_check_gl_error();
     static GLint last_program;
     static GLint last_array_buffer;
@@ -170,16 +172,20 @@ void fraktal_param_array(int offset, int tex_unit, fArray *a)
 
 void fraktal_run_kernel(fArray *out)
 {
-    fraktal_check_gl_error();
     fraktal_assert(fraktal_current_kernel && "Call fraktal_use_kernel first.");
     fraktal_assert(out);
     fraktal_assert(out->width > 0);
     fraktal_assert(out->height >= 0);
     fraktal_assert(out->fbo && "The output array's access mode cannot be read-only.");
     fraktal_assert(out->color0);
+    fraktal_ensure_context();
+    fraktal_check_gl_error();
 
     glBindFramebuffer(GL_FRAMEBUFFER, out->fbo);
-    glViewport(0, 0, out->width, out->height);
+    if (out->height == 0)
+        glViewport(0, 0, out->width, 1);
+    else
+        glViewport(0, 0, out->width, out->height);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     fraktal_check_gl_error();
 }

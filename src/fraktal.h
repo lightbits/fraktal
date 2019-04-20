@@ -40,6 +40,11 @@ Index of this file:
 ....fraktal_param_matrix4f
 ....fraktal_param_transpose_matrix4f
 ....fraktal_param_array
+§5 Context management
+....fraktal_create_context
+....fraktal_share_context
+....fraktal_destroy_context
+....fraktal_make_context_current
 */
 
 #pragma once
@@ -71,6 +76,7 @@ enum fEnum_
 struct fArray;
 struct fKernel;
 struct fLinkState;
+struct fContext;
 
 //-----------------------------------------------------------------------------
 // §2 Arrays
@@ -299,27 +305,64 @@ void fraktal_param_array(int offset, int tex_unit, fArray *a);
 
 //-----------------------------------------------------------------------------
 // §5 Context management
-// This section is still in progress...
 //-----------------------------------------------------------------------------
 
 /*
-    If you call fraktal functions in a program that already has
-    a GPU context
+    fraktal requires a GPU context to be bound to the calling thread
+    in order to access GPU resources. By default, fraktal will auto-
+    matically create a context for you. However, if you are using
+    fraktal together with other libraries that also use the GPU,
+    you have two options:
 
-    you can either:
-        a) Share contexts - making memory accessible between your
-           application and fraktal.
-        b) Create a new context -
+      1. Share contexts
+      2. Use a separate context for fraktal and make_context_current
+         to attach or detach the fraktal context.
 
-    If you create a new context you can only share data via host
-    memory (using fraktal_gpu_to_cpu).
+  1. Share contexts:
 
-    Binds the given context to the calling CPU thread.
+    Sharing contexts makes GPU memory used in fraktal visible to
+    outside libraries and vice versa. This can be useful if you are
+    passing results from fraktal to a library, or data from a library
+    to fraktal, as it avoids an unecessary copy from GPU to CPU memory
+    and back; the memory can remain on the GPU at all times.
 
-    A valid context must be bound to the CPU thread calling any
-    fraktal function.
+    For example:
+
+        - You are writing a GUI application and using GLFW or SDL to
+          create an OpenGL context for your application, and want to
+          share this context with fraktal.
+
+        - You are training a deep neural network in PyTorch or Tensorflow
+          and want to share data between them.
+
+      Calling fraktal_share_context before any other functions will tell
+    fraktal that its context is managed externally (i.e. by you). You
+    are thus responsible for ensuring the GPU context is current on the
+    thread whenever a fraktal function is called.
+
+  2. Use a separate context for fraktal:
+
+    If you want fraktal to use its own context you need to ensure that
+    it is always 'current' on the thread on which fraktal functions are
+    called. For example, if you juggle between two GPU libraries on the
+    same thread, it's possible that one library makes its context current
+    and the other never reattaches its context, resulting in an error
+    or undefined behavior when it subsequently attempts to use the GPU.
+
+      Note that if fraktal is the only library that accesses the GPU on
+    a given thread, you do not need to worry about making the context
+    current and you can rely on the default behavior described at the
+    top of this section.
+
+      Otherwise you need to explicitly create a context before calling
+    any other fraktal functions, and make this context current when
+    calling fraktal functions, and detach it to relinquish control to
+    a different library (we automatically make the previous context
+    current, thus being compatible with libraries that do not auto-
+    matically try to make their context current).
 */
 
-// fContext *fraktal_create_context();
-// void      fraktal_destroy_context(fContext *ctx);
-// void      fraktal_make_context_current(fContext *ctx);
+fContext *fraktal_create_context();
+void fraktal_share_context();
+void fraktal_destroy_context(fContext *ctx);
+void fraktal_make_context_current(fContext *ctx);
