@@ -611,7 +611,7 @@ void gui_present(guiState &scene)
                 }
 
                 {
-                    draw->PushClipRect(pos0, pos1);
+                    draw->PushClipRect(pos0, pos1, true);
                     int num_checkers_x = 8;
                     int num_checkers_y = 8;
                     float checker_size_x = (pos1.x - pos0.x) / num_checkers_x;
