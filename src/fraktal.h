@@ -29,17 +29,7 @@ Index of this file:
 ....fraktal_run_kernel
 §4 Parameters
 ....fraktal_get_param_offset
-....fraktal_param_1f
-....fraktal_param_2f
-....fraktal_param_3f
-....fraktal_param_4f
-....fraktal_param_1i
-....fraktal_param_2i
-....fraktal_param_3i
-....fraktal_param_4i
-....fraktal_param_matrix4f
-....fraktal_param_transpose_matrix4f
-....fraktal_param_array
+....fraktal_param_...
 §5 Context management
 ....fraktal_create_context
 ....fraktal_share_context
