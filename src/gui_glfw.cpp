@@ -28,6 +28,7 @@
 #include "gui.h"
 
 #define FRAKTAL_GUI
+#define FRAKTAL_OMIT_GL_SYMBOLS
 #include "fraktal.cpp"
 
 void glfw_error_callback(int error, const char* description)
@@ -77,8 +78,8 @@ int main(int argc, char **argv)
     guiSceneDef def = {0};
     arg_int32(&def.resolution_x,          200,                                       "-width",    "Render resolution (x)");
     arg_int32(&def.resolution_y,          200,                                       "-height",   "Render resolution (y)");
-    arg_string(&def.model_kernel_path,    "./data/model/roof.f",                     "-model",    "Path to a .f kernel containing model definition");
-    arg_string(&def.color_kernel_path,    "./data/render/path_tracer.f",             "-color",    "Path to a .f kernel containing color renderer definition");
+    arg_string(&def.model_kernel_path,    "./data/model/vase.f",                     "-model",    "Path to a .f kernel containing model definition");
+    arg_string(&def.color_kernel_path,    "./data/render/publication.f",             "-color",    "Path to a .f kernel containing color renderer definition");
     arg_string(&def.compose_kernel_path,  "./data/compose/mean_and_gamma_correct.f", "-compose",  "Path to a .f kernel containing color composer definition");
     arg_string(&def.geometry_kernel_path, "./data/render/geometry.f",                "-geometry", "Path to a .f kernel containing geometry renderer definition");
     if (!arg_parse(argc, argv))

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 
 static struct logfile_t
 {
@@ -14,7 +15,7 @@ static struct logfile_t
     char *str;
 } logfile;
 
-void log_init()
+static void log_init()
 {
     logfile.capacity = 1024*1024;
     logfile.begin = (char*)malloc(logfile.capacity*sizeof(char));
@@ -23,7 +24,7 @@ void log_init()
     assert(logfile.begin);
 }
 
-void log_clear()
+static void log_clear()
 {
     if (!logfile.begin)
         log_init();
@@ -33,7 +34,7 @@ void log_clear()
     logfile.bytes = 0;
 }
 
-void log_err(const char *fmt, ...)
+static void log_err(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -57,7 +58,7 @@ void log_err(const char *fmt, ...)
     }
 }
 
-const char *log_get_buffer()
+static const char *log_get_buffer()
 {
     if (!logfile.begin)
         log_init();

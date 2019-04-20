@@ -1,6 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <log.h>
+#include <file.h>
 
 enum { MAX_LINK_STATE_ITEMS = 1024 };
 struct fLinkState

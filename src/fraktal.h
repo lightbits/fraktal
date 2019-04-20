@@ -296,3 +296,30 @@ void fraktal_param_4i(int offset, int x, int y, int z, int w);
 void fraktal_param_matrix4f(int offset, float m[4*4]);
 void fraktal_param_transpose_matrix4f(int offset, float m[4*4]);
 void fraktal_param_array(int offset, int tex_unit, fArray *a);
+
+//-----------------------------------------------------------------------------
+// §5 Context management
+// This section is still in progress...
+//-----------------------------------------------------------------------------
+
+/*
+    If you call fraktal functions in a program that already has
+    a GPU context
+
+    you can either:
+        a) Share contexts - making memory accessible between your
+           application and fraktal.
+        b) Create a new context -
+
+    If you create a new context you can only share data via host
+    memory (using fraktal_gpu_to_cpu).
+
+    Binds the given context to the calling CPU thread.
+
+    A valid context must be bound to the CPU thread calling any
+    fraktal function.
+*/
+
+// fContext *fraktal_create_context();
+// void      fraktal_destroy_context(fContext *ctx);
+// void      fraktal_make_context_current(fContext *ctx);

@@ -1,4 +1,5 @@
 #pragma once
+#include <math.h>
 
 typedef float angle;
 struct int2 { int x,y; };
