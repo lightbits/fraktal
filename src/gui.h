@@ -310,11 +310,16 @@ void render_geometry(guiState &scene)
 bool open_file_dialog(bool should_open, const char *label, char *buffer, size_t sizeof_buffer)
 {
     if (should_open)
+    {
         ImGui::OpenPopup(label);
+        ImGui::CaptureKeyboardFromApp(true);
+    }
 
     bool result = false;
     if (ImGui::BeginPopupModal(label, NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
+        if (ImGui::IsWindowAppearing())
+            ImGui::SetKeyboardFocusHere();
         ImGui::InputText("Filename", buffer, sizeof_buffer);
         bool enter_key = ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter));
         if (ImGui::Button("OK", ImVec2(120, 0)) || enter_key)
