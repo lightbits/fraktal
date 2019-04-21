@@ -184,7 +184,6 @@ int main(int argc, char **argv)
 
     if (settings.x >= 0 && settings.y >= 0)
     {
-        printf("%d, %d\n", settings.x, settings.y);
         glfwSetWindowPos(window, settings.x, settings.y);
         glfwShowWindow(window);
     }
