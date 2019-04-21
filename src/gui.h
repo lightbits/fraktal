@@ -379,21 +379,24 @@ void gui_present(guiState &scene)
         save_screenshot(name, scene.compose_buffer);
     }
 
-    float pad = 2.0f;
+    float pad = 4.0f;
 
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 4.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.325f));
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(1.0f, 1.0f, 1.0f, 0.078f));
     ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
     // blue tabs
-    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(1.0f, 1.0f, 1.0f, 0.114f));
-    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.329f, 0.478f, 0.71f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.14f, 0.14f, 0.14f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
     // gray tabs
     // ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
     // ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
-
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
 
     // main menu bar
@@ -443,16 +446,6 @@ void gui_present(guiState &scene)
                 if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
                 ImGui::EndPopup();
             }
-
-            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
-            {
-                if (ImGui::BeginTabItem("Color"))     { scene.mode = guiPreviewMode_Color; ImGui::EndTabItem(); }
-                if (ImGui::BeginTabItem("Thickness")) { scene.mode = guiPreviewMode_Thickness; ImGui::EndTabItem(); }
-                if (ImGui::BeginTabItem("Normals"))   { scene.mode = guiPreviewMode_Normals; ImGui::EndTabItem(); }
-                if (ImGui::BeginTabItem("Depth"))     { scene.mode = guiPreviewMode_Depth; ImGui::EndTabItem(); }
-                if (ImGui::BeginTabItem("GBuffer"))   { scene.mode = guiPreviewMode_GBuffer; ImGui::EndTabItem(); }
-                ImGui::EndTabBar();
-            }
         }
         ImGui::EndMainMenuBar();
     }
@@ -465,51 +458,82 @@ void gui_present(guiState &scene)
         float avail_y = io.DisplaySize.y - main_menu_bar_height - pad;
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
         ImGui::SetNextWindowSize(ImVec2(0.3f*io.DisplaySize.x, avail_y), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, avail_y), ImVec2(io.DisplaySize.x, avail_y));
-        ImGui::SetNextWindowPos(ImVec2(0.0f, main_menu_bar_height + pad));
+        ImGui::SetNextWindowPos(ImVec2(pad, main_menu_bar_height + pad));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
         ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.0f,0.0f,0.0f,0.0f));
         ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(1.0f,1.0f,1.0f,0.25f));
         ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(1.0f,1.0f,1.0f,0.4f));
         ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(1.0f,1.0f,1.0f,0.55f));
-        ImGui::Begin("Sidepanel", NULL, flags);
+        ImGui::Begin("Scene parameters", NULL, flags);
         side_panel_width = ImGui::GetWindowWidth();
         side_panel_height = ImGui::GetWindowHeight();
 
+        if (ImGui::CollapsingHeader("Resolution"))
+        {
+            ImGui::InputInt("x##resolution", &scene.params.resolution.x);
+            ImGui::InputInt("y##resolution", &scene.params.resolution.y);
+        }
+
+        for (int i = 0; i < scene.params.num_widgets; i++)
+            scene.should_clear |= scene.params.widgets[i]->update(scene);
+        // ImGui::TextWrapped(log_get_buffer());
+
+        ImGui::End();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
+    }
+
+    // tabs in main menu bar
+    {
+        ImGui::BeginMainMenuBar();
+        ImGui::SetCursorPosX(side_panel_width + pad + pad + 8.0f);
         if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
         {
-            if (ImGui::BeginTabItem("Scene"))
-            {
-                ImGui::BeginChild("Scene##child");
-                if (ImGui::CollapsingHeader("Resolution"))
-                {
-                    ImGui::InputInt("x##resolution", &scene.params.resolution.x);
-                    ImGui::InputInt("y##resolution", &scene.params.resolution.y);
-                }
-
-                for (int i = 0; i < scene.params.num_widgets; i++)
-                    scene.should_clear |= scene.params.widgets[i]->update(scene);
-
-                ImGui::EndChild();
-                ImGui::EndTabItem();
-            }
-            ImGuiTabItemFlags flags = 0;
-            if (scene.got_error)
-                flags |= ImGuiTabItemFlags_UnsavedDocument;
-            if (ImGui::BeginTabItem("Log", NULL, flags))
-            {
-                ImGui::BeginChild("Log##child");
-                ImGui::TextWrapped(log_get_buffer());
-                ImGui::EndChild();
-                ImGui::EndTabItem();
-            }
+            if (ImGui::BeginTabItem("Color"))     { scene.mode = guiPreviewMode_Color; ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Thickness")) { scene.mode = guiPreviewMode_Thickness; ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Normals"))   { scene.mode = guiPreviewMode_Normals; ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Depth"))     { scene.mode = guiPreviewMode_Depth; ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("GBuffer"))   { scene.mode = guiPreviewMode_GBuffer; ImGui::EndTabItem(); }
             ImGui::EndTabBar();
         }
+        ImGui::EndMainMenuBar();
+    }
+
+    // error list panel
+    float error_list_height = 0.0f;
+    if (scene.got_error)
+    {
+        ImGuiIO &io = ImGui::GetIO();
+        float width = io.DisplaySize.x - (side_panel_width + pad + pad) - pad;
+        float x = side_panel_width + pad + pad;
+        float y = io.DisplaySize.y - 200.0f;
+        ImGuiWindowFlags flags =
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoCollapse;
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
+        ImGui::SetNextWindowSize(ImVec2(width, 200.0f));
+        ImGui::SetNextWindowPos(ImVec2(x, y));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,8.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.0f,0.0f,0.0f,0.0f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(1.0f,1.0f,1.0f,0.25f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(1.0f,1.0f,1.0f,0.4f));
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(1.0f,1.0f,1.0f,0.55f));
+        ImGui::Begin("Error list", NULL, flags);
+
+        error_list_height = ImGui::GetWindowHeight();
+        ImGui::TextWrapped(log_get_buffer());
 
         ImGui::End();
         ImGui::PopStyleVar();
@@ -524,20 +548,20 @@ void gui_present(guiState &scene)
     // main preview panel
     {
         ImGuiIO &io = ImGui::GetIO();
-        float height = side_panel_height;
-        float width = io.DisplaySize.x - (side_panel_width + pad);
+        float height = side_panel_height - (error_list_height + pad);
+        float width = io.DisplaySize.x - (side_panel_width + pad + pad) - pad;
 
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_MenuBar;
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.14f, 0.14f, 0.14f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.69f, 0.69f, 0.69f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::SetNextWindowSize(ImVec2(width, height));
-        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad, main_menu_bar_height + pad));
+        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad + pad, main_menu_bar_height + pad));
         ImGui::Begin("Preview", NULL, flags);
 
         {
@@ -637,7 +661,7 @@ void gui_present(guiState &scene)
 
         ImGui::End();
         ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
         ImGui::PopStyleVar();
     }
 
@@ -661,6 +685,10 @@ void gui_present(guiState &scene)
 
     ImGui::PopStyleVar();
     ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
     ImGui::PopStyleColor();
     ImGui::PopStyleColor();
     ImGui::PopStyleColor();

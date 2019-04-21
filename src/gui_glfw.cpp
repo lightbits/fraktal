@@ -133,8 +133,8 @@ int main(int argc, char **argv)
     guiSceneDef def = {0};
     arg_int32(&def.resolution_x,          200,                               "-width",    "Render resolution (x)");
     arg_int32(&def.resolution_y,          200,                               "-height",   "Render resolution (y)");
-    arg_string(&def.model_kernel_path,    "./examples/vase.f",               "-model",    "Path to a .f kernel containing model definition");
-    arg_string(&def.color_kernel_path,    "./libf/publication.f",            "-color",    "Path to a .f kernel containing color renderer definition");
+    arg_string(&def.model_kernel_path,    "./examples/materials.f",               "-model",    "Path to a .f kernel containing model definition");
+    arg_string(&def.color_kernel_path,    "./libf/pathtracer.f",            "-color",    "Path to a .f kernel containing color renderer definition");
     arg_string(&def.compose_kernel_path,  "./libf/mean_and_gamma_correct.f", "-compose",  "Path to a .f kernel containing color composer definition");
     arg_string(&def.geometry_kernel_path, "./libf/geometry.f",               "-geometry", "Path to a .f kernel containing geometry renderer definition");
     if (!arg_parse(argc, argv))
