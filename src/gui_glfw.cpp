@@ -78,6 +78,9 @@ struct guiSettings
     int width,height,x,y;
 };
 
+int g_window_pos_x = -1;
+int g_window_pos_y = -1;
+
 void write_settings_to_disk(const char *ini_filename, guiSettings s)
 {
     FILE *f = fopen(ini_filename, "wt");
@@ -124,6 +127,12 @@ void read_settings_from_disk(const char *ini_filename, guiSettings *s)
     ImGui::LoadIniSettingsFromMemory(data);
 
     free(f);
+}
+
+void glfw_window_pos_callback(GLFWwindow *window, int x, int y)
+{
+    g_window_pos_x = x;
+    g_window_pos_y = y;
 }
 
 int main(int argc, char **argv)
@@ -191,6 +200,7 @@ int main(int argc, char **argv)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
     glfwSetKeyCallback(window, glfw_key_callback);
+    glfwSetWindowPosCallback(window, glfw_window_pos_callback);
 
     if (gl3wInit() != 0)
     {
@@ -300,7 +310,8 @@ int main(int argc, char **argv)
             if (ImGui::GetIO().WantSaveIniSettings)
             {
                 // update settings
-                glfwGetWindowPos(window, &settings.x, &settings.y);
+                settings.x = g_window_pos_x;
+                settings.y = g_window_pos_y;
                 glfwGetWindowSize(window, &settings.width, &settings.height);
                 write_settings_to_disk(ini_filename, settings);
                 ImGui::GetIO().WantSaveIniSettings = false;
