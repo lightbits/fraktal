@@ -201,7 +201,7 @@ void arg_help()
         arg_t *arg = &global_args.args[i];
         size_t len = strlen(arg->key);
         arg_err("  %s ", arg->key);
-        for (int j = len; j < 8; j++)
+        for (size_t j = len; j < 8; j++)
             arg_err("%s", ".");
         arg_err("... %s ", arg->msg);
         if      (arg->type == arg_type_int32)   arg_err("[%d]\n", *(int32_t*)arg->ptr);
