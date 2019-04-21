@@ -414,7 +414,7 @@ void gui_present(guiState &scene)
         ImGui::BeginMainMenuBar();
         {
             main_menu_bar_height = ImGui::GetWindowHeight();
-            ImGui::Text("\xce\xb8"); // placeholder for Fraktal icon
+            // ImGui::Text("\xce\xb8"); // placeholder for Fraktal icon
             if (ImGui::BeginMenu("File"))
             {
                 if (ImGui::MenuItem("Load model kernel##MainMenu")) open_model_popup = true;
