@@ -463,13 +463,13 @@ void gui_present(guiState &scene)
     float side_panel_height = 0.0f;
     {
         ImGuiIO &io = ImGui::GetIO();
-        float avail_y = io.DisplaySize.y - main_menu_bar_height - pad - pad;
+        float avail_y = io.DisplaySize.y - main_menu_bar_height - pad;
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowSize(ImVec2(0.3f*io.DisplaySize.x, avail_y), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, avail_y), ImVec2(io.DisplaySize.x, avail_y));
-        ImGui::SetNextWindowPos(ImVec2(pad, main_menu_bar_height + pad));
+        ImGui::SetNextWindowPos(ImVec2(pad, main_menu_bar_height));
 
         ImGui::Begin("Scene parameters", NULL, flags);
         side_panel_width = ImGui::GetWindowWidth();
@@ -540,7 +540,7 @@ void gui_present(guiState &scene)
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.69f, 0.69f, 0.69f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
         ImGui::SetNextWindowSize(ImVec2(width, height));
-        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad + pad, main_menu_bar_height + pad));
+        ImGui::SetNextWindowPos(ImVec2(side_panel_width + pad + pad, main_menu_bar_height));
         ImGui::Begin("Preview", NULL, flags);
 
         {
