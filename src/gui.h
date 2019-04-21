@@ -144,7 +144,9 @@ fKernel *load_render_shader(
 
 bool gui_load(guiState &scene, guiSceneDef def)
 {
-    assert(def.resolution_x > 0 && def.resolution_y > 0);
+    if (def.resolution_x <= 0) def.resolution_x = 200;
+    if (def.resolution_y <= 0) def.resolution_y = 200;
+
     guiSceneParams params = scene.params;
 
     params.resolution.x = def.resolution_x;
@@ -475,8 +477,8 @@ void gui_present(guiState &scene)
 
         if (ImGui::CollapsingHeader("Resolution"))
         {
-            ImGui::InputInt("x##resolution", &scene.params.resolution.x);
-            ImGui::InputInt("y##resolution", &scene.params.resolution.y);
+            ImGui::InputInt("x##resolution", &scene.def.resolution_x);
+            ImGui::InputInt("y##resolution", &scene.def.resolution_y);
         }
 
         for (int i = 0; i < scene.params.num_widgets; i++)
