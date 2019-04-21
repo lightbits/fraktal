@@ -461,7 +461,7 @@ void gui_present(guiState &scene)
     float side_panel_height = 0.0f;
     {
         ImGuiIO &io = ImGui::GetIO();
-        float avail_y = io.DisplaySize.y - main_menu_bar_height - pad;
+        float avail_y = io.DisplaySize.y - main_menu_bar_height - pad - pad;
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse;
@@ -508,7 +508,7 @@ void gui_present(guiState &scene)
         ImGuiIO &io = ImGui::GetIO();
         float width = io.DisplaySize.x - (side_panel_width + pad + pad) - pad;
         float x = side_panel_width + pad + pad;
-        float y = io.DisplaySize.y - 200.0f;
+        float y = io.DisplaySize.y - 200.0f - pad;
         ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoResize |
@@ -517,7 +517,7 @@ void gui_present(guiState &scene)
         ImGui::SetNextWindowSize(ImVec2(width, 200.0f));
         ImGui::SetNextWindowPos(ImVec2(x, y));
         ImGui::Begin("Error list", NULL, flags);
-        error_list_height = ImGui::GetWindowHeight();
+        error_list_height = ImGui::GetWindowHeight() + pad;
         ImGui::TextWrapped(log_get_buffer());
         ImGui::End();
     }
@@ -525,7 +525,7 @@ void gui_present(guiState &scene)
     // main preview panel
     {
         ImGuiIO &io = ImGui::GetIO();
-        float height = side_panel_height - (error_list_height + pad);
+        float height = side_panel_height - error_list_height;
         float width = io.DisplaySize.x - (side_panel_width + pad + pad) - pad;
 
         ImGuiWindowFlags flags =
