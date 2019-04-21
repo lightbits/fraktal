@@ -12,7 +12,7 @@ Index of this file:
 ....fraktal_create_array
 ....fraktal_destroy_array
 ....fraktal_zero_array
-....fraktal_gpu_to_cpu
+....fraktal_to_cpu
 ....fraktal_array_format
 ....fraktal_array_size
 ....fraktal_array_channels
@@ -141,7 +141,7 @@ FRAKTALAPI void fraktal_zero_array(fArray *a);
 
     'cpu_memory' must not be NULL and 'a' must be a valid array.
 */
-FRAKTALAPI void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a);
+FRAKTALAPI void fraktal_to_cpu(void *cpu_memory, fArray *a);
 
 /*
     These methods return information about an array.

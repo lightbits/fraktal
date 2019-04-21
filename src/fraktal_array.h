@@ -141,7 +141,7 @@ void fraktal_zero_array(fArray *a)
     fraktal_check_gl_error();
 }
 
-void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a)
+void fraktal_to_cpu(void *cpu_memory, fArray *a)
 {
     fraktal_assert(cpu_memory);
     fraktal_assert(a);

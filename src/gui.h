@@ -91,7 +91,7 @@ void save_screenshot(const char *filename, fArray *f)
     int n = fraktal_array_channels(f);
     assert(w > 0 && h > 0 && n > 0);
     unsigned char *pixels = (unsigned char*)malloc(w*h*n);
-    fraktal_gpu_to_cpu(pixels, f);
+    fraktal_to_cpu(pixels, f);
     stbi_write_png(filename, w, h, n, pixels, w*n);
     free(pixels);
 }
