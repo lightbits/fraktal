@@ -5,9 +5,13 @@ REM When linking against fraktal.lib in your application you also need to link a
 if not exist "lib" mkdir lib
 pushd lib
 
+del *.obj
+del *.lib
+del *.exp
+del *.pdb
+
 set INCLUDES=/I..\src\reuse /I..\src\reuse\glfw\include /I..\src\reuse\gl3w
 cl ..\src\fraktal.cpp /c /nologo /MD /W3 /WX %INCLUDES%
 lib fraktal.obj /nologo /out:fraktal.lib
-del fraktal.obj
 
 popd

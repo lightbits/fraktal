@@ -39,6 +39,23 @@ Index of this file:
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// FRAKTALAPI is used to declare functions as visible when
+// linking against a DLL / shared library / dynamic library.
+#if defined(_WIN32) && defined(FRAKTAL_BUILD_DLL)
+// We are building fraktal as a Win32 DLL
+#define FRAKTALAPI __declspec(dllexport)
+#elif defined(__GNUC__) && defined(FRAKTAL_BUILD_DLL)
+// We are building fraktal as a shared / dynamic library
+#define FRAKTALAPI __attribute__((visibility("default")))
+#else
+// We are building or calling fraktal as a static library
+#define FRAKTALAPI
+#endif
+
 //-----------------------------------------------------------------------------
 // §1 Types and forward declarations
 //-----------------------------------------------------------------------------
@@ -94,7 +111,7 @@ struct fContext;
     If the 'data' is NULL, the values of the array are uninitialized
     and undefined. The array may be cleared using fraktal_zero_array.
 */
-fArray *fraktal_create_array(
+FRAKTALAPI fArray *fraktal_create_array(
     const void *data,
     int width,
     int height,
@@ -107,7 +124,7 @@ fArray *fraktal_create_array(
 
     If 'a' is NULL the function silently returns.
 */
-void fraktal_destroy_array(fArray *a);
+FRAKTALAPI void fraktal_destroy_array(fArray *a);
 
 /*
     Sets each value in the array to 0. If 'a' has multiple channels,
@@ -115,7 +132,7 @@ void fraktal_destroy_array(fArray *a);
 
     Passing an invalid array or NULL will trigger an assertion.
 */
-void fraktal_zero_array(fArray *a);
+FRAKTALAPI void fraktal_zero_array(fArray *a);
 
 /*
     Copies the values of a GPU array to a region of memory allocated
@@ -124,14 +141,14 @@ void fraktal_zero_array(fArray *a);
 
     'cpu_memory' must not be NULL and 'a' must be a valid array.
 */
-void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a);
+FRAKTALAPI void fraktal_gpu_to_cpu(void *cpu_memory, fArray *a);
 
 /*
     These methods return information about an array.
 */
-void fraktal_array_size(fArray *a, int *width, int *height);
-fEnum fraktal_array_format(fArray *a); // -1 if 'a' is NULL
-int fraktal_array_channels(fArray *a); // 0 is 'a' is NULL
+FRAKTALAPI void fraktal_array_size(fArray *a, int *width, int *height);
+FRAKTALAPI fEnum fraktal_array_format(fArray *a); // -1 if 'a' is NULL
+FRAKTALAPI int fraktal_array_channels(fArray *a); // 0 is 'a' is NULL
 
 /*
     Returns true if the fArray satisfies the following properties:
@@ -141,7 +158,7 @@ int fraktal_array_channels(fArray *a); // 0 is 'a' is NULL
       * Access mode is among the modes listed in fEnum.
       * Format is among the formats listed in fEnum.
 */
-bool fraktal_is_valid_array(fArray *a);
+FRAKTALAPI bool fraktal_is_valid_array(fArray *a);
 
 /*
     If the backend uses OpenGL 3.1, the result is a GLuint handle to
@@ -149,7 +166,7 @@ bool fraktal_is_valid_array(fArray *a);
     glBindTexture. The texture target is either GL_TEXTURE_1D, if
     'a' is a 1D array, or GL_TEXTURE_2D, if 'a' is a 2D array.
 */
-unsigned int fraktal_get_gl_handle(fArray *a);
+FRAKTALAPI unsigned int fraktal_get_gl_handle(fArray *a);
 
 //-----------------------------------------------------------------------------
 // §3 Kernels
@@ -161,7 +178,7 @@ unsigned int fraktal_get_gl_handle(fArray *a);
     is successful, the caller owns the returned fLinkState, which
     should eventually be destroyed with fraktal_destroy_link.
 */
-fLinkState *fraktal_create_link();
+FRAKTALAPI fLinkState *fraktal_create_link();
 
 /*
     Frees memory associated with a linking operation. On return, the
@@ -169,7 +186,7 @@ fLinkState *fraktal_create_link();
 
     If 'link' is NULL the function silently returns.
 */
-void fraktal_destroy_link(fLinkState *link);
+FRAKTALAPI void fraktal_destroy_link(fLinkState *link);
 
 /*
     'link': Obtained from fraktal_create_link.
@@ -181,7 +198,7 @@ void fraktal_destroy_link(fLinkState *link);
 
     No references are kept to 'data' (it can safely be freed afterward).
 */
-bool fraktal_add_link_data(
+FRAKTALAPI bool fraktal_add_link_data(
     fLinkState *link,
     const void *data,
     size_t size,
@@ -194,7 +211,7 @@ bool fraktal_add_link_data(
     This method is equivalent to calling add_link_data on the contents
     of the file.
 */
-bool fraktal_add_link_file(fLinkState *link, const char *path);
+FRAKTALAPI bool fraktal_add_link_file(fLinkState *link, const char *path);
 
 /*
     On success, the method returns a fKernel handle required in all
@@ -204,7 +221,7 @@ bool fraktal_add_link_file(fLinkState *link, const char *path);
     If the call is successful, the caller owns the returned fKernel,
     which should eventually be destroyed with fraktal_destroy_kernel.
 */
-fKernel *fraktal_link_kernel(fLinkState *link);
+FRAKTALAPI fKernel *fraktal_link_kernel(fLinkState *link);
 
 /*
     Frees memory associated with a kernel. On return, the fKernel handle
@@ -212,7 +229,7 @@ fKernel *fraktal_link_kernel(fLinkState *link);
 
     If NULL is passed the method silently returns.
 */
-void fraktal_destroy_kernel(fKernel *f);
+FRAKTALAPI void fraktal_destroy_kernel(fKernel *f);
 
 /*
     'path': A NULL-terminated path to a file containing kernel source.
@@ -222,7 +239,7 @@ void fraktal_destroy_kernel(fKernel *f);
         fraktal_link_add_file(link, path);
         fKernel *result = fraktal_link_kernel(link);
 */
-fKernel *fraktal_load_kernel(const char *path);
+FRAKTALAPI fKernel *fraktal_load_kernel(const char *path);
 
 /*
     Calling this function modifies the GPU state of the current context
@@ -238,7 +255,7 @@ fKernel *fraktal_load_kernel(const char *path);
       fraktal_use_kernel(NULL);
     runs two kernels 'a' and 'b' and properly restores the GPU state.
 */
-void fraktal_use_kernel(fKernel *f);
+FRAKTALAPI void fraktal_use_kernel(fKernel *f);
 
 /*
     Launches a number of concurrent GPU threads each running the current
@@ -269,7 +286,7 @@ void fraktal_use_kernel(fKernel *f);
     Results are **added** to the values in 'out'. The array may be
     cleared to zero using fraktal_zero_array(out).
 */
-void fraktal_run_kernel(fArray *out);
+FRAKTALAPI void fraktal_run_kernel(fArray *out);
 
 //-----------------------------------------------------------------------------
 // §4 Parameters
@@ -279,19 +296,19 @@ void fraktal_run_kernel(fArray *out);
     The value -1 is returned if 'name' refers to a non-existent
     or unused parameter.
 */
-int fraktal_get_param_offset(fKernel *f, const char *name);
+FRAKTALAPI int fraktal_get_param_offset(fKernel *f, const char *name);
 
-void fraktal_param_1f(int offset, float x);
-void fraktal_param_2f(int offset, float x, float y);
-void fraktal_param_3f(int offset, float x, float y, float z);
-void fraktal_param_4f(int offset, float x, float y, float z, float w);
-void fraktal_param_1i(int offset, int x);
-void fraktal_param_2i(int offset, int x, int y);
-void fraktal_param_3i(int offset, int x, int y, int z);
-void fraktal_param_4i(int offset, int x, int y, int z, int w);
-void fraktal_param_matrix4f(int offset, float m[4*4]);
-void fraktal_param_transpose_matrix4f(int offset, float m[4*4]);
-void fraktal_param_array(int offset, int tex_unit, fArray *a);
+FRAKTALAPI void fraktal_param_1f(int offset, float x);
+FRAKTALAPI void fraktal_param_2f(int offset, float x, float y);
+FRAKTALAPI void fraktal_param_3f(int offset, float x, float y, float z);
+FRAKTALAPI void fraktal_param_4f(int offset, float x, float y, float z, float w);
+FRAKTALAPI void fraktal_param_1i(int offset, int x);
+FRAKTALAPI void fraktal_param_2i(int offset, int x, int y);
+FRAKTALAPI void fraktal_param_3i(int offset, int x, int y, int z);
+FRAKTALAPI void fraktal_param_4i(int offset, int x, int y, int z, int w);
+FRAKTALAPI void fraktal_param_matrix4f(int offset, float m[4*4]);
+FRAKTALAPI void fraktal_param_transpose_matrix4f(int offset, float m[4*4]);
+FRAKTALAPI void fraktal_param_array(int offset, int tex_unit, fArray *a);
 
 //-----------------------------------------------------------------------------
 // §5 Context management
@@ -352,7 +369,11 @@ void fraktal_param_array(int offset, int tex_unit, fArray *a);
     matically try to make their context current).
 */
 
-fContext *fraktal_create_context();
-void fraktal_share_context();
-void fraktal_destroy_context(fContext *ctx);
-void fraktal_make_context_current(fContext *ctx);
+FRAKTALAPI fContext *fraktal_create_context();
+FRAKTALAPI void fraktal_share_context();
+FRAKTALAPI void fraktal_destroy_context(fContext *ctx);
+FRAKTALAPI void fraktal_make_context_current(fContext *ctx);
+
+#ifdef __cplusplus
+}
+#endif
