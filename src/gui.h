@@ -550,14 +550,15 @@ void gui_present(guiState &scene)
             ImGui::BeginMenuBar();
             {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,4.0f));
+                ImGui::Text("%d x %d", scene.params.resolution.x, scene.params.resolution.y);
+                ImGui::Separator();
                 ImGui::Text(scene.def.model_kernel_path);
                 ImGui::Separator();
-                if (scene.mode == guiPreviewMode_Color) ImGui::Text(scene.def.color_kernel_path);
-                else if (scene.mode == guiPreviewMode_Thickness) ImGui::Text(scene.def.geometry_kernel_path);
-                else if (scene.mode == guiPreviewMode_Normals) ImGui::Text(scene.def.geometry_kernel_path);
-                else if (scene.mode == guiPreviewMode_Depth) ImGui::Text(scene.def.geometry_kernel_path);
-                ImGui::Separator();
-                if (ImGui::BeginMenu("Scale"))
+                const char *scale_label = "1x###Scale";
+                if      (display_mode == display_mode_1x)  scale_label = "Scale 1x###Scale";
+                else if (display_mode == display_mode_2x)  scale_label = "Scale 2x###Scale";
+                else if (display_mode == display_mode_fit) scale_label = "Scale to fit###Scale";
+                if (ImGui::BeginMenu(scale_label))
                 {
                     if (ImGui::MenuItem("1x", NULL, display_mode==display_mode_1x)) { display_mode = display_mode_1x; }
                     if (ImGui::MenuItem("2x", NULL, display_mode==display_mode_2x)) { display_mode = display_mode_2x; }
