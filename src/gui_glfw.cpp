@@ -73,8 +73,63 @@ void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, in
     }
 }
 
+struct guiSettings
+{
+    int width,height,x,y;
+};
+
+void write_settings_to_disk(const char *ini_filename, guiSettings s)
+{
+    FILE *f = fopen(ini_filename, "wt");
+    if (!f)
+        return;
+
+    fprintf(f, "[FraktalWindow]\n");
+    fprintf(f, "width=%d\n", s.width);
+    fprintf(f, "height=%d\n", s.height);
+    fprintf(f, "x=%d\n", s.x);
+    fprintf(f, "y=%d\n", s.y);
+    fprintf(f, "\n");
+
+    size_t imgui_ini_size = 0;
+    const char *imgui_ini_data = ImGui::SaveIniSettingsToMemory(&imgui_ini_size);
+    fwrite(imgui_ini_data, sizeof(char), imgui_ini_size, f);
+
+    fclose(f);
+}
+
+void read_settings_from_disk(const char *ini_filename, guiSettings *s)
+{
+    char *f = read_file(ini_filename);
+    if (!f)
+        return;
+
+    char *data = f;
+    char *line = read_line(&data);
+    bool fraktal = false;
+    int width,height,x,y;
+    while (line)
+    {
+        if (*line == '\0') ; // skip blanks
+        else if (0 == strcmp(line, "[FraktalWindow]")) { fraktal = true; }
+        else if (fraktal && 1 == sscanf(line, "width=%d", &width)) s->width = width;
+        else if (fraktal && 1 == sscanf(line, "height=%d", &height)) s->height = height;
+        else if (fraktal && 1 == sscanf(line, "x=%d", &x)) s->x = x;
+        else if (fraktal && 1 == sscanf(line, "y=%d", &y)) s->y = y;
+        else break;
+        line = read_line(&data);
+    }
+
+    // the rest of the ini file is ImGui settings
+    ImGui::LoadIniSettingsFromMemory(data);
+
+    free(f);
+}
+
 int main(int argc, char **argv)
 {
+    const char *ini_filename = "fraktal.ini";
+
     guiSceneDef def = {0};
     arg_int32(&def.resolution_x,          200,                               "-width",    "Render resolution (x)");
     arg_int32(&def.resolution_y,          200,                               "-height",   "Render resolution (y)");
@@ -87,6 +142,18 @@ int main(int argc, char **argv)
         arg_help();
         return 1;
     }
+
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui::GetStyle().WindowBorderSize = 0.0f;
+
+    guiSettings settings = {0};
+    settings.width = 800;
+    settings.height = 600;
+    settings.x = -1;
+    settings.y = -1;
+    ImGui::GetIO().IniFilename = NULL; // override ImGui load/save ini behavior with our own
+    read_settings_from_disk(ini_filename, &settings);
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -104,9 +171,24 @@ int main(int argc, char **argv)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     #endif
 
-    GLFWwindow* window = glfwCreateWindow(600, 400, "fraktal", NULL, NULL);
+    // sanitize settings
+    if (settings.width <= 1) settings.width = 800;
+    if (settings.height <= 1) settings.height = 600;
+
+    if (settings.x >= 0 && settings.y >= 0)
+        glfwWindowHint(GLFW_VISIBLE, false);
+
+    GLFWwindow* window = glfwCreateWindow(settings.width, settings.height, "fraktal", NULL, NULL);
     if (window == NULL)
         return EXIT_FAILURE;
+
+    if (settings.x >= 0 && settings.y >= 0)
+    {
+        printf("%d, %d\n", settings.x, settings.y);
+        glfwSetWindowPos(window, settings.x, settings.y);
+        glfwShowWindow(window);
+    }
+
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
     glfwSetKeyCallback(window, glfw_key_callback);
@@ -120,11 +202,8 @@ int main(int argc, char **argv)
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(def.glsl_version);
-    ImGui::GetStyle().WindowBorderSize = 0.0f;
 
     ImVector<ImWchar> glyph_ranges; // this must persist until call to GetTexData
     {
@@ -156,7 +235,7 @@ int main(int argc, char **argv)
 
     while (!glfwWindowShouldClose(window) && !scene.should_exit)
     {
-        static int settle_frames = 3;
+        static int settle_frames = 5;
         if (scene.auto_render || settle_frames > 0)
         {
             glfwPollEvents();
@@ -164,8 +243,12 @@ int main(int argc, char **argv)
         else
         {
             glfwWaitEvents();
-            settle_frames = 3;
+            settle_frames = 5;
         }
+
+        // update settings
+        glfwGetWindowPos(window, &settings.x, &settings.y);
+        glfwGetWindowSize(window, &settings.width, &settings.height);
 
         const double max_redraw_rate = 60.0;
         const double min_redraw_time = 1.0/max_redraw_rate;
@@ -218,6 +301,12 @@ int main(int argc, char **argv)
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+            if (ImGui::GetIO().WantSaveIniSettings)
+            {
+                write_settings_to_disk(ini_filename, settings);
+                ImGui::GetIO().WantSaveIniSettings = false;
+            }
 
             glfwSwapBuffers(window);
         }
