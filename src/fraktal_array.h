@@ -46,14 +46,14 @@ fArray *fraktal_create_array(
     fraktal_ensure_context();
     fraktal_check_gl_error();
     fraktal_assert(channels > 0 && channels <= 4);
-    fraktal_assert(width > 0 && height >= 0);
+    fraktal_assert(width > 0 && height > 0);
     fraktal_assert(access == FRAKTAL_READ_ONLY || access == FRAKTAL_READ_WRITE);
     fraktal_assert(channels == 1 || channels == 2 || channels == 4);
 
     GLenum internal_format,data_format,data_type;
     fraktal_assert(fraktal_format_to_gl_format(channels, format, &internal_format, &data_format, &data_type) && "Invalid array format");
 
-    GLenum target = height == 0 ? GL_TEXTURE_1D : GL_TEXTURE_2D;
+    GLenum target = height == 1 ? GL_TEXTURE_1D : GL_TEXTURE_2D;
 
     GLuint color0 = 0;
     {
@@ -148,7 +148,7 @@ void fraktal_to_cpu(void *cpu_memory, fArray *a)
     fraktal_assert(a->color0);
     fraktal_ensure_context();
     fraktal_check_gl_error();
-    GLenum target = a->height == 0 ? GL_TEXTURE_1D : GL_TEXTURE_2D;
+    GLenum target = a->height == 1 ? GL_TEXTURE_1D : GL_TEXTURE_2D;
     GLenum internal_format,data_format,data_type;
     fraktal_assert(fraktal_format_to_gl_format(a->channels, a->format, &internal_format, &data_format, &data_type));
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -183,7 +183,7 @@ bool fraktal_is_valid_array(fArray *a)
 {
     return a &&
            a->width > 0 &&
-           a->height >= 0 &&
+           a->height > 0 &&
            (a->channels == 1 || a->channels == 2 || a->channels == 4) &&
            (a->access == FRAKTAL_READ_ONLY || (a->access == FRAKTAL_READ_WRITE && a->fbo)) &&
            (a->format == FRAKTAL_FLOAT || a->format == FRAKTAL_UINT8);

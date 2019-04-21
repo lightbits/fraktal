@@ -98,7 +98,7 @@ struct fContext;
                 contiguous array of packed float or uint8 vector
                 values matching the given channels and dimensions.
     'width'   : The number of array values along x.
-    'height'  : The number of array values along y. If 0, the array
+    'height'  : The number of array values along y. If 1, the array
                 is a 1D array, otherwise the array is a 2D array.
     'channels': The number of vector components. Must be 1, 2 or 4.
     'format'  : Must be FRAKTAL_FLOAT or FRAKTAL_UINT8.
@@ -153,7 +153,7 @@ FRAKTALAPI int fraktal_array_channels(fArray *a); // 0 is 'a' is NULL
 /*
     Returns true if the fArray satisfies the following properties:
       * Width is > 0
-      * Height is >= 0 (0 means 'a' is a 1D array)
+      * Height is > 0 (1 means 'a' is a 1D array)
       * Channels is 1, 2 or 4
       * Access mode is among the modes listed in fEnum.
       * Format is among the formats listed in fEnum.

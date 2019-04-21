@@ -158,13 +158,14 @@ void fraktal_param_array(int offset, int tex_unit, fArray *a)
 {
     fraktal_assert(a);
     fraktal_assert(a->color0);
+    fraktal_assert(a->width > 0 && a->height > 0 && "Array has invalid dimensions.");
     fraktal_assert(fraktal_current_kernel);
     fraktal_assert(tex_unit >= 0 && tex_unit < 4 && "At most 4 arrays can be active per kernel invocation.");
     if (offset < 0)
         return;
     glUniform1i(offset, tex_unit);
     glActiveTexture(GL_TEXTURE0 + tex_unit);
-    if (a->height == 0)
+    if (a->height == 1)
         glBindTexture(GL_TEXTURE_1D, a->color0);
     else
         glBindTexture(GL_TEXTURE_2D, a->color0);

@@ -240,8 +240,8 @@ void render_color(guiState &scene)
 
         int width,height;
         fraktal_array_size(out, &width, &height);
-        glUniform2f(loc_iResolution, (float)width, (float)height);
-        glUniform1i(loc_iSamples, scene.samples);
+        fraktal_param_2f(loc_iResolution, (float)width, (float)height);
+        fraktal_param_1i(loc_iSamples, scene.samples);
 
         for (int i = 0; i < scene.params.num_widgets; i++)
             scene.params.widgets[i]->set_params();
@@ -262,11 +262,9 @@ void render_color(guiState &scene)
         fArray *in = scene.render_buffer;
         int width,height;
         fraktal_array_size(out, &width, &height);
-        glUniform2f(loc_iResolution, (float)width, (float)height);
-        glUniform1i(loc_iSamples, scene.samples);
-        glUniform1i(loc_iChannel0, 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, fraktal_get_gl_handle(in));
+        fraktal_param_2f(loc_iResolution, (float)width, (float)height);
+        fraktal_param_1i(loc_iSamples, scene.samples);
+        fraktal_param_array(loc_iChannel0, 0, in);
 
         fraktal_zero_array(out);
         fraktal_run_kernel(out);
