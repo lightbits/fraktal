@@ -39,7 +39,7 @@ char *read_line(char **s)
         end++;
     while (*end && (*end == '\n' || *end == '\r')) // while newline
     {
-        *end = NULL;
+        *end = '\0';
         end++;
     }
     *s = end;
