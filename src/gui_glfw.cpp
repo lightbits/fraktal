@@ -245,10 +245,6 @@ int main(int argc, char **argv)
             settle_frames = 5;
         }
 
-        // update settings
-        glfwGetWindowPos(window, &settings.x, &settings.y);
-        glfwGetWindowSize(window, &settings.width, &settings.height);
-
         const double max_redraw_rate = 60.0;
         const double min_redraw_time = 1.0/max_redraw_rate;
         static double t_last_redraw = -min_redraw_time;
@@ -303,6 +299,9 @@ int main(int argc, char **argv)
 
             if (ImGui::GetIO().WantSaveIniSettings)
             {
+                // update settings
+                glfwGetWindowPos(window, &settings.x, &settings.y);
+                glfwGetWindowSize(window, &settings.width, &settings.height);
                 write_settings_to_disk(ini_filename, settings);
                 ImGui::GetIO().WantSaveIniSettings = false;
             }
