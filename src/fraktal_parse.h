@@ -323,16 +323,9 @@ static bool parse_argument_string(const char **c, const char *name, const char *
 }
 #endif
 
-static const char *get_token(char *c)
+static bool parse_param_meta(const char **cc, fParams *p, int param)
 {
-    char *token = c;
-    parse_alpha((const char**)&c);
-    *c = '\0';
-    return token;
-}
-
-static bool parse_param_annotation(const char **cc, fParamType type, fParamAnnotation *anno)
-{
+    fParamType type = p->type[param];
     while (parse_next_in_list(cc)) {
         if (type == FRAKTAL_PARAM_FLOAT ||
             type == FRAKTAL_PARAM_FLOAT_VEC2 ||
@@ -343,29 +336,29 @@ static bool parse_param_annotation(const char **cc, fParamType type, fParamAnnot
             type == FRAKTAL_PARAM_INT_VEC3 ||
             type == FRAKTAL_PARAM_INT_VEC4)
         {
-            if (parse_argument_float(cc, "mean", (float*)&anno->mean)) continue;
-            else if (parse_argument_float(cc, "scale", (float*)&anno->scale)) continue;
+            if (parse_argument_float(cc, "mean", (float*)&p->mean[param])) continue;
+            else if (parse_argument_float(cc, "scale", (float*)&p->scale[param])) continue;
         }
 
         if (type == FRAKTAL_PARAM_FLOAT_VEC2 ||
             type == FRAKTAL_PARAM_INT_VEC2)
         {
-            if (parse_argument_float2(cc, "mean", (float2*)&anno->mean)) continue;
-            else if (parse_argument_float2(cc, "scale", (float2*)&anno->scale)) continue;
+            if (parse_argument_float2(cc, "mean", (float2*)&p->mean[param])) continue;
+            else if (parse_argument_float2(cc, "scale", (float2*)&p->scale[param])) continue;
         }
 
         if (type == FRAKTAL_PARAM_FLOAT_VEC3 ||
             type == FRAKTAL_PARAM_INT_VEC3)
         {
-            if (parse_argument_float3(cc, "mean", (float3*)&anno->mean)) continue;
-            else if (parse_argument_float3(cc, "scale", (float3*)&anno->scale)) continue;
+            if (parse_argument_float3(cc, "mean", (float3*)&p->mean[param])) continue;
+            else if (parse_argument_float3(cc, "scale", (float3*)&p->scale[param])) continue;
         }
 
         if (type == FRAKTAL_PARAM_FLOAT_VEC4 ||
             type == FRAKTAL_PARAM_INT_VEC4)
         {
-            if (parse_argument_float4(cc, "mean", (float4*)&anno->mean)) continue;
-            else if (parse_argument_float4(cc, "scale", (float4*)&anno->scale)) continue;
+            if (parse_argument_float4(cc, "mean", (float4*)&p->mean[param])) continue;
+            else if (parse_argument_float4(cc, "scale", (float4*)&p->scale[param])) continue;
         }
 
         parse_list_unexpected();
@@ -373,52 +366,91 @@ static bool parse_param_annotation(const char **cc, fParamType type, fParamAnnot
 
     if (!parse_end_list(cc))
     {
-        log_err("Failed to parse parameter annotation.\n");
+        log_err("Failed to parse parameter meta list.\n");
         return false;
     }
     return true;
 }
 
-static bool parse_param(const char **cc, fParam *param, fParamAnnotation *anno)
+static bool parse_param(const char **cc, fParams *p)
 {
-    parse_blank(cc);
-    const char *name_start = *cc;
-    parse_alpha(cc);
-    const char *name_end = *cc;
-    if (name_start == name_end)
+    if (p->count >= FRAKTAL_MAX_PARAMS)
     {
-        log_err("Error parsing kernel parameter: missing name\n");
+        log_err("Exceeded maximum number of parameters in kernel.\n");
         return false;
     }
-    if (**cc == '\0')
+
+    int param = p->count;
+
+    // Get type
     {
-        log_err("Error parsing kernel parameter: file ended prematurely.\n");
-        return false;
+        fParamType type;
+        parse_blank(cc);
+        if      (parse_match(cc, "float"))     { type = FRAKTAL_PARAM_FLOAT; }
+        else if (parse_match(cc, "vec2"))      { type = FRAKTAL_PARAM_FLOAT_VEC2; }
+        else if (parse_match(cc, "vec3"))      { type = FRAKTAL_PARAM_FLOAT_VEC3; }
+        else if (parse_match(cc, "vec4"))      { type = FRAKTAL_PARAM_FLOAT_VEC4; }
+        else if (parse_match(cc, "mat2"))      { type = FRAKTAL_PARAM_FLOAT_MAT2; }
+        else if (parse_match(cc, "mat3"))      { type = FRAKTAL_PARAM_FLOAT_MAT3; }
+        else if (parse_match(cc, "mat4"))      { type = FRAKTAL_PARAM_FLOAT_MAT4; }
+        else if (parse_match(cc, "int"))       { type = FRAKTAL_PARAM_INT; }
+        else if (parse_match(cc, "ivec2"))     { type = FRAKTAL_PARAM_INT_VEC2; }
+        else if (parse_match(cc, "ivec3"))     { type = FRAKTAL_PARAM_INT_VEC3; }
+        else if (parse_match(cc, "ivec4"))     { type = FRAKTAL_PARAM_INT_VEC4; }
+        else if (parse_match(cc, "sampler1D")) { type = FRAKTAL_PARAM_TEX1D; }
+        else if (parse_match(cc, "sampler2D")) { type = FRAKTAL_PARAM_TEX2D; }
+        else
+        {
+            log_err("Invalid parameter type.\n");
+            return false;
+        }
+        p->type[param] = type;
     }
-    size_t name_len = name_end - name_start;
-    param->name = (char*)malloc(name_len + 1);
-    if (!param->name)
+
+    // Get name
     {
-        log_err("Error parsing kernel parameter: ran out of memory.\n");
-        return false;
+        const char *name_start;
+        size_t name_len;
+        parse_blank(cc);
+        name_start = *cc;
+        parse_alpha(cc);
+        const char *name_end = *cc;
+        if (name_start == name_end)
+        {
+            log_err("Error parsing kernel parameter: missing name\n");
+            return false;
+        }
+        if (**cc == '\0')
+        {
+            log_err("Error parsing kernel parameter: file ended prematurely.\n");
+            return false;
+        }
+        name_len = name_end - name_start;
+        if (name_len > FRAKTAL_MAX_PARAM_NAME_LEN)
+        {
+            log_err("Error parsing kernel parameter: too long name.\n");
+            return false;
+        }
+        memcpy(p->name[param], name_start, name_len);
+        p->name[param][name_len] = '\0';
     }
-    memcpy(param->name, name_start, name_len);
-    param->name[name_len] = '\0';
+
+    // Get meta
     parse_blank(cc);
     if (parse_begin_list(cc))
     {
-        return parse_param_annotation(cc, param->type, anno);
+        return parse_param_meta(cc, p, param);
     }
     else if (parse_char(cc, ';'))
     {
-        anno->mean.x = 0.0f;
-        anno->mean.y = 0.0f;
-        anno->mean.z = 0.0f;
-        anno->mean.w = 0.0f;
-        anno->scale.x = 1.0f;
-        anno->scale.y = 1.0f;
-        anno->scale.z = 1.0f;
-        anno->scale.w = 1.0f;
+        p->mean[param].x = 0.0f;
+        p->mean[param].y = 0.0f;
+        p->mean[param].z = 0.0f;
+        p->mean[param].w = 0.0f;
+        p->scale[param].x = 1.0f;
+        p->scale[param].y = 1.0f;
+        p->scale[param].z = 1.0f;
+        p->scale[param].w = 1.0f;
         return true;
     }
     else
@@ -428,9 +460,9 @@ static bool parse_param(const char **cc, fParam *param, fParamAnnotation *anno)
     }
 }
 
-static bool fraktal_parse_source(char *fs, fParam *params, fParamAnnotation *annotations, int *num_params)
+static bool parse_fraktal_source(char *fs, fParams *p)
 {
-    *num_params = 0;
+    p->count = 0;
     char *c = fs;
     while (*c)
     {
@@ -439,35 +471,7 @@ static bool fraktal_parse_source(char *fs, fParam *params, fParamAnnotation *ann
         parse_blank(cc);
         if (parse_match(cc, "uniform"))
         {
-            if (*num_params >= FRAKTAL_MAX_PARAMS)
-            {
-                log_err("Exceeded maximum number of parameters in kernel.\n");
-                return false;
-            }
-            fParam *param = params + (*num_params);
-            fParamAnnotation *anno = annotations + (*num_params);
-            *num_params = *num_params + 1;
-
-            parse_blank(cc);
-            if      (parse_match(cc, "float"))     { param->type = FRAKTAL_PARAM_FLOAT; }
-            else if (parse_match(cc, "vec2"))      { param->type = FRAKTAL_PARAM_FLOAT_VEC2; }
-            else if (parse_match(cc, "vec3"))      { param->type = FRAKTAL_PARAM_FLOAT_VEC3; }
-            else if (parse_match(cc, "vec4"))      { param->type = FRAKTAL_PARAM_FLOAT_VEC4; }
-            else if (parse_match(cc, "mat2"))      { param->type = FRAKTAL_PARAM_FLOAT_MAT2; }
-            else if (parse_match(cc, "mat3"))      { param->type = FRAKTAL_PARAM_FLOAT_MAT3; }
-            else if (parse_match(cc, "mat4"))      { param->type = FRAKTAL_PARAM_FLOAT_MAT4; }
-            else if (parse_match(cc, "int"))       { param->type = FRAKTAL_PARAM_INT; }
-            else if (parse_match(cc, "ivec2"))     { param->type = FRAKTAL_PARAM_INT_VEC2; }
-            else if (parse_match(cc, "ivec3"))     { param->type = FRAKTAL_PARAM_INT_VEC3; }
-            else if (parse_match(cc, "ivec4"))     { param->type = FRAKTAL_PARAM_INT_VEC4; }
-            else if (parse_match(cc, "sampler1D")) { param->type = FRAKTAL_PARAM_TEX1D; }
-            else if (parse_match(cc, "sampler2D")) { param->type = FRAKTAL_PARAM_TEX2D; }
-            else
-            {
-                log_err("Invalid parameter type '%s'\n", get_token(c));
-                return false;
-            }
-            if (!parse_param(cc, param, anno))
+            if (!parse_param(cc, p))
             {
                 log_err("Error parsing source: invalid parameter declaration.\n");
                 return false;

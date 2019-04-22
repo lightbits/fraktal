@@ -6,9 +6,7 @@ struct fKernel
 {
     GLuint program;
     int loc_iPosition;
-    fParam params[FRAKTAL_MAX_PARAMS];
-    fParamAnnotation param_annotations[FRAKTAL_MAX_PARAMS];
-    int num_params;
+    fParams params;
 };
 
 static fKernel *fraktal_current_kernel = NULL;

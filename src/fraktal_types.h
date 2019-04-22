@@ -28,6 +28,7 @@ static float3 angle2float3(angle2 dir)
 }
 
 enum { FRAKTAL_MAX_PARAMS = 1024 };
+enum { FRAKTAL_MAX_PARAM_NAME_LEN = 64 };
 typedef int fParamType;
 enum fParamType_
 {
@@ -45,14 +46,12 @@ enum fParamType_
     FRAKTAL_PARAM_TEX1D,
     FRAKTAL_PARAM_TEX2D,
 };
-struct fParamAnnotation
+struct fParams
 {
-    float4 mean;
-    float4 scale;
-};
-struct fParam
-{
-    fParamType type;
-    char *name; // should be freed
-    int offset;
+    float4 mean[FRAKTAL_MAX_PARAMS];
+    float4 scale[FRAKTAL_MAX_PARAMS];
+    char name[FRAKTAL_MAX_PARAMS][FRAKTAL_MAX_PARAM_NAME_LEN + 1];
+    int offset[FRAKTAL_MAX_PARAMS];
+    fParamType type[FRAKTAL_MAX_PARAMS];
+    int count;
 };
