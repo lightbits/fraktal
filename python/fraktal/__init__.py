@@ -231,9 +231,9 @@ def param_matrix4f(offset, data, transpose=False):
     _fraktal.fraktal_param_matrix4f(offset, pdata)
 
 _fraktal.fraktal_param_array.restype = None
-_fraktal.fraktal_param_array.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
-def param_array(offset, tex_unit, array):
-    return _fraktal.fraktal_param_array(offset, tex_unit, array)
+_fraktal.fraktal_param_array.argtypes = [ctypes.c_int, ctypes.c_void_p]
+def param_array(offset, array):
+    return _fraktal.fraktal_param_array(offset, array)
 
 
 ############################################################

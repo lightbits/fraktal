@@ -160,15 +160,22 @@ void fraktal_param_4i(int offset, int x, int y, int z, int w)         { fraktal_
 void fraktal_param_matrix4f(int offset, float m[4*4])                 { fraktal_assert(fraktal_current_kernel); if (offset < 0) return; glUniformMatrix4fv(offset, 1, false, m); }
 void fraktal_param_transpose_matrix4f(int offset, float m[4*4])       { fraktal_assert(fraktal_current_kernel); if (offset < 0) return; glUniformMatrix4fv(offset, 1, true, m); }
 
-void fraktal_param_array(int offset, int tex_unit, fArray *a)
+void fraktal_param_array(int offset, fArray *a)
 {
     fraktal_assert(a);
     fraktal_assert(a->color0);
     fraktal_assert(a->width > 0 && a->height > 0 && "Array has invalid dimensions.");
     fraktal_assert(fraktal_current_kernel);
-    fraktal_assert(tex_unit >= 0 && tex_unit < 4 && "At most 4 arrays can be active per kernel invocation.");
     if (offset < 0)
         return;
+    int tex_unit = -1;
+    {
+        fParams *p = &fraktal_current_kernel->params;
+        for (int i = 0; i < p->count; i++)
+            if (p->offset[i] == offset)
+                tex_unit = p->assigned_tex_unit[i];
+        fraktal_assert(tex_unit >= 0 && "Array parameter with unassigned texture unit.");
+    }
     glUniform1i(offset, tex_unit);
     glActiveTexture(GL_TEXTURE0 + tex_unit);
     if (a->height == 1)

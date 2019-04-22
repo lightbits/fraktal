@@ -76,6 +76,6 @@ struct Widget_Geometry : Widget
         fraktal_param_1f(loc_iMinThickness, min_thickness);
         fraktal_param_1f(loc_iMaxThickness, max_thickness);
         fraktal_param_1i(loc_iApplyColormap, apply_colormap ? 1 : 0);
-        fraktal_param_array(loc_iColormap, 0, f_colormap_inferno);
+        fraktal_param_array(loc_iColormap, f_colormap_inferno);
     }
 };

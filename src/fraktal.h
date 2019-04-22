@@ -305,7 +305,7 @@ FRAKTALAPI void fraktal_param_1i(int offset, int x);
 FRAKTALAPI void fraktal_param_2i(int offset, int x, int y);
 FRAKTALAPI void fraktal_param_3i(int offset, int x, int y, int z);
 FRAKTALAPI void fraktal_param_4i(int offset, int x, int y, int z, int w);
-FRAKTALAPI void fraktal_param_array(int offset, int tex_unit, fArray *a);
+FRAKTALAPI void fraktal_param_array(int offset, fArray *a);
 
 /*
     Matrices are assumed to be laid out in column major order, where the

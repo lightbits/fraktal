@@ -208,12 +208,13 @@ fKernel *fraktal_link_kernel(fLinkState *link)
     {
         for (int i = 0; i < kernel->params.count; i++)
         {
-            printf("%s:%d: %d, %f, %f\n",
+            printf("%s:%d: %d, %f, %f, %d\n",
                    kernel->params.name[i],
                    kernel->params.offset[i],
                    kernel->params.type[i],
-                   kernel->params.mean[i],
-                   kernel->params.scale[i]);
+                   kernel->params.mean[i].x,
+                   kernel->params.scale[i].x,
+                   kernel->params.assigned_tex_unit[i]);
         }
         printf("num_params: %d\n", kernel->params.count);
         printf("num_samplers: %d\n", kernel->params.sampler_count);

@@ -334,7 +334,7 @@ static void render_color(guiState &scene)
         fraktal_array_size(out, &width, &height);
         fraktal_param_2f(loc_iResolution, (float)width, (float)height);
         fraktal_param_1i(loc_iSamples, scene.samples);
-        fraktal_param_array(loc_iChannel0, 0, in);
+        fraktal_param_array(loc_iChannel0, in);
 
         fraktal_zero_array(out);
         fraktal_run_kernel(out);
