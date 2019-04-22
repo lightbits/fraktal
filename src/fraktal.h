@@ -83,7 +83,6 @@ enum fEnum_
 struct fArray;
 struct fKernel;
 struct fLinkState;
-struct fContext;
 
 //-----------------------------------------------------------------------------
 // §2 Arrays
@@ -331,64 +330,69 @@ FRAKTALAPI void fraktal_param_transpose_matrix4f(int offset, float m[4*4]);
 //-----------------------------------------------------------------------------
 
 /*
-    fraktal requires a GPU context to be bound to the calling thread
-    in order to access GPU resources. By default, fraktal will auto-
-    matically create a context for you. However, if you are using
-    fraktal together with other libraries that also use the GPU,
-    you have two options:
+    fraktal needs a GPU context to be bound to the calling thread in
+    order to use GPU resources. You must create this context using
+    fraktal_create_context.
 
-      1. Share contexts
-      2. Use a separate context for fraktal and make_context_current
-         to attach or detach the fraktal context.
+    Caveat: If other libraries are accessing the GPU on the same thread,
+    you may wish to share their context so that GPU resources are visible
+    between them. You can achieve this by NOT calling fraktal_create_context.
+    In this case, you are responsible for ensuring that a context is current
+    on the thread when calling fraktal functions.
 
-  1. Share contexts:
-
-    Sharing contexts makes GPU memory used in fraktal visible to
-    outside libraries and vice versa. This can be useful if you are
-    passing results from fraktal to a library, or data from a library
-    to fraktal, as it avoids an unecessary copy from GPU to CPU memory
-    and back; the memory can remain on the GPU at all times.
-
-    For example:
-
-        - You are writing a GUI application and using GLFW or SDL to
-          create an OpenGL context for your application, and want to
-          share this context with fraktal.
-
-        - You are training a deep neural network in PyTorch or Tensorflow
-          and want to share data between them.
-
-      Calling fraktal_share_context before any other functions will tell
-    fraktal that its context is managed externally (i.e. by you). You
-    are thus responsible for ensuring the GPU context is current on the
-    thread whenever a fraktal function is called.
-
-  2. Use a separate context for fraktal:
-
-    If you want fraktal to use its own context you need to ensure that
-    it is always 'current' on the thread on which fraktal functions are
-    called. For example, if you juggle between two GPU libraries on the
-    same thread, it's possible that one library makes its context current
-    and the other never reattaches its context, resulting in an error
-    or undefined behavior when it subsequently attempts to use the GPU.
-
-      Note that if fraktal is the only library that accesses the GPU on
-    a given thread, you do not need to worry about making the context
-    current and you can rely on the default behavior described at the
-    top of this section.
-
-      Otherwise you need to explicitly create a context before calling
-    any other fraktal functions, and make this context current when
-    calling fraktal functions, and detach it to relinquish control to
-    a different library (we automatically make the previous context
-    current, thus being compatible with libraries that do not auto-
-    matically try to make their context current).
+    If for some reason you do not wish to share their context, you can
+    call fraktal_create_context and use fraktal_push/pop_current_context
+    to manage which library has access to the GPU (usually, only one
+    context can be current on the same OS thread).
 */
 
-FRAKTALAPI fContext *fraktal_create_context();
-FRAKTALAPI void fraktal_share_context();
-FRAKTALAPI void fraktal_destroy_context(fContext *ctx);
-FRAKTALAPI void fraktal_make_context_current(fContext *ctx);
+FRAKTALAPI bool fraktal_create_context();
+FRAKTALAPI void fraktal_destroy_context();
+
+/*
+    Saves the current GPU context on the calling thread and makes the
+    fraktal GPU context current. Use this if another library accesses
+    the GPU on the same thread.
+*/
+FRAKTALAPI void fraktal_push_current_context();
+
+/*
+    Pops the fraktal context from the calling thread and restores the
+    previously current context. Use this if another library accesses
+    the GPU on the same thread (restore their context).
+*/
+FRAKTALAPI void fraktal_pop_current_context();
+
+//-----------------------------------------------------------------------------
+// §6 GUI
+//-----------------------------------------------------------------------------
+
+#ifdef FRAKTAL_GUI
+/*
+    The GUI can be configured to show a FRep kernel specified using
+    fg_load_model. This kernel must define a function of the form
+        float model(vec3 p)
+    if the default color and geometry renderer is used. If the path-
+    tracer renderer is used, the kernel must additionally define
+        vec4 material(vec3 p)
+
+    The color and geometry renderers can be overridden with custom
+    render kernels specified by files on disk.
+*/
+FRAKTALAPI void fg_load_model(fKernel *f);
+FRAKTALAPI void fg_load_color_renderer(const char *filename);
+FRAKTALAPI void fg_load_geometry_renderer(const char *filename);
+
+/*
+    Makes the GUI window visible. The window can be closed and reshown
+    arbitrarily many times. The method does not return immediately, but
+    blocks until the window is closed by the user.
+*/
+FRAKTALAPI void fg_show();
+
+/* Specifies the image resolution. */
+FRAKTALAPI void fg_resolution(int width, int height);
+#endif
 
 #ifdef __cplusplus
 }
