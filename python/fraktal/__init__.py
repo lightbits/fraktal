@@ -66,17 +66,12 @@ def create_array(data, width, height, channels, format, access):
         return _fraktal.fraktal_create_array(None, width, height, channels, format, access)
     else:
         if format == FLOAT:
-            array_type = ctypes.c_float * (channels * width * height)
+            pdata = (ctypes.c_float*(channels*width*height))(*data)
         elif format == UINT8:
-            array_type = ctypes.c_uchar * (channels * width * height)
+            pdata = (ctypes.c_ubyte*(channels*width*height))(*data)
         else:
             raise
-        array = array_type()
-        for y in range(height):
-            for x in range(width):
-                for i in range(channels):
-                    array[channels*(x + y*width) + i] = data[channels*(x + y*width) + i]
-        return _fraktal.fraktal_create_array(array, width, height, channels, format, access)
+        return _fraktal.fraktal_create_array(pdata, width, height, channels, format, access)
 
 _fraktal.fraktal_destroy_array.restype = None
 _fraktal.fraktal_destroy_array.argtypes = [ctypes.c_void_p]
@@ -100,7 +95,7 @@ def to_cpu(array):
         _fraktal.fraktal_to_cpu(dcpu, array)
         return [float(i) for i in dcpu]
     elif format == UINT8:
-        array_type = ctypes.c_uchar * (channels * width * height)
+        array_type = ctypes.c_ubyte * (channels * width * height)
         dcpu = array_type()
         _fraktal.fraktal_to_cpu(dcpu, array)
         return [int(i) for i in dcpu]
