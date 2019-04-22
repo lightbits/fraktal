@@ -53,5 +53,6 @@ struct fParams
     char name[FRAKTAL_MAX_PARAMS][FRAKTAL_MAX_PARAM_NAME_LEN + 1];
     int offset[FRAKTAL_MAX_PARAMS];
     fParamType type[FRAKTAL_MAX_PARAMS];
+    int sampler_count;
     int count;
 };

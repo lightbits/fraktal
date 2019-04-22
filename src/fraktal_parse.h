@@ -420,8 +420,8 @@ static bool parse_param(const char **c, fParams *p, int param)
         else if (parse_match(c, "ivec2"))     { type = FRAKTAL_PARAM_INT_VEC2; }
         else if (parse_match(c, "ivec3"))     { type = FRAKTAL_PARAM_INT_VEC3; }
         else if (parse_match(c, "ivec4"))     { type = FRAKTAL_PARAM_INT_VEC4; }
-        else if (parse_match(c, "sampler1D")) { type = FRAKTAL_PARAM_SAMPLER1D; }
-        else if (parse_match(c, "sampler2D")) { type = FRAKTAL_PARAM_SAMPLER2D; }
+        else if (parse_match(c, "sampler1D")) { type = FRAKTAL_PARAM_SAMPLER1D; p->sampler_count++; }
+        else if (parse_match(c, "sampler2D")) { type = FRAKTAL_PARAM_SAMPLER2D; p->sampler_count++; }
         else
         {
             parse_error(*c, "invalid parameter type.\n");
@@ -487,7 +487,6 @@ static bool parse_fraktal_source(char *fs, fParams *p, const char *name)
 {
     parse_error_start = fs;
     parse_error_name = name;
-    p->count = 0;
     char *cw = fs;
     while (*cw)
     {

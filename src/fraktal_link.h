@@ -9,6 +9,7 @@ struct fLinkState
     const char *glsl_version;
     GLuint shaders[MAX_LINK_STATE_ITEMS];
     int num_shaders;
+    fParams params;
 };
 
 static GLuint compile_shader(const char *name, const char **sources, int num_sources, GLenum type)
@@ -66,7 +67,7 @@ static bool program_link_status(GLuint program)
     return true;
 }
 
-static bool add_link_data(fLinkState *link, const void *data, const char *name)
+static bool add_link_data(fLinkState *link, char *data, const char *name)
 {
     fraktal_assert(link);
     fraktal_assert(link->num_shaders < MAX_LINK_STATE_ITEMS);
@@ -74,6 +75,11 @@ static bool add_link_data(fLinkState *link, const void *data, const char *name)
     fraktal_assert(data && "'data' must be a non-NULL pointer to a buffer containing kernel source text.");
     fraktal_ensure_context();
     fraktal_check_gl_error();
+    if (!parse_fraktal_source(data, &link->params, name))
+    {
+        log_err("Error parsing kernel source\n");
+        return false;
+    }
     const char *sources[] = {
         link->glsl_version,
         "\nuniform int Dummy;\n"
@@ -99,6 +105,7 @@ fLinkState *fraktal_create_link()
     fLinkState *link = (fLinkState*)calloc(1, sizeof(fLinkState));
     link->num_shaders = 0;
     link->glsl_version = "#version 150";
+    link->params.count = 0;
     return link;
 }
 
@@ -116,9 +123,16 @@ void fraktal_destroy_link(fLinkState *link)
     }
 }
 
-bool fraktal_add_link_data(fLinkState *link, const void *data, size_t size, const char *name)
+bool fraktal_add_link_data(fLinkState *link, const char *data, size_t size, const char *name)
 {
-    return add_link_data(link, data, name);
+    // cannot assume that we are allowed to modify user data, so we make a copy.
+    if (size == 0) size = strlen(data);
+    char *copy = (char*)malloc(size + 1);
+    strcpy(copy, data);
+    fraktal_assert(copy && "Ran out of memory");
+    bool result = add_link_data(link, copy, name);
+    free(copy);
+    return result;
 }
 
 bool fraktal_add_link_file(fLinkState *link, const char *path)
@@ -129,7 +143,7 @@ bool fraktal_add_link_file(fLinkState *link, const char *path)
         log_err("Failed to open file '%s'\n", path);
         return false;
     }
-    bool result = add_link_data(link, (const void*)data, path);
+    bool result = add_link_data(link, data, path);
     free(data);
     return result;
 }
@@ -179,6 +193,32 @@ fKernel *fraktal_link_kernel(fLinkState *link)
 
     fKernel *kernel = (fKernel*)calloc(1, sizeof(fKernel));
     kernel->program = program;
+    kernel->params.count = link->params.count;
+    kernel->params.sampler_count = link->params.sampler_count;
+    for (int i = 0; i < link->params.count; i++)
+    {
+        strcpy(kernel->params.name[i], link->params.name[i]);
+        kernel->params.type[i] = link->params.type[i];
+        kernel->params.mean[i] = link->params.mean[i];
+        kernel->params.scale[i] = link->params.scale[i];
+        kernel->params.offset[i] = glGetUniformLocation(program, link->params.name[i]);
+    }
+    // print kernel information
+    #if 0
+    {
+        for (int i = 0; i < kernel->params.count; i++)
+        {
+            printf("%s:%d: %d, %f, %f\n",
+                   kernel->params.name[i],
+                   kernel->params.offset[i],
+                   kernel->params.type[i],
+                   kernel->params.mean[i],
+                   kernel->params.scale[i]);
+        }
+        printf("num_params: %d\n", kernel->params.count);
+        printf("num_samplers: %d\n", kernel->params.sampler_count);
+    }
+    #endif
     fraktal_check_gl_error();
     return kernel;
 }
