@@ -137,9 +137,10 @@ bool fraktal_add_link_file(fLinkState *link, const char *path)
 fKernel *fraktal_link_kernel(fLinkState *link)
 {
     fraktal_assert(link);
-    fraktal_assert(link->num_shaders > 0 && "Atleast one kernel must be added to link state.");
     fraktal_ensure_context();
     fraktal_check_gl_error();
+    if (link->num_shaders <= 0)
+        return NULL;
 
     static GLuint vs = 0;
     if (!vs)
