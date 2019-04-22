@@ -17,10 +17,10 @@ int fraktal_get_param_offset(fKernel *f, const char *name)
     fraktal_assert(f);
     fraktal_assert(f->program);
     fraktal_ensure_context();
-    fraktal_check_gl_error();
-    int location = glGetUniformLocation(f->program, name);
-    fraktal_check_gl_error();
-    return location;
+    for (int i = 0; i < f->params.count; i++)
+        if (strcmp(f->params.name[i], name) == 0)
+            return f->params.offset[i];
+    return -1;
 }
 
 void fraktal_use_kernel(fKernel *f)
