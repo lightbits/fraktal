@@ -55,9 +55,9 @@ code before including this file.
 #define fraktal_check_gl_error() fraktal_assert(glGetError() == GL_NO_ERROR)
 
 #include "fraktal_context.h"
-#include "fraktal_parse.h"
 #include "fraktal_array.h"
 #include "fraktal_kernel.h"
+#include "fraktal_parse.h"
 #include "fraktal_link.h"
 
 #ifdef FRAKTAL_GUI
