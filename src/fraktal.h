@@ -306,9 +306,25 @@ FRAKTALAPI void fraktal_param_1i(int offset, int x);
 FRAKTALAPI void fraktal_param_2i(int offset, int x, int y);
 FRAKTALAPI void fraktal_param_3i(int offset, int x, int y, int z);
 FRAKTALAPI void fraktal_param_4i(int offset, int x, int y, int z, int w);
+FRAKTALAPI void fraktal_param_array(int offset, int tex_unit, fArray *a);
+
+/*
+    Matrices are assumed to be laid out in column major order, where the
+    element at (row, column) is m[row + 4*column]. The transpose method
+    accepts matrices in row major order, where element (row, column) is
+    m[column + 4*row].
+
+    For example, a static array (e.g. float m[16] = { 0, 1, ..., 15 })
+    has the corresponding matrix interpretation:
+
+                  Column major               Row major
+                   0  4  8 12                0  1  2  3
+                   1  5  9 13                4  5  6  7
+                   2  6 10 14                8  9 10 11
+                   3  7 11 15               12 13 14 15
+*/
 FRAKTALAPI void fraktal_param_matrix4f(int offset, float m[4*4]);
 FRAKTALAPI void fraktal_param_transpose_matrix4f(int offset, float m[4*4]);
-FRAKTALAPI void fraktal_param_array(int offset, int tex_unit, fArray *a);
 
 //-----------------------------------------------------------------------------
 // §5 Context management
