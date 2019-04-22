@@ -35,17 +35,17 @@ static void parse_error(const char *at, const char *message)
     log_err("<%s>: line %d: col %d: error: %s", parse_error_name, line, column, message);
 }
 
+static bool parse_is_alpha(char c)
+{
+    return (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c >= '0' && c <= '9');
+}
+
 static void parse_alpha(const char **c)
 {
-    while (**c)
-    {
-        if ((**c >= 'a' && **c <= 'z') ||
-            (**c >= 'A' && **c <= 'Z') ||
-            (**c >= '0' && **c <= '9'))
-            (*c)++;
-        else
-            break;
-    }
+    while (**c && parse_is_alpha(**c))
+        (*c)++;
 }
 
 static bool parse_is_blank(char c)
@@ -91,14 +91,22 @@ static bool parse_char(const char **c, char match)
 
 static bool parse_match(const char **c, const char *match)
 {
-    size_t n = strlen(match);
-    if (strncmp(*c, match, n) == 0)
+    const char *a = *c;
+    const char *b = match;
+    while (*a && *b)
     {
-        *c = *c + n;
+        if (*a != *b)
+            return false;
+        a++;
+        b++;
+    }
+    if (*b) return false;
+    if (!parse_is_alpha(*a))
+    {
+        *c = a;
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 static bool parse_bool(const char **c, bool *x)
@@ -494,14 +502,24 @@ static bool parse_fraktal_source(char *fs, fParams *p, const char *name)
         const char **c = (const char**)&cw;
         parse_comment(c);
         parse_blank(c);
-        if (parse_match(c, "uniform"))
+        if (parse_is_alpha(**c))
         {
-            int param = p->count;
-            if (!parse_param(c, p, param))
-                return false;
-            p->count++;
+            if (parse_match(c, "uniform"))
+            {
+                int param = p->count;
+                if (!parse_param(c, p, param))
+                    return false;
+                p->count++;
+            }
+            else
+            {
+                parse_alpha(c);
+            }
         }
-        cw++;
+        else
+        {
+            cw++;
+        }
     }
     return true;
 }
