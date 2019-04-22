@@ -14,14 +14,15 @@ static void parse_error(const char *at, const char *message)
     assert(parse_error_start);
     assert(parse_error_name);
     const char *c = parse_error_start;
-    size_t line = 0;
+    size_t line = 1;
     size_t column = 0;
     while (*c && c <= at)
     {
-        if (*c == '\n' || *c == '\r')
+        if (c[0] == '\n')
         {
-            while (*c && (*c == '\n' || *c == '\r'))
+            if (c[1] == '\r')
                 c++;
+            c++;
             line++;
             column = 0;
         }
@@ -31,7 +32,7 @@ static void parse_error(const char *at, const char *message)
             column++;
         }
     }
-    log_err("<%s>:%d:%d: error: %s", parse_error_name, line, column, message);
+    log_err("<%s>: line %d: col %d: error: %s", parse_error_name, line, column, message);
 }
 
 static void parse_alpha(const char **c)
