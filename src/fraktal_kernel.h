@@ -57,6 +57,11 @@ void fraktal_use_kernel(fKernel *f)
     }
     fraktal_assert(quad && "Failed to create vertex buffer");
 
+    if (f)
+    {
+        fraktal_assert(glIsProgram(f->program) && "f must be a valid kernel object");
+    }
+
     if (fraktal_current_kernel)
     {
         if (f)
