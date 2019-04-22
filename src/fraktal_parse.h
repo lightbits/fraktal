@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <log.h>
-#include "fraktal_types.h"
 
 static void parse_alpha(const char **c)
 {
