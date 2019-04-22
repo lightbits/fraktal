@@ -267,21 +267,6 @@ FRAKTALAPI void fraktal_use_kernel(fKernel *f);
     * A 2D array of dimensions (w,h) launches a 2D grid of threads with
       indices [0, w-1] x [0, h-1].
 
-    The 1D or 2D index of the executing thread can be used to control
-    the kernel function on a per-thread basis, e.g. loading values from
-    different locations in memory or running different instructions. A
-    common application is to process values in an array, for example:
-
-        #param(array2D, float, data)
-        #out(float, y)
-
-        void main() {
-            float x = loadArray1D(data, globalIdx.x);
-            y = x*x;
-        }
-
-    The index is accessible using the built-in keyword 'globalIdx.xy'.
-
     Results are **added** to the values in 'out'. The array may be
     cleared to zero using fraktal_zero_array(out).
 */
