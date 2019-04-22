@@ -288,7 +288,7 @@ static bool parse_next_in_list(const char **c)
     assert(parse_inside_list);
     if (parse_list_error)
     {
-        parse_error(*c, "unexpected argument");
+        parse_error(*c, "unexpected argument.\n");
         return false;
     }
     parse_blank(c);
