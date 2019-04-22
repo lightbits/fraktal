@@ -176,7 +176,7 @@ void fraktal_run_kernel(fArray *out)
     fraktal_assert(fraktal_current_kernel && "Call fraktal_use_kernel first.");
     fraktal_assert(out);
     fraktal_assert(out->width > 0);
-    fraktal_assert(out->height >= 0);
+    fraktal_assert(out->height > 0);
     fraktal_assert(out->fbo && "The output array's access mode cannot be read-only.");
     fraktal_assert(out->color0);
     fraktal_ensure_context();
