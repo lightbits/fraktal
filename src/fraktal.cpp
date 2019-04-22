@@ -64,6 +64,5 @@ code before including this file.
 #ifdef FRAKTAL_OMIT_GL_SYMBOLS
 #error "You must not have both FRAKTAL_GUI and FRAKTAL_OMIT_GL_SYMBOLS defined"
 #endif
-
 #include "fraktal_gui.h"
 #endif

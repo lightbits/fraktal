@@ -32,9 +32,9 @@ Index of this file:
 ....fraktal_param_...
 §5 Context management
 ....fraktal_create_context
-....fraktal_share_context
 ....fraktal_destroy_context
-....fraktal_make_context_current
+....fraktal_push_current_context
+....fraktal_pop_current_context
 */
 
 #pragma once
@@ -388,16 +388,12 @@ FRAKTALAPI void fg_configure(const char *model,
                              const char *geometry,
                              int width,
                              int height);
-
 /*
     Makes the GUI window visible. The window can be closed and reshown
     arbitrarily many times. The method does not return immediately, but
     blocks until the window is closed by the user.
 */
 FRAKTALAPI void fg_show();
-
-/* Specifies the image resolution. */
-// FRAKTALAPI void fg_resolution(int width, int height);
 #endif
 
 #ifdef __cplusplus
