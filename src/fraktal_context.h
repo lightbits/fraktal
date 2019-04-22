@@ -17,6 +17,7 @@ static void fraktal_glfw_error_callback(int error, const char* description)
 
 static GLFWwindow *fraktal_context = NULL;
 static bool fraktal_gl_symbols_loaded = false;
+static const char *fraktal_glsl_version = "#version 150";
 
 bool fraktal_create_context()
 {
@@ -36,7 +37,7 @@ bool fraktal_create_context()
     #endif
     glfwWindowHint(GLFW_VISIBLE, false);
 
-    fraktal_context = glfwCreateWindow(32, 32, "fraktal_context", NULL, NULL);
+    fraktal_context = glfwCreateWindow(32, 32, "fraktal", NULL, NULL);
     if (fraktal_context == NULL)
     {
         fprintf(stderr, "Error creating context: failed to create GLFW window.\n");
@@ -64,7 +65,7 @@ void fraktal_pop_current_context()
         glfwMakeContextCurrent(NULL);
 }
 
-static bool fraktal_ensure_context()
+static void fraktal_ensure_context()
 {
     if (fraktal_context)
         glfwMakeContextCurrent(fraktal_context);
@@ -75,17 +76,10 @@ static bool fraktal_ensure_context()
     {
         fraktal_gl_symbols_loaded = true;
         if (gl3wInit() != 0)
-        {
-            fprintf(stderr, "Failed to load OpenGL symbols.\n");
-            return false;
-        }
+            fraktal_assert(false && "Failed to load OpenGL symbols.");
     }
 
     // verify that we have OpenGL symbols loaded by testing one
-    // of the functions
-    if (!glCreateShader)
-    {
-        fprintf(stderr, "Failed to load OpenGL symbols.\n");
-        return false;
-    }
+    // of the function pointers
+    fraktal_assert(glCreateShader != NULL && "Failed to load OpenGL symbols.");
 }

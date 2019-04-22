@@ -379,9 +379,15 @@ FRAKTALAPI void fraktal_pop_current_context();
     The color and geometry renderers can be overridden with custom
     render kernels specified by files on disk.
 */
-FRAKTALAPI void fg_load_model(fKernel *f);
-FRAKTALAPI void fg_load_color_renderer(const char *filename);
-FRAKTALAPI void fg_load_geometry_renderer(const char *filename);
+// FRAKTALAPI void fg_load_model(fKernel *f);
+// FRAKTALAPI void fg_load_color_renderer(const char *filename);
+// FRAKTALAPI void fg_load_geometry_renderer(const char *filename);
+FRAKTALAPI void fg_configure(const char *model,
+                             const char *color,
+                             const char *compose,
+                             const char *geometry,
+                             int width,
+                             int height);
 
 /*
     Makes the GUI window visible. The window can be closed and reshown
@@ -391,7 +397,7 @@ FRAKTALAPI void fg_load_geometry_renderer(const char *filename);
 FRAKTALAPI void fg_show();
 
 /* Specifies the image resolution. */
-FRAKTALAPI void fg_resolution(int width, int height);
+// FRAKTALAPI void fg_resolution(int width, int height);
 #endif
 
 #ifdef __cplusplus

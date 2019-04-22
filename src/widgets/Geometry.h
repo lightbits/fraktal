@@ -30,7 +30,7 @@ struct Widget_Geometry : Widget
             f_colormap_inferno = fraktal_create_array(
                 colormap_inferno,
                 colormap_inferno_length,
-                0,
+                1,
                 4,
                 FRAKTAL_FLOAT,
                 FRAKTAL_READ_ONLY

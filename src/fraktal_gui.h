@@ -1,21 +1,91 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
-#include "fraktal.h"
-#include "fraktal_parse.h"
-#include "gui_state.h"
-
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image.h>
 #include <stb_image_write.h>
+
+#define IMGUI_IMPL_OPENGL_LOADER_GL3W
+#include <imgui.cpp>
+#include <imgui_draw.cpp>
+#include <imgui_demo.cpp>
+#include <imgui_widgets.cpp>
+#include <imgui_impl_glfw.cpp>
+#include <imgui_impl_opengl3.cpp>
+
 #include <stdio.h>
 #include <stdlib.h> // malloc, free
 #include <string.h>
-#include <GL/gl3w.h>
 #include <file.h>
+#include "fraktal.h"
+#include "fraktal_parse.h"
 
-#include "gui_state.h"
+enum { MAX_WIDGETS = 1024 };
+struct Widget;
+struct guiKey
+{
+    bool pressed;
+    bool released;
+    bool down;
+};
+struct guiKeys
+{
+    guiKey Space,Enter;
+    guiKey Ctrl,Alt,Shift;
+    guiKey Left,Right,Up,Down;
+    guiKey W,A,S,D,P;
+    guiKey PrintScreen;
+};
+struct guiSceneDef
+{
+    const char *model_kernel_path;
+    const char *color_kernel_path;
+    const char *geometry_kernel_path;
+    const char *compose_kernel_path;
+    const char *glsl_version;
+    int resolution_x;
+    int resolution_y;
+};
+struct guiSceneParams
+{
+    int2 resolution;
+    Widget *widgets[MAX_WIDGETS];
+    int num_widgets;
+};
+typedef int guiPreviewMode;
+enum guiPreviewMode_ {
+    guiPreviewMode_Color=0,
+    guiPreviewMode_Thickness,
+    guiPreviewMode_Normals,
+    guiPreviewMode_Depth,
+    guiPreviewMode_GBuffer,
+};
+struct guiState
+{
+    guiSceneDef def;
+    fArray *render_buffer;
+    fArray *compose_buffer;
+    fKernel *render_kernel;
+    fKernel *compose_kernel;
+    bool render_kernel_is_new;
+    bool compose_kernel_is_new;
+    int samples;
+    bool should_clear;
+    bool should_exit;
+    bool initialized;
+    bool auto_render;
+
+    guiKeys keys;
+
+    guiSceneParams params;
+
+    guiPreviewMode mode;
+
+    bool got_error;
+};
+
+#include "imgui_extensions.h"
 #include "widgets/Widget.h"
 #include "widgets/Sun.h"
 #include "widgets/Camera.h"
@@ -23,13 +93,13 @@
 #include "widgets/Material.h"
 #include "widgets/Geometry.h"
 
-void remove_directive_from_source(char *from, char *to)
+static void remove_directive_from_source(char *from, char *to)
 {
     for (char *c = from; c < to; c++)
         *c = ' ';
 }
 
-bool scene_file_preprocessor(char *fs, guiSceneParams *params)
+static bool scene_file_preprocessor(char *fs, guiSceneParams *params)
 {
     params->num_widgets = 0;
     char *c = fs;
@@ -82,7 +152,7 @@ failure:
     return false;
 }
 
-void save_screenshot(const char *filename, fArray *f)
+static void save_screenshot(const char *filename, fArray *f)
 {
     assert(filename);
     assert(f);
@@ -96,7 +166,7 @@ void save_screenshot(const char *filename, fArray *f)
     free(pixels);
 }
 
-fKernel *load_render_shader(
+static fKernel *load_render_shader(
     const char *model_kernel_path,
     const char *render_kernel_path,
     guiSceneParams *params)
@@ -142,7 +212,7 @@ fKernel *load_render_shader(
     return kernel;
 }
 
-bool gui_load(guiState &scene, guiSceneDef def)
+static bool gui_load(guiState &scene, guiSceneDef def)
 {
     if (def.resolution_x <= 0) def.resolution_x = 200;
     if (def.resolution_y <= 0) def.resolution_y = 200;
@@ -216,7 +286,7 @@ bool gui_load(guiState &scene, guiSceneDef def)
 
 #define fetch_uniform(kernel, name) static int loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
 
-void render_color(guiState &scene)
+static void render_color(guiState &scene)
 {
     assert(scene.render_kernel);
     assert(scene.compose_kernel);
@@ -273,7 +343,7 @@ void render_color(guiState &scene)
     fraktal_use_kernel(NULL);
 }
 
-void render_geometry(guiState &scene)
+static void render_geometry(guiState &scene)
 {
     assert(scene.render_kernel);
     assert(fraktal_is_valid_array(scene.compose_buffer));
@@ -307,7 +377,7 @@ void render_geometry(guiState &scene)
     fraktal_use_kernel(NULL);
 }
 
-bool open_file_dialog(bool should_open, const char *label, char *buffer, size_t sizeof_buffer)
+static bool open_file_dialog(bool should_open, const char *label, char *buffer, size_t sizeof_buffer)
 {
     if (should_open)
     {
@@ -334,7 +404,7 @@ bool open_file_dialog(bool should_open, const char *label, char *buffer, size_t 
     return result;
 }
 
-void gui_present(guiState &scene)
+static void gui_present(guiState &scene)
 {
     static int last_mode = scene.mode;
     static bool open_model_succeeded = false;
@@ -674,3 +744,296 @@ void gui_present(guiState &scene)
     ImGui::PopStyleVar(pushed_style_var);
     ImGui::PopStyleColor(pushed_style_col);
 }
+
+//-----------------------------------------------------------------------------
+// §6 GUI
+//-----------------------------------------------------------------------------
+
+#include <open_sans_regular.h>
+
+static guiState fg_scene;
+static int g_window_pos_x = -1;
+static int g_window_pos_y = -1;
+
+static void glfw_window_pos_callback(GLFWwindow *window, int x, int y)
+{
+    g_window_pos_x = x;
+    g_window_pos_y = y;
+}
+
+enum { NUM_GLFW_KEYS = 512 };
+static struct glfw_key_t
+{
+    bool was_pressed;
+    bool was_released;
+    bool is_down;
+} glfw_keys[NUM_GLFW_KEYS];
+
+static void mark_key_events_as_processed()
+{
+    for (int key = 0; key < NUM_GLFW_KEYS; key++)
+    {
+        glfw_keys[key].was_pressed = false;
+        glfw_keys[key].was_released = false;
+    }
+}
+
+static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key >= 0 && key < NUM_GLFW_KEYS)
+    {
+        bool was_down = glfw_keys[key].is_down;
+        if (action == GLFW_PRESS && !was_down) {
+            glfw_keys[key].was_pressed = true;
+            glfw_keys[key].is_down = true;
+        }
+        if (action == GLFW_RELEASE && was_down) {
+            glfw_keys[key].was_released = true;
+            glfw_keys[key].is_down = false;
+        }
+        if (action == GLFW_REPEAT) {
+            glfw_keys[key].was_pressed = true;
+            glfw_keys[key].is_down = true;
+        }
+    }
+}
+
+struct guiSettings
+{
+    int width,height,x,y;
+};
+
+static void write_settings_to_disk(const char *ini_filename, guiSettings s)
+{
+    FILE *f = fopen(ini_filename, "wt");
+    if (!f)
+        return;
+
+    fprintf(f, "[FraktalWindow]\n");
+    fprintf(f, "width=%d\n", s.width);
+    fprintf(f, "height=%d\n", s.height);
+    fprintf(f, "x=%d\n", s.x);
+    fprintf(f, "y=%d\n", s.y);
+    fprintf(f, "\n");
+
+    size_t imgui_ini_size = 0;
+    const char *imgui_ini_data = ImGui::SaveIniSettingsToMemory(&imgui_ini_size);
+    fwrite(imgui_ini_data, sizeof(char), imgui_ini_size, f);
+
+    fclose(f);
+}
+
+static void read_settings_from_disk(const char *ini_filename, guiSettings *s)
+{
+    char *f = read_file(ini_filename);
+    if (!f)
+        return;
+
+    char *data = f;
+    char *line = read_line(&data);
+    bool fraktal = false;
+    int width,height,x,y;
+    while (line)
+    {
+        if (*line == '\0') ; // skip blanks
+        else if (0 == strcmp(line, "[FraktalWindow]")) { fraktal = true; }
+        else if (fraktal && 1 == sscanf(line, "width=%d", &width)) s->width = width;
+        else if (fraktal && 1 == sscanf(line, "height=%d", &height)) s->height = height;
+        else if (fraktal && 1 == sscanf(line, "x=%d", &x)) s->x = x;
+        else if (fraktal && 1 == sscanf(line, "y=%d", &y)) s->y = y;
+        else break;
+        line = read_line(&data);
+    }
+
+    // the rest of the ini file is ImGui settings
+    ImGui::LoadIniSettingsFromMemory(data);
+
+    free(f);
+}
+
+void fg_configure(const char *model,
+                  const char *color,
+                  const char *compose,
+                  const char *geometry,
+                  int width,
+                  int height)
+{
+    guiSceneDef def = {0};
+    def.model_kernel_path = model;
+    def.color_kernel_path = color;
+    def.compose_kernel_path = compose;
+    def.geometry_kernel_path = geometry;
+    def.resolution_x = width;
+    def.resolution_y = height;
+    fraktal_assert(gui_load(fg_scene, def));
+}
+
+void fg_show()
+{
+    const char *ini_filename = "fraktal.ini";
+    static bool initialized = false;
+    static bool failure = false;
+
+    if (failure)
+        return;
+
+    static guiSettings settings = {0};
+    static ImVector<ImWchar> glyph_ranges; // this must persist until call to GetTexData
+    if (!initialized)
+    {
+        initialized = true;
+
+        if (!fraktal_context)
+        {
+            log_err("The fraktal GUI requires you to create a context for fraktal (use fraktal_create_context).\n");
+            failure = true;
+            return;
+        }
+
+        ImGui::CreateContext();
+        ImGui::StyleColorsDark();
+        ImGui::GetStyle().WindowBorderSize = 0.0f;
+
+        settings.width = 800;
+        settings.height = 600;
+        settings.x = -1;
+        settings.y = -1;
+        ImGui::GetIO().IniFilename = NULL; // override ImGui load/save ini behavior with our own
+        read_settings_from_disk(ini_filename, &settings);
+
+        // sanitize settings
+        if (settings.width <= 1) settings.width = 800;
+        if (settings.height <= 1) settings.height = 600;
+
+        if (settings.x >= 0 && settings.y >= 0)
+        {
+            glfwSetWindowSize(fraktal_context, settings.width, settings.height);
+            glfwSetWindowPos(fraktal_context, settings.x, settings.y);
+            glfwShowWindow(fraktal_context);
+        }
+
+        glfwSwapInterval(0);
+        glfwSetKeyCallback(fraktal_context, glfw_key_callback);
+        glfwSetWindowPosCallback(fraktal_context, glfw_window_pos_callback);
+
+        fraktal_ensure_context();
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+        ImGui_ImplGlfw_InitForOpenGL(fraktal_context, true);
+        ImGui_ImplOpenGL3_Init(fraktal_glsl_version);
+
+        // load fonts
+        {
+            const char *data = (const char*)open_sans_regular_compressed_data;
+            const unsigned int size = open_sans_regular_compressed_size;
+            float height = 16.0f;
+
+            ImGuiIO &io = ImGui::GetIO();
+
+            io.Fonts->AddFontFromMemoryCompressedTTF(data, size, height);
+
+            // add math symbols with a different font size
+            ImFontConfig config;
+            config.MergeMode = true;
+            ImFontGlyphRangesBuilder builder;
+            builder.AddText("\xce\xb8\xcf\x86\xe0\x04"); // theta, phi
+            builder.BuildRanges(&glyph_ranges);
+            io.Fonts->AddFontFromMemoryCompressedTTF(data, size, 18.0f, &config, glyph_ranges.Data);
+        }
+    }
+    else
+    {
+        fraktal_ensure_context();
+    }
+
+    while (!glfwWindowShouldClose(fraktal_context) && !fg_scene.should_exit)
+    {
+        static int settle_frames = 5;
+        if (fg_scene.auto_render || settle_frames > 0)
+        {
+            glfwPollEvents();
+        }
+        else
+        {
+            glfwWaitEvents();
+            settle_frames = 5;
+        }
+
+        const double max_redraw_rate = 60.0;
+        const double min_redraw_time = 1.0/max_redraw_rate;
+        static double t_last_redraw = -min_redraw_time;
+        double t_curr = glfwGetTime();
+        double t_delta = t_curr - t_last_redraw;
+        bool should_redraw = false;
+        if (t_delta >= min_redraw_time)
+        {
+            t_last_redraw = t_curr;
+            should_redraw = true;
+        }
+
+        if (should_redraw)
+        {
+            settle_frames--;
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            #define copy_key_event(struct_name, glfw_key) \
+                fg_scene.keys.struct_name.pressed = glfw_keys[glfw_key].was_pressed && !ImGui::GetIO().WantCaptureKeyboard; \
+                fg_scene.keys.struct_name.released = glfw_keys[glfw_key].was_released && !ImGui::GetIO().WantCaptureKeyboard; \
+                fg_scene.keys.struct_name.down = glfw_keys[glfw_key].is_down && !ImGui::GetIO().WantCaptureKeyboard;
+            copy_key_event(Enter, GLFW_KEY_ENTER);
+            copy_key_event(Space, GLFW_KEY_SPACE);
+            copy_key_event(Ctrl, GLFW_KEY_LEFT_CONTROL);
+            copy_key_event(Alt, GLFW_KEY_LEFT_ALT);
+            copy_key_event(Shift, GLFW_KEY_LEFT_SHIFT);
+            copy_key_event(Left, GLFW_KEY_LEFT);
+            copy_key_event(Right, GLFW_KEY_RIGHT);
+            copy_key_event(Up, GLFW_KEY_UP);
+            copy_key_event(Down, GLFW_KEY_DOWN);
+            copy_key_event(W, GLFW_KEY_W);
+            copy_key_event(A, GLFW_KEY_A);
+            copy_key_event(S, GLFW_KEY_S);
+            copy_key_event(D, GLFW_KEY_D);
+            copy_key_event(P, GLFW_KEY_P);
+            copy_key_event(PrintScreen, GLFW_KEY_PRINT_SCREEN);
+            mark_key_events_as_processed();
+
+            glfwMakeContextCurrent(fraktal_context);
+            int window_fb_width, window_fb_height;
+            glfwGetFramebufferSize(fraktal_context, &window_fb_width, &window_fb_height);
+            glViewport(0, 0, window_fb_width, window_fb_height);
+            glClearColor(0.14f, 0.14f, 0.14f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            gui_present(fg_scene);
+
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+            if (ImGui::GetIO().WantSaveIniSettings)
+            {
+                // update settings
+                settings.x = g_window_pos_x;
+                settings.y = g_window_pos_y;
+                glfwGetWindowSize(fraktal_context, &settings.width, &settings.height);
+                write_settings_to_disk(ini_filename, settings);
+                ImGui::GetIO().WantSaveIniSettings = false;
+            }
+
+            glfwSwapBuffers(fraktal_context);
+        }
+    }
+}
+
+// void fg_destroy()
+// {
+//     // ImGui_ImplOpenGL3_Shutdown();
+//     // ImGui_ImplGlfw_Shutdown();
+//     // ImGui::DestroyContext();
+
+//     // glfwDestroyWindow(window);
+//     // glfwTerminate();
+// }
