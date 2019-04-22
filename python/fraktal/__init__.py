@@ -240,3 +240,27 @@ _fraktal.fraktal_param_array.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_vo
 def param_array(offset, tex_unit, array):
     return _fraktal.fraktal_param_array(offset, tex_unit, array)
 
+
+############################################################
+# §5 Context management
+############################################################
+
+_fraktal.fraktal_create_context.restype = None
+_fraktal.fraktal_create_context.argtypes = []
+def create_context():
+    _fraktal.fraktal_create_context()
+
+_fraktal.fraktal_destroy_context.restype = None
+_fraktal.fraktal_destroy_context.argtypes = []
+def destroy_context():
+    _fraktal.fraktal_destroy_context()
+
+_fraktal.fraktal_push_current_context.restype = None
+_fraktal.fraktal_push_current_context.argtypes = []
+def push_current_context():
+    _fraktal.fraktal_push_current_context()
+
+_fraktal.fraktal_pop_current_context.restype = None
+_fraktal.fraktal_pop_current_context.argtypes = []
+def pop_current_context():
+    _fraktal.fraktal_pop_current_context()
