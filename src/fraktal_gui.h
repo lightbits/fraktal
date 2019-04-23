@@ -962,6 +962,11 @@ void fg_show()
             settle_frames = 5;
         }
 
+        // update settings
+        settings.x = g_window_pos_x;
+        settings.y = g_window_pos_y;
+        glfwGetWindowSize(fraktal_context, &settings.width, &settings.height);
+
         const double max_redraw_rate = 60.0;
         const double min_redraw_time = 1.0/max_redraw_rate;
         static double t_last_redraw = -min_redraw_time;
@@ -1016,10 +1021,6 @@ void fg_show()
 
             if (ImGui::GetIO().WantSaveIniSettings)
             {
-                // update settings
-                settings.x = g_window_pos_x;
-                settings.y = g_window_pos_y;
-                glfwGetWindowSize(fraktal_context, &settings.width, &settings.height);
                 write_settings_to_disk(ini_filename, settings);
                 ImGui::GetIO().WantSaveIniSettings = false;
             }
@@ -1027,6 +1028,7 @@ void fg_show()
             glfwSwapBuffers(fraktal_context);
         }
     }
+    write_settings_to_disk(ini_filename, settings);
 }
 
 // void fg_destroy()
