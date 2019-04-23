@@ -906,11 +906,10 @@ void fg_show()
         if (settings.height <= 1) settings.height = 600;
 
         if (settings.x >= 0 && settings.y >= 0)
-        {
-            glfwSetWindowSize(fraktal_context, settings.width, settings.height);
             glfwSetWindowPos(fraktal_context, settings.x, settings.y);
-            glfwShowWindow(fraktal_context);
-        }
+
+        glfwSetWindowSize(fraktal_context, settings.width, settings.height);
+        glfwShowWindow(fraktal_context);
 
         glfwSwapInterval(0);
         glfwSetKeyCallback(fraktal_context, glfw_key_callback);
@@ -947,6 +946,8 @@ void fg_show()
     {
         fraktal_ensure_context();
     }
+
+    glfwShowWindow(fraktal_context);
 
     while (!glfwWindowShouldClose(fraktal_context) && !fg_scene.should_exit)
     {
