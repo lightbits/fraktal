@@ -202,6 +202,7 @@ fKernel *fraktal_link_kernel(fLinkState *link)
         kernel->params.mean[i] = link->params.mean[i];
         kernel->params.scale[i] = link->params.scale[i];
         kernel->params.offset[i] = glGetUniformLocation(program, link->params.name[i]);
+        kernel->params.assigned_tex_unit[i] = link->params.assigned_tex_unit[i];
     }
     // print kernel information
     #if 0
