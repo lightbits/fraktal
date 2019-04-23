@@ -415,20 +415,22 @@ static bool parse_param(const char **c, fParams *p, int param)
     }
 
     // Get type
+    int base_alignment = 0;
+    int type_size = 0;
     {
         fParamType type;
         parse_blank(c);
-        if      (parse_match(c, "float"))     { type = FRAKTAL_PARAM_FLOAT; }
-        else if (parse_match(c, "vec2"))      { type = FRAKTAL_PARAM_FLOAT_VEC2; }
-        else if (parse_match(c, "vec3"))      { type = FRAKTAL_PARAM_FLOAT_VEC3; }
-        else if (parse_match(c, "vec4"))      { type = FRAKTAL_PARAM_FLOAT_VEC4; }
-        else if (parse_match(c, "mat2"))      { type = FRAKTAL_PARAM_FLOAT_MAT2; }
-        else if (parse_match(c, "mat3"))      { type = FRAKTAL_PARAM_FLOAT_MAT3; }
-        else if (parse_match(c, "mat4"))      { type = FRAKTAL_PARAM_FLOAT_MAT4; }
-        else if (parse_match(c, "int"))       { type = FRAKTAL_PARAM_INT; }
-        else if (parse_match(c, "ivec2"))     { type = FRAKTAL_PARAM_INT_VEC2; }
-        else if (parse_match(c, "ivec3"))     { type = FRAKTAL_PARAM_INT_VEC3; }
-        else if (parse_match(c, "ivec4"))     { type = FRAKTAL_PARAM_INT_VEC4; }
+        if      (parse_match(c, "float"))     { type = FRAKTAL_PARAM_FLOAT;      type_size = 1;  base_alignment = 1; }
+        else if (parse_match(c, "vec2"))      { type = FRAKTAL_PARAM_FLOAT_VEC2; type_size = 2;  base_alignment = 2; }
+        else if (parse_match(c, "vec3"))      { type = FRAKTAL_PARAM_FLOAT_VEC3; type_size = 3;  base_alignment = 4; }
+        else if (parse_match(c, "vec4"))      { type = FRAKTAL_PARAM_FLOAT_VEC4; type_size = 4;  base_alignment = 4; }
+        else if (parse_match(c, "mat2"))      { type = FRAKTAL_PARAM_FLOAT_MAT2; type_size = 4;  base_alignment = 2; }
+        else if (parse_match(c, "mat3"))      { type = FRAKTAL_PARAM_FLOAT_MAT3; type_size = 12; base_alignment = 4; }
+        else if (parse_match(c, "mat4"))      { type = FRAKTAL_PARAM_FLOAT_MAT4; type_size = 16; base_alignment = 4; }
+        else if (parse_match(c, "int"))       { type = FRAKTAL_PARAM_INT;        type_size = 1; base_alignment = 1; }
+        else if (parse_match(c, "ivec2"))     { type = FRAKTAL_PARAM_INT_VEC2;   type_size = 2; base_alignment = 2; }
+        else if (parse_match(c, "ivec3"))     { type = FRAKTAL_PARAM_INT_VEC3;   type_size = 4; base_alignment = 4; }
+        else if (parse_match(c, "ivec4"))     { type = FRAKTAL_PARAM_INT_VEC4;   type_size = 4; base_alignment = 4; }
         else if (parse_match(c, "sampler1D")) { type = FRAKTAL_PARAM_SAMPLER1D; p->assigned_tex_unit[param] = p->sampler_count++; }
         else if (parse_match(c, "sampler2D")) { type = FRAKTAL_PARAM_SAMPLER2D; p->assigned_tex_unit[param] = p->sampler_count++; }
         else
@@ -437,6 +439,31 @@ static bool parse_param(const char **c, fParams *p, int param)
             return false;
         }
         p->type[param] = type;
+    }
+
+    // Calculate std140 buffer alignment
+    {
+        int prev_offset = 0;
+        int prev_size = 0;
+        if (param > 0)
+        {
+            prev_offset = p->std140_offset[param - 1];
+            prev_size = p->std140_size[param - 1];
+        }
+        if (type_size > 0)
+        {
+            int offset = prev_offset;
+            offset += prev_size;
+            if (base_alignment > 1)
+                offset += base_alignment - (offset % base_alignment);
+            p->std140_offset[param] = offset;
+            p->std140_size[param] = type_size;
+        }
+        else
+        {
+            p->std140_offset[param] = prev_offset;
+            p->std140_size[param] = 0;
+        }
     }
 
     // Get name

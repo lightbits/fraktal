@@ -102,10 +102,11 @@ static bool add_link_data(fLinkState *link, char *data, const char *name)
 fLinkState *fraktal_create_link()
 {
     fraktal_ensure_context();
-    fLinkState *link = (fLinkState*)calloc(1, sizeof(fLinkState));
+    fLinkState *link = (fLinkState*)malloc(sizeof(fLinkState));
     link->num_shaders = 0;
     link->glsl_version = "#version 150";
     link->params.count = 0;
+    link->params.sampler_count = 0;
     return link;
 }
 
@@ -191,7 +192,7 @@ fKernel *fraktal_link_kernel(fLinkState *link)
         return NULL;
     }
 
-    fKernel *kernel = (fKernel*)calloc(1, sizeof(fKernel));
+    fKernel *kernel = (fKernel*)malloc(sizeof(fKernel));
     kernel->program = program;
     kernel->params.count = link->params.count;
     kernel->params.sampler_count = link->params.sampler_count;
@@ -203,19 +204,23 @@ fKernel *fraktal_link_kernel(fLinkState *link)
         kernel->params.scale[i] = link->params.scale[i];
         kernel->params.offset[i] = glGetUniformLocation(program, link->params.name[i]);
         kernel->params.assigned_tex_unit[i] = link->params.assigned_tex_unit[i];
+        kernel->params.std140_offset[i] = link->params.std140_offset[i];
+        kernel->params.std140_size[i] = link->params.std140_size[i];
     }
     // print kernel information
     #if 0
     {
         for (int i = 0; i < kernel->params.count; i++)
         {
-            printf("%s:%d: %d, %f, %f, %d\n",
-                   kernel->params.name[i],
-                   kernel->params.offset[i],
-                   kernel->params.type[i],
-                   kernel->params.mean[i].x,
-                   kernel->params.scale[i].x,
-                   kernel->params.assigned_tex_unit[i]);
+            printf("%s: ", kernel->params.name[i]);
+            printf("%d: ", kernel->params.offset[i]);
+            printf("%d: ", kernel->params.type[i]);
+            printf("%f: ", kernel->params.mean[i].x);
+            printf("%f: ", kernel->params.scale[i].x);
+            printf("%d: ", kernel->params.assigned_tex_unit[i]);
+            printf("%d: ", kernel->params.std140_offset[i]);
+            printf("%d: ", kernel->params.std140_size[i]);
+            printf("\n");
         }
         printf("num_params: %d\n", kernel->params.count);
         printf("num_samplers: %d\n", kernel->params.sampler_count);

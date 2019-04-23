@@ -54,6 +54,10 @@ struct fParams
     int offset[FRAKTAL_MAX_PARAMS];
     fParamType type[FRAKTAL_MAX_PARAMS];
     int assigned_tex_unit[FRAKTAL_MAX_PARAMS];
+
+    int std140_offset[FRAKTAL_MAX_PARAMS];
+    int std140_size[FRAKTAL_MAX_PARAMS];
+
     int sampler_count;
     int count;
 };
