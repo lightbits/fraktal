@@ -124,10 +124,10 @@ void fraktal_destroy_link(fLinkState *link)
     }
 }
 
-bool fraktal_add_link_data(fLinkState *link, const char *data, size_t size, const char *name)
+bool fraktal_add_link_data(fLinkState *link, const char *data, unsigned int size, const char *name)
 {
     // cannot assume that we are allowed to modify user data, so we make a copy.
-    if (size == 0) size = strlen(data);
+    if (size == 0) size = (unsigned int)strlen(data);
     char *copy = (char*)malloc(size + 1);
     strcpy(copy, data);
     fraktal_assert(copy && "Ran out of memory");

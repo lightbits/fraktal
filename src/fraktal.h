@@ -200,7 +200,7 @@ FRAKTALAPI void fraktal_destroy_link(fLinkState *link);
 FRAKTALAPI bool fraktal_add_link_data(
     fLinkState *link,
     const void *data,
-    size_t size,
+    unsigned int size,
     const char *name);
 
 /*

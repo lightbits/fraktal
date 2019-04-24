@@ -191,6 +191,7 @@ static bool parse_string(const char **c, const char **v, size_t *len)
         return false;
     }
     *len = *c - *v;
+    return true;
 }
 
 static bool parse_int2(const char **c, int2 *v)
