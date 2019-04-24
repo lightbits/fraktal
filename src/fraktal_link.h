@@ -196,6 +196,7 @@ fKernel *fraktal_link_kernel(fLinkState *link)
     kernel->program = program;
     kernel->params.count = link->params.count;
     kernel->params.sampler_count = link->params.sampler_count;
+    kernel->loc_iPosition = 0;
     for (int i = 0; i < link->params.count; i++)
     {
         strcpy(kernel->params.name[i], link->params.name[i]);
