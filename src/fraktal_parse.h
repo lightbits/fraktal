@@ -184,13 +184,14 @@ static bool parse_string(const char **c, const char **v, size_t *len)
 
     *v = *c;
     while (**c && **c != delimiter)
-        c++;
+        (*c)++;
     if (**c == '\0')
     {
         parse_error(*c, "Error parsing string: missing end quotation.\n");
         return false;
     }
     *len = *c - *v;
+    (*c)++;
     return true;
 }
 
@@ -351,18 +352,17 @@ declare_parse_argument_(float2);
 declare_parse_argument_(float3);
 declare_parse_argument_(float4);
 
-#if 0
-static bool parse_argument_string(const char **c, const char *name, const char **v)
+static bool parse_argument_string(const char **c, const char *name, const char **v, size_t *len)
 {
     if (parse_match(c, name))
     {
         parse_blank(c);
         if (!parse_char(c, '=')) { parse_error(*c, "Error parsing argument: expected '=' between identifier and value.\n"); return false; }
-        if (!parse_string(c, v)) { parse_error(*c, "Error parsing argument value: unexpected type after '='.\n"); return false; }
+        if (!parse_string(c, v, len)) { parse_error(*c, "Error parsing argument value: unexpected type after '='.\n"); return false; }
+        return true;
     }
     return false;
 }
-#endif
 
 static bool parse_param_meta(const char **c, fParams *p, int param)
 {
@@ -394,6 +394,18 @@ static bool parse_param_meta(const char **c, fParams *p, int param)
         {
             if (parse_argument_float4(c, "mean", (float4*)&p->mean[param])) continue;
             else if (parse_argument_float4(c, "scale", (float4*)&p->scale[param])) continue;
+        }
+
+        if (type == FRAKTAL_PARAM_SAMPLER1D ||
+            type == FRAKTAL_PARAM_SAMPLER2D)
+        {
+            const char *v = NULL;
+            size_t len = 0;
+            if (parse_argument_string(c, "file", &v, &len))
+            {
+                printf("texture path!\n");
+                continue;
+            }
         }
 
         parse_list_unexpected();
@@ -499,9 +511,10 @@ static bool parse_param(const char **c, fParams *p, int param)
     parse_blank(c);
     if (parse_begin_list(c))
     {
-        return parse_param_meta(c, p, param);
+        if (!parse_param_meta(c, p, param))
+            return false;
     }
-    else if (parse_char(c, ';'))
+    else
     {
         p->mean[param].x = 0.0f;
         p->mean[param].y = 0.0f;
@@ -511,13 +524,15 @@ static bool parse_param(const char **c, fParams *p, int param)
         p->scale[param].y = 1.0f;
         p->scale[param].z = 1.0f;
         p->scale[param].w = 1.0f;
-        return true;
     }
-    else
+
+    if (!parse_char(c, ';'))
     {
         parse_error(*c, "unexpected symbol after parameter name.\n");
         return false;
     }
+
+    return true;
 }
 
 static bool parse_fraktal_source(char *fs, fParams *p, const char *name)
@@ -537,6 +552,7 @@ static bool parse_fraktal_source(char *fs, fParams *p, const char *name)
                 int param = p->count;
                 if (!parse_param(c, p, param))
                     return false;
+
                 p->count++;
             }
             else
