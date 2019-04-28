@@ -53,13 +53,16 @@ static bool parse_is_blank(char c)
     return c == ' ' || c == '\n' || c == '\r' || c == '\t';
 }
 
-static void parse_blank(const char **c)
+static bool parse_blank(const char **c)
 {
-    while (**c && parse_is_blank(**c))
+    if (!parse_is_blank(**c))
+        return false;
+    while (parse_is_blank(**c))
         (*c)++;
+    return true;
 }
 
-static void parse_comment(const char **c)
+static bool parse_comment(const char **c)
 {
     char c0 = (*c)[0];
     char c1 = (*c)[1];
@@ -69,13 +72,28 @@ static void parse_comment(const char **c)
             (*c)++;
         while (**c && (**c == '\n' || **c == '\r'))
             (*c)++;
+        return true;
     }
     else if (c0 && c1 && c0 == '/' && c1 == '*')
     {
         while ((*c)[0] && (*c)[1] && !((*c)[0] == '*' && (*c)[1] == '/'))
             (*c)++;
         (*c) += 2;
+        return true;
     }
+    else
+    {
+        return false;
+    }
+}
+
+static bool parse_notalpha(const char **c)
+{
+    if (parse_is_alpha(**c))
+        return false;
+    while (**c && !parse_is_alpha(**c))
+        (*c)++;
+    return true;
 }
 
 static bool parse_char(const char **c, char match)
@@ -87,6 +105,13 @@ static bool parse_char(const char **c, char match)
     }
     else
         return false;
+}
+
+static bool parse_next(const char **c)
+{
+    while (parse_comment(c) || parse_blank(c) || parse_notalpha(c))
+        ;
+    return (**c) != '\0';
 }
 
 static bool parse_match(const char **c, const char *match)
@@ -352,13 +377,31 @@ declare_parse_argument_(float2);
 declare_parse_argument_(float3);
 declare_parse_argument_(float4);
 
-static bool parse_argument_string(const char **c, const char *name, const char **v, size_t *len)
+static bool parse_argument_string(const char **c, const char *name, const char **v, size_t *len, size_t max_len=0)
 {
     if (parse_match(c, name))
     {
         parse_blank(c);
         if (!parse_char(c, '=')) { parse_error(*c, "Error parsing argument: expected '=' between identifier and value.\n"); return false; }
         if (!parse_string(c, v, len)) { parse_error(*c, "Error parsing argument value: unexpected type after '='.\n"); return false; }
+        if (max_len && *len > max_len) { parse_error(*c, "Error parsing string argument: string exceeded maximum length.\n"); return false; }
+        return true;
+    }
+    return false;
+}
+
+static bool parse_argument_nstring(const char **c, const char *name, char *dst, size_t sizeof_dst)
+{
+    if (parse_match(c, name))
+    {
+        parse_blank(c);
+        const char *v = NULL;
+        size_t len = 0;
+        if (!parse_char(c, '=')) { parse_error(*c, "Error parsing argument: expected '=' between identifier and value.\n"); return false; }
+        if (!parse_string(c, &v, &len)) { parse_error(*c, "Error parsing argument value: unexpected type after '='.\n"); return false; }
+        if (len + 1 > sizeof_dst) { parse_error(*c, "Error parsing string argument: string exceeded maximum length.\n"); return false; }
+        memcpy(dst, v, len);
+        dst[len] = '\0';
         return true;
     }
     return false;
