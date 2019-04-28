@@ -89,7 +89,7 @@ struct guiState
 #include "widgets/Widget.h"
 #include "widgets/Sun.h"
 #include "widgets/Camera.h"
-#include "widgets/Floor.h"
+#include "widgets/Ground.h"
 #include "widgets/Material.h"
 #include "widgets/Geometry.h"
 
@@ -130,7 +130,7 @@ static bool scene_file_preprocessor(char *fs, guiSceneParams *params)
 
                 PARSE_WIDGET(Sun)
                 PARSE_WIDGET(Camera)
-                PARSE_WIDGET(Floor)
+                PARSE_WIDGET(Ground)
                 PARSE_WIDGET(Material)
                 PARSE_WIDGET(Geometry)
                 // ...

@@ -19,15 +19,15 @@ uniform int       iMaterialGlossy;
 uniform float     iMaterialSpecularExponent;
 uniform vec3      iMaterialSpecularAlbedo;
 uniform vec3      iMaterialAlbedo;
-uniform int       iFloorReflective;
-uniform float     iFloorHeight;
-uniform float     iFloorSpecularExponent;
-uniform float     iFloorReflectivity;
+uniform int       iGroundReflective;
+uniform float     iGroundHeight;
+uniform float     iGroundSpecularExponent;
+uniform float     iGroundReflectivity;
 out vec4          fragColor;
 
 #ifdef FRAKTAL_GUI
 #widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
-#widget(Floor, height=-0.5)
+#widget(Ground, height=-0.5)
 #widget(Material, specular_exponent=256.0)
 #widget(Sun, size=10deg, color=(1,1,0.8), intensity=250)
 #endif
@@ -69,10 +69,10 @@ vec3 normal(vec3 p)
     return normalize(n);
 }
 
-float traceFloor(vec3 ro, vec3 rd)
+float traceGround(vec3 ro, vec3 rd)
 {
     if (rd.y == 0.0) return -1.0;
-    else return (iFloorHeight - ro.y)/rd.y;
+    else return (iGroundHeight - ro.y)/rd.y;
 }
 
 float traceModel(vec3 ro, vec3 rd)
@@ -91,8 +91,8 @@ float traceModel(vec3 ro, vec3 rd)
 
 bool isVisible(vec3 ro, vec3 rd)
 {
-    float tFloor = traceFloor(ro, rd);
-    if (tFloor > EPSILON)
+    float tGround = traceGround(ro, rd);
+    if (tGround > EPSILON)
         return false;
     float t = 0.0;
     for (int i = ZERO; i < STEPS; i++)
@@ -175,7 +175,7 @@ vec3 colorIsolines(vec3 p)
     return mix(vec3(1.0), iIsolineColor, t);
 }
 
-vec3 colorFloor(vec3 p, vec3 ro)
+vec3 colorGround(vec3 p, vec3 ro)
 {
     vec3 albedo = vec3(1.0);
     if (iDrawIsolines==1)
@@ -195,13 +195,13 @@ vec3 colorFloor(vec3 p, vec3 ro)
     if (isVisible(ro,rd))
         result += vec3(1.0)*max(0.0,dot(n, rd));
 
-    if (iFloorReflective == 1)
+    if (iGroundReflective == 1)
     {
         vec3 w_s = v - 2.0*dot(n, v)*n;
-        rd = phongWeightedSample(w_s, iFloorSpecularExponent);
+        rd = phongWeightedSample(w_s, iGroundSpecularExponent);
         float tModel = traceModel(ro, rd);
         if (tModel > 0.0)
-            result = mix(result, colorModel(ro + tModel*rd, ro), iFloorReflectivity);
+            result = mix(result, colorModel(ro + tModel*rd, ro), iGroundReflectivity);
     }
 
     return result*albedo;
@@ -215,10 +215,10 @@ void main()
 
     fragColor.rgb = vec3(1.0);
     float tModel = traceModel(ro, rd);
-    float tFloor = traceFloor(ro, rd);
-    if (tFloor > 0.0 && ((tModel > 0.0 && tFloor < tModel) || tModel < 0.0))
-        fragColor.rgb = colorFloor(ro + rd*tFloor, ro);
-    else if (tModel > 0.0 && ((tFloor > 0.0 && tModel < tFloor) || tFloor < 0.0))
+    float tGround = traceGround(ro, rd);
+    if (tGround > 0.0 && ((tModel > 0.0 && tGround < tModel) || tModel < 0.0))
+        fragColor.rgb = colorGround(ro + rd*tGround, ro);
+    else if (tModel > 0.0 && ((tGround > 0.0 && tModel < tGround) || tGround < 0.0))
         fragColor.rgb = colorModel(ro + rd*tModel, ro);
     fragColor.a = 1.0;
 }
