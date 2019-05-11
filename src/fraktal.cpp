@@ -21,19 +21,10 @@ certain behaviors. You can provide these to your compiler in your build,
 or #define them directly if you do a unity build.
 
 -D FRAKTAL_OMIT_GL_SYMBOLS -> prevents definition of OpenGL symbols
+                              (useful for unity-builds)
 -D FRAKTAL_GUI             -> includes fraktal_gui library
 -D fraktal_assert          -> bring your own assert macro
 
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-§ OpenGL symbols in unity builds
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  If you are compiling fraktal by #including fraktal.cpp directly in your
-final translation unit (also known as doing a "unity build"), you can use
-    #define FRAKTAL_OMIT_GL_SYMBOLS
-to prevent fraktal from defining OpenGL functions and symbols. Naturally,
-if you do this you have to make sure GL symbols are defined in your own
-code before including this file.
 */
 
 #include "fraktal.h"
