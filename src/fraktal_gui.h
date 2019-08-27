@@ -801,6 +801,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 struct guiSettings
 {
     int width,height,x,y;
+    float ui_scale;
 };
 
 static void write_settings_to_disk(const char *ini_filename, guiSettings s)
@@ -814,6 +815,7 @@ static void write_settings_to_disk(const char *ini_filename, guiSettings s)
     fprintf(f, "height=%d\n", s.height);
     fprintf(f, "x=%d\n", s.x);
     fprintf(f, "y=%d\n", s.y);
+    fprintf(f, "ui_scale=%g\n", s.ui_scale);
     fprintf(f, "\n");
 
     size_t imgui_ini_size = 0;
@@ -832,15 +834,17 @@ static void read_settings_from_disk(const char *ini_filename, guiSettings *s)
     char *data = f;
     char *line = read_line(&data);
     bool fraktal = false;
-    int width,height,x,y;
+    int d;
+    float v;
     while (line)
     {
         if (*line == '\0') ; // skip blanks
-        else if (0 == strcmp(line, "[FraktalWindow]")) { fraktal = true; }
-        else if (fraktal && 1 == sscanf(line, "width=%d", &width)) s->width = width;
-        else if (fraktal && 1 == sscanf(line, "height=%d", &height)) s->height = height;
-        else if (fraktal && 1 == sscanf(line, "x=%d", &x)) s->x = x;
-        else if (fraktal && 1 == sscanf(line, "y=%d", &y)) s->y = y;
+        else if (0 == strcmp(line, "[FraktalWindow]"))             fraktal = true;
+        else if (fraktal && 1 == sscanf(line, "width=%d", &d))     s->width = d;
+        else if (fraktal && 1 == sscanf(line, "height=%d", &d))    s->height = d;
+        else if (fraktal && 1 == sscanf(line, "x=%d", &d))         s->x = d;
+        else if (fraktal && 1 == sscanf(line, "y=%d", &d))         s->y = d;
+        else if (fraktal && 1 == sscanf(line, "ui_scale=%f", &v))  s->ui_scale = v;
         else break;
         line = read_line(&data);
     }
@@ -898,6 +902,7 @@ void fg_show()
         settings.height = 600;
         settings.x = -1;
         settings.y = -1;
+        settings.ui_scale = 1.0f;
         ImGui::GetIO().IniFilename = NULL; // override ImGui load/save ini behavior with our own
         read_settings_from_disk(ini_filename, &settings);
 
@@ -926,20 +931,21 @@ void fg_show()
         // load fonts
         {
             const char *data = (const char*)open_sans_regular_compressed_data;
-            const unsigned int size = open_sans_regular_compressed_size;
-            float height = 16.0f;
+            const unsigned int sizeof_data = open_sans_regular_compressed_size;
+            float font_size = 16.0f*settings.ui_scale;
 
             ImGuiIO &io = ImGui::GetIO();
 
-            io.Fonts->AddFontFromMemoryCompressedTTF(data, size, height);
+            io.Fonts->AddFontFromMemoryCompressedTTF(data, sizeof_data, font_size);
 
             // add math symbols with a different font size
+            float math_size = 18.0f*settings.ui_scale;
             ImFontConfig config;
             config.MergeMode = true;
             ImFontGlyphRangesBuilder builder;
             builder.AddText("\xce\xb8\xcf\x86\xe0\x04"); // theta, phi
             builder.BuildRanges(&glyph_ranges);
-            io.Fonts->AddFontFromMemoryCompressedTTF(data, size, 18.0f, &config, glyph_ranges.Data);
+            io.Fonts->AddFontFromMemoryCompressedTTF(data, sizeof_data, math_size, &config, glyph_ranges.Data);
         }
     }
     else
