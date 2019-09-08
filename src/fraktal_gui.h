@@ -750,6 +750,7 @@ static void gui_present(guiState &scene)
 //-----------------------------------------------------------------------------
 
 #include <open_sans_regular.h>
+#include <open_sans_semi_bold.h>
 
 static guiState fg_scene;
 static int g_window_pos_x = -1;
@@ -930,15 +931,15 @@ void fg_show()
 
         // load fonts
         {
-            const char *data = (const char*)open_sans_regular_compressed_data;
-            const unsigned int sizeof_data = open_sans_regular_compressed_size;
-            float font_size = 16.0f*settings.ui_scale;
-
             ImGuiIO &io = ImGui::GetIO();
 
+            // add main font
+            float font_size = 16.0f*settings.ui_scale;
+            const char *data = (const char*)open_sans_semi_bold_compressed_data;
+            const unsigned int sizeof_data = open_sans_semi_bold_compressed_size;
             io.Fonts->AddFontFromMemoryCompressedTTF(data, sizeof_data, font_size);
 
-            // add math symbols with a different font size
+            // add math symbols (larger)
             float math_size = 18.0f*settings.ui_scale;
             ImFontConfig config;
             config.MergeMode = true;
