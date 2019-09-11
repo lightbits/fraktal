@@ -12,13 +12,6 @@ uniform vec3      iSunStrength;
 uniform float     iCosSunSize;
 out vec4          fragColor;
 
-#ifdef FRAKTAL_GUI
-#widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
-#widget(Ground, height=-0.5)
-#widget(Material, specular_exponent=256.0)
-#widget(Sun, size=10deg, color=(1,1,0.8), intensity=250)
-#endif
-
 #define EPSILON 0.001
 #define STEPS 512
 #define DENOISE 1

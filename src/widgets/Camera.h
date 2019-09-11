@@ -30,30 +30,34 @@ struct Widget_Camera : Widget
     int loc_iCameraF;
     int loc_iCameraCenter;
 
-    Widget_Camera(guiSceneParams *params, const char **cc)
+    virtual void default_values(guiState &g)
     {
         dir.theta = -20.0f;
         dir.phi = 30.0f;
         pos.x = 0.0f;
         pos.y = 0.0f;
         pos.z = 24.0f;
-        camera_f = yfov2pinhole_f(10.0f, (float)params->resolution.y);
-        camera_center.x = params->resolution.x/2.0f;
-        camera_center.y = params->resolution.y/2.0f;
-
+        camera_f = yfov2pinhole_f(10.0f, (float)g.resolution.y);
+        camera_center.x = g.resolution.x/2.0f;
+        camera_center.y = g.resolution.y/2.0f;
+    }
+    virtual void initialize_from_string(const char **cc)
+    {
         while (parse_next_in_list(cc)) {
-            float yfov;
-            if (parse_argument_angle(cc, "yfov", &yfov))
-            {
-                if (params->resolution.y == 0.0f) { log_err("Error parsing Camera #widget: #resolution must be set first when specifying FOV ('yfov').\n"); parse_list_unexpected(); return; }
-                camera_f = yfov2pinhole_f(yfov, (float)params->resolution.y);
-            }
-            else if (parse_argument_float(cc, "f", &camera_f)) ;
+            if (parse_argument_float(cc, "f", &camera_f)) ;
             else if (parse_argument_float2(cc, "center", &camera_center)) ;
             else if (parse_argument_angle2(cc, "dir", &dir)) ;
             else if (parse_argument_float3(cc, "pos", &pos)) ;
             else parse_list_unexpected();
         }
+    }
+    virtual void write_to_file(FILE *f)
+    {
+        fprintf(f, "camera=(");
+        fprintf(f, "f=%f, ", camera_f);
+        fprintf(f, "center=(%f, %f), ", camera_center.x, camera_center.y);
+        fprintf(f, "dir=(%f deg, %f deg), ", dir.theta, dir.phi);
+        fprintf(f, "pos=(%f, %f, %f))\n", pos.x, pos.y, pos.z);
     }
     virtual void get_param_offsets(fKernel *f)
     {
@@ -77,8 +81,8 @@ struct Widget_Camera : Widget
         // displacement of the object in image pixels, irregardless of how far
         // away the camera is.
         float z_over_f = fabsf(pos.z)/camera_f;
-        float x_move_step = (g.params.resolution.x*0.05f)*z_over_f;
-        float y_move_step = (g.params.resolution.y*0.05f)*z_over_f;
+        float x_move_step = (g.resolution.x*0.05f)*z_over_f;
+        float y_move_step = (g.resolution.y*0.05f)*z_over_f;
         float z_move_step = 0.1f*fabsf(pos.z);
         if (g.keys.Ctrl.pressed)  { pos.y -= y_move_step; changed = true; }
         if (g.keys.Space.pressed) { pos.y += y_move_step; changed = true; }
@@ -90,8 +94,8 @@ struct Widget_Camera : Widget
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
         {
             float3 drag_speeds;
-            drag_speeds.x = (g.params.resolution.x*0.005f)*z_over_f;
-            drag_speeds.y = (g.params.resolution.y*0.005f)*z_over_f;
+            drag_speeds.x = (g.resolution.x*0.005f)*z_over_f;
+            drag_speeds.y = (g.resolution.y*0.005f)*z_over_f;
             drag_speeds.z = 0.01f*fabsf(pos.z);
 
             if (loc_iView != -1)

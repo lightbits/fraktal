@@ -47,12 +47,6 @@ struct guiSceneDef
     int resolution_x;
     int resolution_y;
 };
-struct guiSceneParams
-{
-    int2 resolution;
-    Widget *widgets[MAX_WIDGETS];
-    int num_widgets;
-};
 typedef int guiPreviewMode;
 enum guiPreviewMode_ {
     guiPreviewMode_Color=0,
@@ -78,7 +72,9 @@ struct guiState
 
     guiKeys keys;
 
-    guiSceneParams params;
+    int2 resolution;
+    Widget *widgets[MAX_WIDGETS];
+    int num_widgets;
 
     guiPreviewMode mode;
 
@@ -87,70 +83,11 @@ struct guiState
 
 #include "imgui_extensions.h"
 #include "widgets/Widget.h"
-#include "widgets/Sun.h"
+// #include "widgets/Sun.h"
 #include "widgets/Camera.h"
-#include "widgets/Ground.h"
-#include "widgets/Material.h"
-#include "widgets/Geometry.h"
-
-static void remove_directive_from_source(char *from, char *to)
-{
-    for (char *c = from; c < to; c++)
-        *c = ' ';
-}
-
-static bool scene_file_preprocessor(char *fs, guiSceneParams *params)
-{
-    params->num_widgets = 0;
-    char *c = fs;
-    while (*c)
-    {
-        parse_comment((const char **)&c);
-        if (*c == '#')
-        {
-            char *mark = c;
-            c++;
-            const char **cc = (const char **)&c;
-            if (parse_match(cc, "widget"))
-            {
-                if (params->num_widgets == MAX_WIDGETS) { log_err("Exceeded the maximum number of widgets.\n"); goto failure; }
-
-                parse_alpha(cc);
-                parse_blank(cc);
-                if (!parse_begin_list(cc)) { log_err("Error parsing #widget directive: missing ( after '#sun'.\n"); goto failure; }
-
-                // horrible macro mess
-                #define PARSE_WIDGET(widget) \
-                    if (parse_match(cc, #widget)) { \
-                        parse_char(cc, ','); \
-                        Widget_##widget *ww = new Widget_##widget(params, cc); \
-                        if (!parse_end_list(cc)) { free(ww); log_err("Error parsing " #widget " #widget directive.\n"); goto failure; } \
-                        params->widgets[params->num_widgets] = ww; \
-                    } else
-
-                PARSE_WIDGET(Sun)
-                PARSE_WIDGET(Camera)
-                PARSE_WIDGET(Ground)
-                PARSE_WIDGET(Material)
-                PARSE_WIDGET(Geometry)
-                // ...
-                // add new macros here!
-                // ...
-                { log_err("Error parsing #widget directive: unknown widget type.\n"); goto failure; }
-
-                params->num_widgets++;
-                remove_directive_from_source(mark, c);
-            }
-        }
-        c++;
-    }
-    return true;
-
-failure:
-    for (int i = 0; i < params->num_widgets; i++)
-        free(params->widgets[i]);
-    return false;
-}
+// #include "widgets/Ground.h"
+// #include "widgets/Material.h"
+// #include "widgets/Geometry.h"
 
 static void save_screenshot(const char *filename, fArray *f)
 {
@@ -166,45 +103,22 @@ static void save_screenshot(const char *filename, fArray *f)
     free(pixels);
 }
 
-static fKernel *load_render_shader(
-    const char *model_kernel_path,
-    const char *render_kernel_path,
-    guiSceneParams *params)
+static fKernel *load_render_shader(const char *model_path, const char *render_path)
 {
     fLinkState *link = fraktal_create_link();
 
-    if (!fraktal_add_link_file(link, model_kernel_path))
+    if (!fraktal_add_link_file(link, model_path))
     {
         log_err("Failed to load render kernel: error compiling model.\n");
         fraktal_destroy_link(link);
         return NULL;
     }
 
-    // render kernel
+    if (!fraktal_add_link_file(link, render_path))
     {
-        const char *path = render_kernel_path;
-        char *data = read_file(path);
-        if (!data)
-        {
-            log_err("Failed to load render kernel: could not read file '%s'.\n", path);
-            fraktal_destroy_link(link);
-            return NULL;
-        }
-        if (!scene_file_preprocessor(data, params))
-        {
-            log_err("Failed to load render kernel: could not parse file '%s'.\n", path);
-            fraktal_destroy_link(link);
-            free(data);
-            return NULL;
-        }
-        if (!fraktal_add_link_data(link, data, 0, path))
-        {
-            log_err("Failed to load render kernel: error compiling '%s'.\n", path);
-            fraktal_destroy_link(link);
-            free(data);
-            return NULL;
-        }
-        free(data);
+        log_err("Failed to load render kernel: error compiling renderer.\n");
+        fraktal_destroy_link(link);
+        return NULL;
     }
 
     fKernel *kernel = fraktal_link_kernel(link);
@@ -216,26 +130,24 @@ static bool gui_load(guiState &scene, guiSceneDef def)
 {
     if (def.resolution_x <= 0) def.resolution_x = 200;
     if (def.resolution_y <= 0) def.resolution_y = 200;
+    if (def.resolution_x > 2048) def.resolution_x = 2048;
+    if (def.resolution_y > 2048) def.resolution_y = 2048;
 
-    guiSceneParams params = scene.params;
-
-    params.resolution.x = def.resolution_x;
-    params.resolution.y = def.resolution_y;
+    bool resolution_changed =
+        scene.resolution.x != def.resolution_x ||
+        scene.resolution.y != def.resolution_y;
 
     fKernel *render = NULL;
-    {
-        if (scene.mode == guiPreviewMode_Color) render = load_render_shader(def.model_kernel_path, def.color_kernel_path, &params);
-        else render = load_render_shader(def.model_kernel_path, def.geometry_kernel_path, &params);
-    }
+    if (scene.mode == guiPreviewMode_Color)
+        render = load_render_shader(def.model_kernel_path, def.color_kernel_path);
+    else
+        render = load_render_shader(def.model_kernel_path, def.geometry_kernel_path);
 
     if (!render)
     {
         log_err("Failed to load scene: error compiling render kernel.\n");
         return false;
     }
-
-    for (int i = 0; i < params.num_widgets; i++)
-        params.widgets[i]->get_param_offsets(render);
 
     fKernel *compose = fraktal_load_kernel(def.compose_kernel_path);
     if (!compose)
@@ -246,37 +158,40 @@ static bool gui_load(guiState &scene, guiSceneDef def)
     }
 
     // Reallocate output buffers if the resolution changed or
-    // if this is the first time we load the scene.
-    bool resolution_changed =
-        params.resolution.x != scene.params.resolution.x ||
-        params.resolution.y != scene.params.resolution.y;
+    // if this is the first time we load
     if (!scene.initialized || resolution_changed)
     {
-        int x = params.resolution.x;
-        int y = params.resolution.y;
-        assert(x > 0);
-        assert(y > 0);
-
         fraktal_destroy_array(scene.render_buffer);
         fraktal_destroy_array(scene.compose_buffer);
 
-        scene.params.resolution.x = x;
-        scene.params.resolution.y = y;
+        scene.resolution.x = def.resolution_x;
+        scene.resolution.y = def.resolution_y;
+        int x = def.resolution_x, y = def.resolution_y;
         scene.render_buffer = fraktal_create_array(NULL, x, y, 4, FRAKTAL_FLOAT, FRAKTAL_READ_WRITE);
         scene.compose_buffer = fraktal_create_array(NULL, x, y, 4, FRAKTAL_UINT8, FRAKTAL_READ_WRITE);
         scene.should_clear = true;
     }
 
+    // Add widgets if we haven't already
+    if (!scene.initialized)
+    {
+        fraktal_assert(scene.num_widgets == 0);
+        scene.widgets[scene.num_widgets++] = new Widget_Camera;
+        for (int i = 0; i < scene.num_widgets; i++)
+            scene.widgets[i]->default_values(scene);
+    }
+
+    // Refetch uniform offsets
+    for (int i = 0; i < scene.num_widgets; i++)
+        scene.widgets[i]->get_param_offsets(render);
+
     // Destroy old state and update to newly loaded state
-    for (int i = 0; i < scene.params.num_widgets; i++)
-        free(scene.params.widgets[i]);
     fraktal_destroy_kernel(scene.render_kernel);
     fraktal_destroy_kernel(scene.compose_kernel);
     scene.render_kernel = render;
     scene.compose_kernel = compose;
     scene.render_kernel_is_new = true;
     scene.compose_kernel_is_new = true;
-    scene.params = params;
     scene.should_clear = true;
     scene.def = def;
     scene.initialized = true;
@@ -313,8 +228,8 @@ static void render_color(guiState &scene)
         fraktal_param_2f(loc_iResolution, (float)width, (float)height);
         fraktal_param_1i(loc_iSamples, scene.samples);
 
-        for (int i = 0; i < scene.params.num_widgets; i++)
-            scene.params.widgets[i]->set_params();
+        for (int i = 0; i < scene.num_widgets; i++)
+            scene.widgets[i]->set_params();
 
         fraktal_run_kernel(out);
         scene.samples++;
@@ -366,8 +281,8 @@ static void render_geometry(guiState &scene)
         else if (scene.mode == guiPreviewMode_GBuffer) glUniform1i(loc_iDrawMode, 3);
         else assert(false);
 
-        for (int i = 0; i < scene.params.num_widgets; i++)
-            scene.params.widgets[i]->set_params();
+        for (int i = 0; i < scene.num_widgets; i++)
+            scene.widgets[i]->set_params();
 
         fraktal_zero_array(out);
         fraktal_run_kernel(out);
@@ -549,8 +464,8 @@ static void gui_present(guiState &scene)
             ImGui::InputInt("y##resolution", &scene.def.resolution_y);
         }
 
-        for (int i = 0; i < scene.params.num_widgets; i++)
-            scene.should_clear |= scene.params.widgets[i]->update(scene);
+        for (int i = 0; i < scene.num_widgets; i++)
+            scene.should_clear |= scene.widgets[i]->update(scene);
 
         ImGui::End();
     }
@@ -620,7 +535,7 @@ static void gui_present(guiState &scene)
             ImGui::BeginMenuBar();
             {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,4.0f));
-                ImGui::Text("%d x %d", scene.params.resolution.x, scene.params.resolution.y);
+                ImGui::Text("%d x %d", scene.resolution.x, scene.resolution.y);
                 ImGui::Separator();
                 ImGui::Text(scene.def.model_kernel_path);
                 ImGui::Separator();
@@ -839,7 +754,7 @@ static void read_settings_from_disk(const char *ini_filename, guiSettings *s)
     float v;
     while (line)
     {
-        if (*line == '\0') ; // skip blanks
+        if (*line == '\0') /* do nothing (skip blank lines) */ ;
         else if (0 == strcmp(line, "[FraktalWindow]"))             fraktal = true;
         else if (fraktal && 1 == sscanf(line, "width=%d", &d))     s->width = d;
         else if (fraktal && 1 == sscanf(line, "height=%d", &d))    s->height = d;

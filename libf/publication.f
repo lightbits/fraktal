@@ -25,13 +25,6 @@ uniform float     iGroundSpecularExponent;
 uniform float     iGroundReflectivity;
 out vec4          fragColor;
 
-#ifdef FRAKTAL_GUI
-#widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
-#widget(Ground, height=-0.5)
-#widget(Material, specular_exponent=256.0)
-#widget(Sun, size=10deg, color=(1,1,0.8), intensity=250)
-#endif
-
 #define EPSILON 0.0001
 #define STEPS 512
 #define M_PI 3.1415926535897932384626433832795
