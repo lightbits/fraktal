@@ -21,7 +21,8 @@
 #include "fraktal.h"
 #include "fraktal_parse.h"
 
-enum { MAX_WIDGETS = 1024 };
+enum { MAX_WIDGETS = 128 };
+enum { MAX_PRESETS = 1024 };
 struct Widget;
 struct guiKey
 {
@@ -55,6 +56,18 @@ enum guiPreviewMode_ {
     guiPreviewMode_Depth,
     guiPreviewMode_GBuffer,
 };
+struct guiPreset
+{
+    const char *name;
+    int2 resolution;
+    Widget *widgets[MAX_WIDGETS];
+    int num_widgets;
+};
+struct guiWindow
+{
+    int width,height,x,y;
+    float ui_scale;
+};
 struct guiState
 {
     guiSceneDef def;
@@ -71,12 +84,11 @@ struct guiState
     bool auto_render;
 
     guiKeys keys;
-
-    int2 resolution;
-    Widget *widgets[MAX_WIDGETS];
-    int num_widgets;
-
     guiPreviewMode mode;
+
+    guiWindow window;
+
+    guiPreset preset;
 
     bool got_error;
 };
@@ -134,8 +146,8 @@ static bool gui_load(guiState &scene, guiSceneDef def)
     if (def.resolution_y > 2048) def.resolution_y = 2048;
 
     bool resolution_changed =
-        scene.resolution.x != def.resolution_x ||
-        scene.resolution.y != def.resolution_y;
+        scene.preset.resolution.x != def.resolution_x ||
+        scene.preset.resolution.y != def.resolution_y;
 
     fKernel *render = NULL;
     if (scene.mode == guiPreviewMode_Color)
@@ -164,8 +176,8 @@ static bool gui_load(guiState &scene, guiSceneDef def)
         fraktal_destroy_array(scene.render_buffer);
         fraktal_destroy_array(scene.compose_buffer);
 
-        scene.resolution.x = def.resolution_x;
-        scene.resolution.y = def.resolution_y;
+        scene.preset.resolution.x = def.resolution_x;
+        scene.preset.resolution.y = def.resolution_y;
         int x = def.resolution_x, y = def.resolution_y;
         scene.render_buffer = fraktal_create_array(NULL, x, y, 4, FRAKTAL_FLOAT, FRAKTAL_READ_WRITE);
         scene.compose_buffer = fraktal_create_array(NULL, x, y, 4, FRAKTAL_UINT8, FRAKTAL_READ_WRITE);
@@ -175,15 +187,15 @@ static bool gui_load(guiState &scene, guiSceneDef def)
     // Add widgets if we haven't already
     if (!scene.initialized)
     {
-        fraktal_assert(scene.num_widgets == 0);
-        scene.widgets[scene.num_widgets++] = new Widget_Camera;
-        for (int i = 0; i < scene.num_widgets; i++)
-            scene.widgets[i]->default_values(scene);
+        scene.preset.num_widgets = 0;
+        scene.preset.widgets[scene.preset.num_widgets++] = new Widget_Camera;
+        for (int i = 0; i < scene.preset.num_widgets; i++)
+            scene.preset.widgets[i]->default_values(scene);
     }
 
     // Refetch uniform offsets
-    for (int i = 0; i < scene.num_widgets; i++)
-        scene.widgets[i]->get_param_offsets(render);
+    for (int i = 0; i < scene.preset.num_widgets; i++)
+        scene.preset.widgets[i]->get_param_offsets(render);
 
     // Destroy old state and update to newly loaded state
     fraktal_destroy_kernel(scene.render_kernel);
@@ -228,10 +240,10 @@ static void render_color(guiState &scene)
         fraktal_param_2f(loc_iResolution, (float)width, (float)height);
         fraktal_param_1i(loc_iSamples, scene.samples);
 
-        for (int i = 0; i < scene.num_widgets; i++)
+        for (int i = 0; i < scene.preset.num_widgets; i++)
         {
-            if (scene.widgets[i]->is_active())
-                scene.widgets[i]->set_params();
+            if (scene.preset.widgets[i]->is_active())
+                scene.preset.widgets[i]->set_params();
         }
 
         fraktal_run_kernel(out);
@@ -284,10 +296,10 @@ static void render_geometry(guiState &scene)
         else if (scene.mode == guiPreviewMode_GBuffer) glUniform1i(loc_iDrawMode, 3);
         else assert(false);
 
-        for (int i = 0; i < scene.num_widgets; i++)
+        for (int i = 0; i < scene.preset.num_widgets; i++)
         {
-            if (scene.widgets[i]->is_active())
-                scene.widgets[i]->set_params();
+            if (scene.preset.widgets[i]->is_active())
+                scene.preset.widgets[i]->set_params();
         }
 
         fraktal_zero_array(out);
@@ -470,10 +482,10 @@ static void gui_present(guiState &scene)
             ImGui::InputInt("y##resolution", &scene.def.resolution_y);
         }
 
-        for (int i = 0; i < scene.num_widgets; i++)
+        for (int i = 0; i < scene.preset.num_widgets; i++)
         {
-            if (scene.widgets[i]->is_active())
-                scene.should_clear |= scene.widgets[i]->update(scene);
+            if (scene.preset.widgets[i]->is_active())
+                scene.should_clear |= scene.preset.widgets[i]->update(scene);
         }
 
         ImGui::End();
@@ -544,7 +556,7 @@ static void gui_present(guiState &scene)
             ImGui::BeginMenuBar();
             {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,4.0f));
-                ImGui::Text("%d x %d", scene.resolution.x, scene.resolution.y);
+                ImGui::Text("%d x %d", scene.preset.resolution.x, scene.preset.resolution.y);
                 ImGui::Separator();
                 ImGui::Text(scene.def.model_kernel_path);
                 ImGui::Separator();
@@ -723,25 +735,30 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
     }
 }
 
-struct guiSettings
-{
-    int width,height,x,y;
-    float ui_scale;
-};
-
-static void write_settings_to_disk(const char *ini_filename, guiSettings s)
+static void write_settings_to_disk(const char *ini_filename, guiState s)
 {
     FILE *f = fopen(ini_filename, "wt");
     if (!f)
         return;
 
     fprintf(f, "[FraktalWindow]\n");
-    fprintf(f, "width=%d\n", s.width);
-    fprintf(f, "height=%d\n", s.height);
-    fprintf(f, "x=%d\n", s.x);
-    fprintf(f, "y=%d\n", s.y);
-    fprintf(f, "ui_scale=%g\n", s.ui_scale);
+    fprintf(f, "width=%d\n", s.window.width);
+    fprintf(f, "height=%d\n", s.window.height);
+    fprintf(f, "x=%d\n", s.window.x);
+    fprintf(f, "y=%d\n", s.window.y);
+    fprintf(f, "ui_scale=%g\n", s.window.ui_scale);
     fprintf(f, "\n");
+
+    // for (int i = 0; i < s.num_presets; i++)
+    // {
+    //     if (s.presets[i].name == NULL)
+    //         fprintf(f, "[FraktalPreset][%s]\n", s.presets[i].name);
+    //     else
+    //         fprintf(f, "[FraktalPreset][%s]\n", s.presets[i].name);
+    //     for (int j = 0; j < s.presets[i].num_widgets; j++)
+    //         s.presets[i].widgets[j]->serialize(f);
+    //     fprintf(f, "\n");
+    // }
 
     size_t imgui_ini_size = 0;
     const char *imgui_ini_data = ImGui::SaveIniSettingsToMemory(&imgui_ini_size);
@@ -750,7 +767,7 @@ static void write_settings_to_disk(const char *ini_filename, guiSettings s)
     fclose(f);
 }
 
-static void read_settings_from_disk(const char *ini_filename, guiSettings *s)
+static void read_settings_from_disk(const char *ini_filename, guiState *s)
 {
     char *f = read_file(ini_filename);
     if (!f)
@@ -765,11 +782,11 @@ static void read_settings_from_disk(const char *ini_filename, guiSettings *s)
     {
         if (*line == '\0') /* do nothing (skip blank lines) */ ;
         else if (0 == strcmp(line, "[FraktalWindow]"))             fraktal = true;
-        else if (fraktal && 1 == sscanf(line, "width=%d", &d))     s->width = d;
-        else if (fraktal && 1 == sscanf(line, "height=%d", &d))    s->height = d;
-        else if (fraktal && 1 == sscanf(line, "x=%d", &d))         s->x = d;
-        else if (fraktal && 1 == sscanf(line, "y=%d", &d))         s->y = d;
-        else if (fraktal && 1 == sscanf(line, "ui_scale=%f", &v))  s->ui_scale = v;
+        else if (fraktal && 1 == sscanf(line, "width=%d", &d))     s->window.width = d;
+        else if (fraktal && 1 == sscanf(line, "height=%d", &d))    s->window.height = d;
+        else if (fraktal && 1 == sscanf(line, "x=%d", &d))         s->window.x = d;
+        else if (fraktal && 1 == sscanf(line, "y=%d", &d))         s->window.y = d;
+        else if (fraktal && 1 == sscanf(line, "ui_scale=%f", &v))  s->window.ui_scale = v;
         else break;
         line = read_line(&data);
     }
@@ -806,7 +823,6 @@ void fg_show()
     if (failure)
         return;
 
-    static guiSettings settings = {0};
     static ImVector<ImWchar> glyph_ranges; // this must persist until call to GetTexData
     if (!initialized)
     {
@@ -823,22 +839,23 @@ void fg_show()
         ImGui::StyleColorsDark();
         ImGui::GetStyle().WindowBorderSize = 0.0f;
 
-        settings.width = 800;
-        settings.height = 600;
-        settings.x = -1;
-        settings.y = -1;
-        settings.ui_scale = 1.0f;
+        guiWindow &window = fg_scene.window;
+        window.width = 800;
+        window.height = 600;
+        window.x = -1;
+        window.y = -1;
+        window.ui_scale = 1.0f;
         ImGui::GetIO().IniFilename = NULL; // override ImGui load/save ini behavior with our own
-        read_settings_from_disk(ini_filename, &settings);
+        read_settings_from_disk(ini_filename, &fg_scene);
 
         // sanitize settings
-        if (settings.width <= 1) settings.width = 800;
-        if (settings.height <= 1) settings.height = 600;
+        if (window.width <= 1) window.width = 800;
+        if (window.height <= 1) window.height = 600;
 
-        if (settings.x >= 0 && settings.y >= 0)
-            glfwSetWindowPos(fraktal_context, settings.x, settings.y);
+        if (window.x >= 0 && window.y >= 0)
+            glfwSetWindowPos(fraktal_context, window.x, window.y);
 
-        glfwSetWindowSize(fraktal_context, settings.width, settings.height);
+        glfwSetWindowSize(fraktal_context, window.width, window.height);
         glfwShowWindow(fraktal_context);
 
         glfwSwapInterval(0);
@@ -858,13 +875,13 @@ void fg_show()
             ImGuiIO &io = ImGui::GetIO();
 
             // add main font
-            float font_size = 16.0f*settings.ui_scale;
+            float font_size = 16.0f*window.ui_scale;
             const char *data = (const char*)open_sans_semi_bold_compressed_data;
             const unsigned int sizeof_data = open_sans_semi_bold_compressed_size;
             io.Fonts->AddFontFromMemoryCompressedTTF(data, sizeof_data, font_size);
 
             // add math symbols (larger)
-            float math_size = 18.0f*settings.ui_scale;
+            float math_size = 18.0f*window.ui_scale;
             ImFontConfig config;
             config.MergeMode = true;
             ImFontGlyphRangesBuilder builder;
@@ -894,9 +911,10 @@ void fg_show()
         }
 
         // update settings
-        settings.x = g_window_pos_x;
-        settings.y = g_window_pos_y;
-        glfwGetWindowSize(fraktal_context, &settings.width, &settings.height);
+        guiWindow &window = fg_scene.window;
+        window.x = g_window_pos_x;
+        window.y = g_window_pos_y;
+        glfwGetWindowSize(fraktal_context, &window.width, &window.height);
 
         const double max_redraw_rate = 60.0;
         const double min_redraw_time = 1.0/max_redraw_rate;
@@ -952,14 +970,14 @@ void fg_show()
 
             if (ImGui::GetIO().WantSaveIniSettings)
             {
-                write_settings_to_disk(ini_filename, settings);
+                write_settings_to_disk(ini_filename, fg_scene);
                 ImGui::GetIO().WantSaveIniSettings = false;
             }
 
             glfwSwapBuffers(fraktal_context);
         }
     }
-    write_settings_to_disk(ini_filename, settings);
+    write_settings_to_disk(ini_filename, fg_scene);
 }
 
 // void fg_destroy()
