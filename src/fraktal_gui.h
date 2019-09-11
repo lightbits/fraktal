@@ -229,7 +229,10 @@ static void render_color(guiState &scene)
         fraktal_param_1i(loc_iSamples, scene.samples);
 
         for (int i = 0; i < scene.num_widgets; i++)
-            scene.widgets[i]->set_params();
+        {
+            if (scene.widgets[i]->is_active())
+                scene.widgets[i]->set_params();
+        }
 
         fraktal_run_kernel(out);
         scene.samples++;
@@ -282,7 +285,10 @@ static void render_geometry(guiState &scene)
         else assert(false);
 
         for (int i = 0; i < scene.num_widgets; i++)
-            scene.widgets[i]->set_params();
+        {
+            if (scene.widgets[i]->is_active())
+                scene.widgets[i]->set_params();
+        }
 
         fraktal_zero_array(out);
         fraktal_run_kernel(out);
@@ -465,7 +471,10 @@ static void gui_present(guiState &scene)
         }
 
         for (int i = 0; i < scene.num_widgets; i++)
-            scene.should_clear |= scene.widgets[i]->update(scene);
+        {
+            if (scene.widgets[i]->is_active())
+                scene.should_clear |= scene.widgets[i]->update(scene);
+        }
 
         ImGui::End();
     }

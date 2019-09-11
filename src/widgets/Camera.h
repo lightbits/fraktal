@@ -65,6 +65,13 @@ struct Widget_Camera : Widget
         loc_iCameraCenter = fraktal_get_param_offset(f, "iCameraCenter");
         loc_iCameraF = fraktal_get_param_offset(f, "iCameraF");
     }
+    virtual bool is_active()
+    {
+        if (loc_iView < 0) return false;
+        if (loc_iCameraCenter < 0) return false;
+        if (loc_iCameraF < 0) return false;
+        return true;
+    }
     virtual bool update(guiState g)
     {
         bool changed = false;
