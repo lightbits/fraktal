@@ -97,6 +97,7 @@ struct guiState
     guiPreviewMode mode;
     guiSettings settings;
     guiPreset *preset;
+    guiPreset *next_preset;
     guiPreset presets[NUM_PRESETS];
 
     bool got_error;
@@ -368,10 +369,19 @@ static void update_and_render_gui(guiState &scene)
     for (int i = 0; i <= 9; i++)
     {
         if (scene.keys.Num[i].pressed)
-        {
-            scene.preset = &scene.presets[i];
-            scene.should_clear = true;
-        }
+            scene.next_preset = &scene.presets[i];
+    }
+
+    if (scene.preset != scene.next_preset)
+    {
+        scene.preset = scene.next_preset;
+        scene.should_clear = true;
+    }
+
+    if (!scene.preset)
+    {
+        scene.preset = &scene.presets[0];
+        scene.should_clear = true;
     }
 
     allocate_or_resize_buffers(scene);
@@ -491,6 +501,37 @@ static void update_and_render_gui(guiState &scene)
         ImGui::Begin("Scene parameters", NULL, flags);
         side_panel_width = ImGui::GetWindowWidth();
         side_panel_height = ImGui::GetWindowHeight();
+
+        // display preset swap buttons
+        for (int i = 0; i <= 9; i++)
+        {
+            static const char *label[] = {
+                "0##preset buttons",
+                "1##preset buttons",
+                "2##preset buttons",
+                "3##preset buttons",
+                "4##preset buttons",
+                "5##preset buttons",
+                "6##preset buttons",
+                "7##preset buttons",
+                "8##preset buttons",
+                "9##preset buttons"
+            };
+            if (scene.preset == &scene.presets[i])
+            {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
+                if (ImGui::Button(label[i]))
+                    scene.next_preset = &scene.presets[i];
+                ImGui::PopStyleColor();
+            }
+            else
+            {
+                if (ImGui::Button(label[i]))
+                    scene.next_preset = &scene.presets[i];
+            }
+            if (i < 9)
+                ImGui::SameLine();
+        }
 
         assert(scene.preset);
         for (int i = 0; i < scene.preset->num_widgets; i++)

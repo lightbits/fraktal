@@ -14,11 +14,6 @@ uniform sampler1D iColormap;
 uniform int       iApplyColormap;
 out vec4 fragColor;
 
-#ifdef FRAKTAL_GUI
-#widget(Camera, yfov=10deg, dir=(-20 deg, 30 deg), pos=(0,0,20))
-#widget(Geometry, min_distance=10.0, max_distance=30.0)
-#endif
-
 #define EPSILON 0.0001
 #define STEPS 512
 #define MAX_DISTANCE 100.0
