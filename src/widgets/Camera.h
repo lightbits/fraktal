@@ -54,10 +54,10 @@ struct Widget_Camera : Widget
     virtual void serialize(FILE *f)
     {
         fprintf(f, "camera=(");
-        fprintf(f, "yfov=%f, ", camera_yfov);
-        fprintf(f, "shift=(%f, %f), ", camera_shift.x, camera_shift.y);
-        fprintf(f, "dir=(%f deg, %f deg), ", dir.theta, dir.phi);
-        fprintf(f, "pos=(%f, %f, %f))\n", pos.x, pos.y, pos.z);
+        fprintf(f, "yfov=%g, ", camera_yfov);
+        fprintf(f, "shift=(%g, %g), ", camera_shift.x, camera_shift.y);
+        fprintf(f, "dir=(%g deg, %g deg), ", dir.theta, dir.phi);
+        fprintf(f, "pos=(%g, %g, %g))", pos.x, pos.y, pos.z);
     }
     virtual void get_param_offsets(fKernel *f)
     {

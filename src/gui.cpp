@@ -791,24 +791,33 @@ static void write_settings_to_disk(const char *ini_filename, guiState s)
     if (!f)
         return;
 
-    fprintf(f, "[FraktalWindow]\n");
-    fprintf(f, "width=%d\n", s.settings.width);
-    fprintf(f, "height=%d\n", s.settings.height);
-    fprintf(f, "x=%d\n", s.settings.x);
-    fprintf(f, "y=%d\n", s.settings.y);
-    fprintf(f, "ui_scale=%g\n", s.settings.ui_scale);
-    fprintf(f, "\n");
+    fprintf(f, "fraktal = \n(\n");
+    fprintf(f, "\twindow_size=(%d, %d),\n", s.settings.width, s.settings.height);
+    fprintf(f, "\twindow_position=(%d, %d),\n", s.settings.x, s.settings.y);
+    fprintf(f, "\tui_scale=%g\n", s.settings.ui_scale);
 
-    // for (int i = 0; i < s.num_presets; i++)
-    // {
-    //     if (s.presets[i].name == NULL)
-    //         fprintf(f, "[FraktalPreset][%s]\n", s.presets[i].name);
-    //     else
-    //         fprintf(f, "[FraktalPreset][%s]\n", s.presets[i].name);
-    //     for (int j = 0; j < s.presets[i].num_widgets; j++)
-    //         s.presets[i].widgets[j]->serialize(f);
-    //     fprintf(f, "\n");
-    // }
+    #if 0
+    for (int preset = 0; preset < NUM_PRESETS; preset++)
+    {
+        fprintf(f, "\tpreset%d = \n\t(\n", preset);
+        for (int widget = 0; widget < s.presets[preset].num_widgets; widget++)
+        {
+            fprintf(f, "\t\t");
+            s.presets[preset].widgets[widget]->serialize(f);
+            if (widget < s.presets[preset].num_widgets - 1)
+                fprintf(f, ",\n");
+            else
+                fprintf(f, "\n");
+        }
+        fprintf(f, "\t)");
+        if (preset < NUM_PRESETS - 1)
+            fprintf(f, ",\n");
+        else
+            fprintf(f, "\n");
+    }
+    #endif
+
+    fprintf(f, ")\n\n");
 
     size_t imgui_ini_size = 0;
     const char *imgui_ini_data = ImGui::SaveIniSettingsToMemory(&imgui_ini_size);
@@ -823,26 +832,34 @@ static void read_settings_from_disk(const char *ini_filename, guiState &g)
     if (!f)
         return;
 
-    char *data = f;
-    char *line = read_line(&data);
-    bool fraktal = false;
-    int d;
-    float v;
-    while (line)
+    printf("%llu\n", (uint64_t)f);
+
+    parse_error_start = f;
+    parse_error_name = "settings";
+
+    const char *cc = f;
+    const char **c = &cc;
+    parse_blank(c);
+    if (!parse_match(c, "fraktal")) return;
+    parse_blank(c);
+    if (!parse_char(c, '=')) return;
+    parse_blank(c);
+    if (!parse_begin_list(c)) return;
+    while (parse_next_in_list(c))
     {
-        if (*line == '\0') /* do nothing (skip blank lines) */ ;
-        else if (0 == strcmp(line, "[FraktalWindow]"))             fraktal = true;
-        else if (fraktal && 1 == sscanf(line, "width=%d", &d))     g.settings.width = d;
-        else if (fraktal && 1 == sscanf(line, "height=%d", &d))    g.settings.height = d;
-        else if (fraktal && 1 == sscanf(line, "x=%d", &d))         g.settings.x = d;
-        else if (fraktal && 1 == sscanf(line, "y=%d", &d))         g.settings.y = d;
-        else if (fraktal && 1 == sscanf(line, "ui_scale=%f", &v))  g.settings.ui_scale = v;
-        else break;
-        line = read_line(&data);
+        int2 window_size;
+        int2 window_position;
+        float ui_scale;
+        if (parse_argument_int2(c, "window_size", &window_size)) { g.settings.width = window_size.x; g.settings.height = window_size.y; }
+        else if (parse_argument_int2(c, "window_position", &window_position)) { g.settings.x = window_position.x; g.settings.y = window_position.y; }
+        else if (parse_argument_float(c, "ui_scale", &ui_scale)) { g.settings.ui_scale = ui_scale; }
+        else parse_list_unexpected();
     }
+    parse_end_list(c);
+    parse_blank(c);
 
     // the rest of the ini file is ImGui settings
-    ImGui::LoadIniSettingsFromMemory(data);
+    ImGui::LoadIniSettingsFromMemory(*c);
 
     free(f);
 }
