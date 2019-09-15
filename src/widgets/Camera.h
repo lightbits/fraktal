@@ -30,7 +30,7 @@ struct Widget_Camera : Widget
     int loc_iCameraF;
     int loc_iCameraCenter;
 
-    virtual void default_values(guiState &g)
+    virtual void default_values()
     {
         dir.theta = -20.0f;
         dir.phi = 30.0f;

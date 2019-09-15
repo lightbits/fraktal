@@ -503,6 +503,7 @@ static void update_and_render_gui(guiState &scene)
         side_panel_height = ImGui::GetWindowHeight();
 
         // display preset swap buttons
+        // ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2.0f, 0.0f));
         for (int i = 0; i <= 9; i++)
         {
             static const char *label[] = {
@@ -519,19 +520,25 @@ static void update_and_render_gui(guiState &scene)
             };
             if (scene.preset == &scene.presets[i])
             {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
-                if (ImGui::Button(label[i]))
-                    scene.next_preset = &scene.presets[i];
-                ImGui::PopStyleColor();
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.078f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             }
             else
             {
-                if (ImGui::Button(label[i]))
-                    scene.next_preset = &scene.presets[i];
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.325f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
             }
+
+            if (ImGui::Button(label[i]))
+                scene.next_preset = &scene.presets[i];
+
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+
             if (i < 9)
                 ImGui::SameLine();
         }
+        // ImGui::PopStyleVar();
 
         assert(scene.preset);
         for (int i = 0; i < scene.preset->num_widgets; i++)
@@ -891,7 +898,7 @@ int main(int argc, char **argv)
         p.num_widgets = 0;
         p.widgets[p.num_widgets++] = new Widget_Camera;
         for (int i = 0; i < p.num_widgets; i++)
-            p.widgets[i]->default_values(g_scene);
+            p.widgets[i]->default_values();
     }
     g_scene.preset = &g_scene.presets[0];
 

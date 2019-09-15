@@ -2,7 +2,7 @@
 
 struct Widget
 {
-    virtual void default_values(guiState &g) = 0;
+    virtual void default_values() = 0;
     virtual void deserialize(const char **cc) = 0;
     virtual void serialize(FILE *f) = 0;
     virtual void get_param_offsets(fKernel *f) = 0;
