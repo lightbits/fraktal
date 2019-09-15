@@ -24,8 +24,8 @@ struct Widget_Camera : Widget
 {
     angle2 dir;
     float3 pos;
-    float camera_f;
-    float2 camera_center;
+    float camera_yfov;
+    float2 camera_shift;
     int loc_iView;
     int loc_iCameraF;
     int loc_iCameraCenter;
@@ -37,15 +37,15 @@ struct Widget_Camera : Widget
         pos.x = 0.0f;
         pos.y = 0.0f;
         pos.z = 24.0f;
-        camera_f = yfov2pinhole_f(10.0f, (float)g.resolution.y);
-        camera_center.x = g.resolution.x/2.0f;
-        camera_center.y = g.resolution.y/2.0f;
+        camera_yfov = 10.0f;
+        camera_shift.x = 0.0f;
+        camera_shift.y = 0.0f;
     }
     virtual void deserialize(const char **cc)
     {
         while (parse_next_in_list(cc)) {
-            if (parse_argument_float(cc, "f", &camera_f)) ;
-            else if (parse_argument_float2(cc, "center", &camera_center)) ;
+            if (parse_argument_float(cc, "yfov", &camera_yfov)) ;
+            else if (parse_argument_float2(cc, "shift", &camera_shift)) ;
             else if (parse_argument_angle2(cc, "dir", &dir)) ;
             else if (parse_argument_float3(cc, "pos", &pos)) ;
             else parse_list_unexpected();
@@ -54,8 +54,8 @@ struct Widget_Camera : Widget
     virtual void serialize(FILE *f)
     {
         fprintf(f, "camera=(");
-        fprintf(f, "f=%f, ", camera_f);
-        fprintf(f, "center=(%f, %f), ", camera_center.x, camera_center.y);
+        fprintf(f, "yfov=%f, ", camera_yfov);
+        fprintf(f, "shift=(%f, %f), ", camera_shift.x, camera_shift.y);
         fprintf(f, "dir=(%f deg, %f deg), ", dir.theta, dir.phi);
         fprintf(f, "pos=(%f, %f, %f))\n", pos.x, pos.y, pos.z);
     }
@@ -72,7 +72,7 @@ struct Widget_Camera : Widget
         if (loc_iCameraF < 0) return false;
         return true;
     }
-    virtual bool update(guiState g)
+    virtual bool update(guiState &g)
     {
         bool changed = false;
 
@@ -87,7 +87,8 @@ struct Widget_Camera : Widget
         // Note: The z_over_f factor ensures that a key press yields the same
         // displacement of the object in image pixels, irregardless of how far
         // away the camera is.
-        float z_over_f = fabsf(pos.z)/camera_f;
+        float f = yfov2pinhole_f(camera_yfov, (float)g.resolution.y);
+        float z_over_f = fabsf(pos.z)/f;
         float x_move_step = (g.resolution.x*0.05f)*z_over_f;
         float y_move_step = (g.resolution.y*0.05f)*z_over_f;
         float z_move_step = 0.1f*fabsf(pos.z);
@@ -112,17 +113,20 @@ struct Widget_Camera : Widget
                 changed |= ImGui::DragFloat3("pos##view_pos", &pos.x, &drag_speeds.x);
             }
             if (loc_iCameraF != -1)
-                changed |= ImGui::DragFloat("f##camera_f", &camera_f);
+                changed |= ImGui::DragFloat("yfov##camera_yfov", &camera_yfov);
             if (loc_iCameraCenter != -1)
-                changed |= ImGui::DragFloat2("center##camera_center", &camera_center.x);
+                changed |= ImGui::SliderFloat2("shift##camera_shift", &camera_shift.x, -1.0f, +1.0f);
         }
 
         return changed;
     }
-    virtual void set_params()
+    virtual void set_params(guiState &g)
     {
-        fraktal_param_2f(loc_iCameraCenter, camera_center.x, camera_center.y);
-        fraktal_param_1f(loc_iCameraF, camera_f);
+        float cx = (0.5f + 0.5f*camera_shift.x)*g.resolution.x;
+        float cy = (0.5f + 0.5f*camera_shift.y)*g.resolution.y;
+        float f = yfov2pinhole_f(camera_yfov, (float)g.resolution.y);
+        fraktal_param_2f(loc_iCameraCenter, cx, cy);
+        fraktal_param_1f(loc_iCameraF, f);
         float iView[4*4];
         float3 r = {
             deg2rad(dir.theta),

@@ -221,7 +221,7 @@ static void render_color(guiState &scene)
         for (int i = 0; i < scene.preset.num_widgets; i++)
         {
             if (scene.preset.widgets[i]->is_active())
-                scene.preset.widgets[i]->set_params();
+                scene.preset.widgets[i]->set_params(scene);
         }
 
         fraktal_run_kernel(out);
@@ -279,7 +279,7 @@ static void render_geometry(guiState &scene)
         for (int i = 0; i < scene.preset.num_widgets; i++)
         {
             if (scene.preset.widgets[i]->is_active())
-                scene.preset.widgets[i]->set_params();
+                scene.preset.widgets[i]->set_params(scene);
         }
 
         fraktal_zero_array(out);
@@ -803,8 +803,8 @@ static void sanitize_settings(guiState &g)
 int main(int argc, char **argv)
 {
     const char *ini_filename = "fraktal.ini";
-    g_scene.new_paths.model    = "examples/vase.f";
-    g_scene.new_paths.color    = "libf/publication.f";
+    g_scene.new_paths.model    = "examples/sponza.f";
+    g_scene.new_paths.color    = "libf/basic.f";
     g_scene.new_paths.geometry = "libf/geometry.f";
     g_scene.new_paths.compose  = "libf/mean_and_gamma_correct.f";
     g_scene.new_resolution.x   = 200;
