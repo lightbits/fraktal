@@ -478,8 +478,9 @@ static void update_and_render_gui(guiState &scene)
 
         if (ImGui::CollapsingHeader("Resolution"))
         {
-            ImGui::InputInt("x##resolution", &scene.new_resolution.x);
-            ImGui::InputInt("y##resolution", &scene.new_resolution.y);
+            static int2 resolution = scene.new_resolution;
+            if (ImGui::InputInt2("Resolution##resolution", &resolution.x, ImGuiInputTextFlags_EnterReturnsTrue))
+                scene.new_resolution = resolution;
         }
 
         for (int i = 0; i < scene.preset.num_widgets; i++)
