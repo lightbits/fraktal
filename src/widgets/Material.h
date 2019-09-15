@@ -11,7 +11,7 @@ struct Widget_Material : Widget
     int loc_iMaterialSpecularAlbedo;
     int loc_iMaterialAlbedo;
 
-    Widget_Material(guiSceneParams *params, const char **cc)
+    virtual void default_values()
     {
         glossy = true;
         specular_albedo.x = 0.3f;
@@ -22,6 +22,9 @@ struct Widget_Material : Widget
         albedo.y = 0.1f;
         albedo.z = 0.1f;
 
+    }
+    virtual void deserialize(const char **cc)
+    {
         while (parse_next_in_list(cc)) {
             if (parse_argument_float3(cc, "albedo", &albedo)) ;
             else if (parse_argument_float3(cc, "specular_albedo", &specular_albedo)) ;
@@ -30,6 +33,10 @@ struct Widget_Material : Widget
             else parse_list_unexpected();
         }
     }
+    virtual void serialize(FILE *f)
+    {
+
+    }
     virtual void get_param_offsets(fKernel *f)
     {
         loc_iMaterialGlossy = fraktal_get_param_offset(f, "iMaterialGlossy");
@@ -37,7 +44,15 @@ struct Widget_Material : Widget
         loc_iMaterialSpecularAlbedo = fraktal_get_param_offset(f, "iMaterialSpecularAlbedo");
         loc_iMaterialAlbedo = fraktal_get_param_offset(f, "iMaterialAlbedo");
     }
-    virtual bool update(guiState g)
+    virtual bool is_active()
+    {
+        if (loc_iMaterialGlossy < 0) return false;
+        if (loc_iMaterialSpecularExponent < 0) return false;
+        if (loc_iMaterialSpecularAlbedo < 0) return false;
+        if (loc_iMaterialAlbedo < 0) return false;
+        return true;
+    }
+    virtual bool update(guiState &g)
     {
         bool changed = false;
         if (ImGui::CollapsingHeader("Material"))
@@ -49,7 +64,7 @@ struct Widget_Material : Widget
         }
         return changed;
     }
-    virtual void set_params()
+    virtual void set_params(guiState &g)
     {
         fraktal_param_1i(loc_iMaterialGlossy, glossy ? 1 : 0);
         fraktal_param_1f(loc_iMaterialSpecularExponent, specular_exponent);

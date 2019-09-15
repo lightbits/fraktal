@@ -105,10 +105,10 @@ struct guiState
 
 #include "imgui_extensions.h"
 #include "widgets/Widget.h"
-// #include "widgets/Sun.h"
+#include "widgets/Sun.h"
 #include "widgets/Camera.h"
 // #include "widgets/Ground.h"
-// #include "widgets/Material.h"
+#include "widgets/Material.h"
 // #include "widgets/Geometry.h"
 
 static void save_screenshot(const char *filename, fArray *f)
@@ -372,15 +372,12 @@ static void update_and_render_gui(guiState &scene)
             scene.next_preset = &scene.presets[i];
     }
 
+    if (!scene.preset)
+        scene.next_preset = &scene.presets[1];
+
     if (scene.preset != scene.next_preset)
     {
         scene.preset = scene.next_preset;
-        scene.should_clear = true;
-    }
-
-    if (!scene.preset)
-    {
-        scene.preset = &scene.presets[1];
         scene.should_clear = true;
     }
 
@@ -886,8 +883,8 @@ static void sanitize_settings(guiState &g)
 int main(int argc, char **argv)
 {
     const char *ini_filename = "fraktal.ini";
-    g_scene.new_paths.model    = "examples/sponza.f";
-    g_scene.new_paths.color    = "libf/basic.f";
+    g_scene.new_paths.model    = "examples/vase.f";
+    g_scene.new_paths.color    = "libf/publication.f";
     g_scene.new_paths.geometry = "libf/geometry.f";
     g_scene.new_paths.compose  = "libf/mean_and_gamma_correct.f";
     g_scene.new_resolution.x   = 320;
@@ -914,10 +911,12 @@ int main(int argc, char **argv)
         guiPreset &p = g_scene.presets[preset];
         p.num_widgets = 0;
         p.widgets[p.num_widgets++] = new Widget_Camera;
+        p.widgets[p.num_widgets++] = new Widget_Sun;
+        p.widgets[p.num_widgets++] = new Widget_Material;
         for (int i = 0; i < p.num_widgets; i++)
             p.widgets[i]->default_values();
     }
-    g_scene.preset = &g_scene.presets[1];
+    g_scene.next_preset = &g_scene.presets[1];
 
     default_settings(g_scene);
     read_settings_from_disk(ini_filename, g_scene);

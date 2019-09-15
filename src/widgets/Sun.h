@@ -10,7 +10,7 @@ struct Widget_Sun : Widget
     int loc_iCosSunSize;
     int loc_iToSun;
 
-    Widget_Sun(guiSceneParams *params, const char **cc)
+    virtual void default_values()
     {
         size = 3.0f;
         dir.theta = 30.0f;
@@ -19,7 +19,9 @@ struct Widget_Sun : Widget
         color.y = 1.0f;
         color.z = 0.8f;
         intensity = 250.0f;
-
+    }
+    virtual void deserialize(const char **cc)
+    {
         while (parse_next_in_list(cc)) {
             if (parse_argument_angle(cc, "size", &size)) ;
             else if (parse_argument_angle2(cc, "dir", &dir)) ;
@@ -28,13 +30,23 @@ struct Widget_Sun : Widget
             else parse_list_unexpected();
         }
     }
+    virtual void serialize(FILE *f)
+    {
+
+    }
     virtual void get_param_offsets(fKernel *f)
     {
         loc_iSunStrength = fraktal_get_param_offset(f, "iSunStrength");
         loc_iCosSunSize = fraktal_get_param_offset(f, "iCosSunSize");
         loc_iToSun = fraktal_get_param_offset(f, "iToSun");
     }
-    virtual bool update(guiState g)
+    virtual bool is_active()
+    {
+        if (loc_iCosSunSize < 0) return false;
+        if (loc_iToSun < 0) return false;
+        return true;
+    }
+    virtual bool update(guiState &g)
     {
         bool changed = false;
         if (ImGui::CollapsingHeader("Sun"))
@@ -47,7 +59,7 @@ struct Widget_Sun : Widget
         }
         return changed;
     }
-    virtual void set_params()
+    virtual void set_params(guiState &g)
     {
         float3 iSunStrength = color;
         iSunStrength.x *= intensity;
