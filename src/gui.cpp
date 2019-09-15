@@ -476,13 +476,6 @@ static void update_and_render_gui(guiState &scene)
         side_panel_width = ImGui::GetWindowWidth();
         side_panel_height = ImGui::GetWindowHeight();
 
-        if (ImGui::CollapsingHeader("Resolution"))
-        {
-            static int2 resolution = scene.new_resolution;
-            if (ImGui::InputInt2("Resolution##resolution", &resolution.x, ImGuiInputTextFlags_EnterReturnsTrue))
-                scene.new_resolution = resolution;
-        }
-
         for (int i = 0; i < scene.preset.num_widgets; i++)
         {
             if (scene.preset.widgets[i]->is_active())
@@ -557,7 +550,14 @@ static void update_and_render_gui(guiState &scene)
             ImGui::BeginMenuBar();
             {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f,4.0f));
-                ImGui::Text("%d x %d", scene.resolution.x, scene.resolution.y);
+
+                ImGui::PushItemWidth(128.0f);
+                static int2 resolution = scene.new_resolution;
+                if (ImGui::InputInt2("##resolution", &resolution.x, ImGuiInputTextFlags_EnterReturnsTrue))
+                    scene.new_resolution = resolution;
+                ImGui::PopItemWidth();
+
+                // ImGui::Text("%d x %d", scene.resolution.x, scene.resolution.y);
                 ImGui::Separator();
                 const char *scale_label = "1x###Scale";
                 if      (display_mode == display_mode_1x)  scale_label = "Scale 1x###Scale";
@@ -629,10 +629,10 @@ static void update_and_render_gui(guiState &scene)
 
                 {
                     draw->PushClipRect(pos0, pos1, true);
-                    int num_checkers_x = 8;
-                    int num_checkers_y = 8;
-                    float checker_size_x = (pos1.x - pos0.x) / num_checkers_x;
-                    float checker_size_y = (pos1.y - pos0.y) / num_checkers_y;
+                    float checker_size_x = 30.0f;
+                    float checker_size_y = 30.0f;
+                    int num_checkers_x = (int)((pos1.x - pos0.x) / checker_size_x + 1);
+                    int num_checkers_y = (int)((pos1.y - pos0.y) / checker_size_y + 1);
                     for (int yi = 0; yi < num_checkers_y; yi++)
                     for (int xi = 0; xi < num_checkers_x; xi += 2)
                     {
@@ -808,8 +808,8 @@ int main(int argc, char **argv)
     g_scene.new_paths.color    = "libf/basic.f";
     g_scene.new_paths.geometry = "libf/geometry.f";
     g_scene.new_paths.compose  = "libf/mean_and_gamma_correct.f";
-    g_scene.new_resolution.x   = 200;
-    g_scene.new_resolution.y   = 200;
+    g_scene.new_resolution.x   = 320;
+    g_scene.new_resolution.y   = 240;
     g_scene.new_mode           = guiPreviewMode_Color;
 
     fraktal_create_context();
