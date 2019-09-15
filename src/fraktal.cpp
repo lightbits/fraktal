@@ -22,7 +22,6 @@ or #define them directly if you do a unity build.
 
 -D FRAKTAL_OMIT_GL_SYMBOLS -> prevents definition of OpenGL symbols
                               (useful for unity-builds)
--D FRAKTAL_GUI             -> includes fraktal_gui library
 -D fraktal_assert          -> bring your own assert macro
 
 */
@@ -51,10 +50,3 @@ or #define them directly if you do a unity build.
 #include "fraktal_kernel.h"
 #include "fraktal_parse.h"
 #include "fraktal_link.h"
-
-#ifdef FRAKTAL_GUI
-#ifdef FRAKTAL_OMIT_GL_SYMBOLS
-#error "You must not have both FRAKTAL_GUI and FRAKTAL_OMIT_GL_SYMBOLS defined"
-#endif
-#include "fraktal_gui.h"
-#endif

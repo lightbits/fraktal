@@ -348,39 +348,6 @@ FRAKTALAPI void fraktal_push_current_context();
 */
 FRAKTALAPI void fraktal_pop_current_context();
 
-//-----------------------------------------------------------------------------
-// §6 GUI
-//-----------------------------------------------------------------------------
-
-#ifdef FRAKTAL_GUI
-/*
-    The GUI can be configured to show a FRep kernel specified using
-    fg_load_model. This kernel must define a function of the form
-        float model(vec3 p)
-    if the default color and geometry renderer is used. If the path-
-    tracer renderer is used, the kernel must additionally define
-        vec4 material(vec3 p)
-
-    The color and geometry renderers can be overridden with custom
-    render kernels specified by files on disk.
-*/
-// FRAKTALAPI void fg_load_model(fKernel *f);
-// FRAKTALAPI void fg_load_color_renderer(const char *filename);
-// FRAKTALAPI void fg_load_geometry_renderer(const char *filename);
-FRAKTALAPI void fg_configure(const char *model,
-                             const char *color,
-                             const char *compose,
-                             const char *geometry,
-                             int width,
-                             int height);
-/*
-    Makes the GUI window visible. The window can be closed and reshown
-    arbitrarily many times. The method does not return immediately, but
-    blocks until the window is closed by the user.
-*/
-FRAKTALAPI void fg_show();
-#endif
-
 #ifdef __cplusplus
 }
 #endif

@@ -37,9 +37,9 @@ struct Widget_Camera : Widget
         pos.x = 0.0f;
         pos.y = 0.0f;
         pos.z = 24.0f;
-        camera_f = yfov2pinhole_f(10.0f, (float)g.preset.resolution.y);
-        camera_center.x = g.preset.resolution.x/2.0f;
-        camera_center.y = g.preset.resolution.y/2.0f;
+        camera_f = yfov2pinhole_f(10.0f, (float)g.resolution.y);
+        camera_center.x = g.resolution.x/2.0f;
+        camera_center.y = g.resolution.y/2.0f;
     }
     virtual void deserialize(const char **cc)
     {
@@ -88,8 +88,8 @@ struct Widget_Camera : Widget
         // displacement of the object in image pixels, irregardless of how far
         // away the camera is.
         float z_over_f = fabsf(pos.z)/camera_f;
-        float x_move_step = (g.preset.resolution.x*0.05f)*z_over_f;
-        float y_move_step = (g.preset.resolution.y*0.05f)*z_over_f;
+        float x_move_step = (g.resolution.x*0.05f)*z_over_f;
+        float y_move_step = (g.resolution.y*0.05f)*z_over_f;
         float z_move_step = 0.1f*fabsf(pos.z);
         if (g.keys.Ctrl.pressed)  { pos.y -= y_move_step; changed = true; }
         if (g.keys.Space.pressed) { pos.y += y_move_step; changed = true; }
@@ -101,8 +101,8 @@ struct Widget_Camera : Widget
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
         {
             float3 drag_speeds;
-            drag_speeds.x = (g.preset.resolution.x*0.005f)*z_over_f;
-            drag_speeds.y = (g.preset.resolution.y*0.005f)*z_over_f;
+            drag_speeds.x = (g.resolution.x*0.005f)*z_over_f;
+            drag_speeds.y = (g.resolution.y*0.005f)*z_over_f;
             drag_speeds.z = 0.01f*fabsf(pos.z);
 
             if (loc_iView != -1)
