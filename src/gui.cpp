@@ -191,6 +191,8 @@ static bool load_gui(guiState &g)
 
 static void render_color(guiState &scene)
 {
+    if (!scene.render_kernel || !scene.compose_kernel)
+        return;
     assert(scene.render_kernel);
     assert(scene.compose_kernel);
     assert(fraktal_is_valid_array(scene.render_buffer));
@@ -251,6 +253,8 @@ static void render_color(guiState &scene)
 
 static void render_geometry(guiState &scene)
 {
+    if (!scene.render_kernel)
+        return;
     assert(scene.render_kernel);
     assert(fraktal_is_valid_array(scene.compose_buffer));
 
@@ -356,7 +360,6 @@ static void update_and_render_gui(guiState &scene)
 
     allocate_or_resize_buffers(scene);
 
-    #if 0
     if (scene.mode == guiPreviewMode_Color)
     {
         if (!scene.keys.Alt.down && scene.keys.Enter.pressed)
@@ -369,7 +372,6 @@ static void update_and_render_gui(guiState &scene)
         if (scene.should_clear)
             render_geometry(scene);
     }
-    #endif
 
     if (scene.keys.P.pressed)
     {
@@ -412,7 +414,6 @@ static void update_and_render_gui(guiState &scene)
     float main_menu_bar_height = 0.0f;
     bool open_screenshot_popup = false;
     bool open_model_popup = false;
-    bool open_color_popup = false;
     {
         ImGui::BeginMainMenuBar();
         {
@@ -420,8 +421,7 @@ static void update_and_render_gui(guiState &scene)
             // ImGui::Text("\xce\xb8"); // placeholder for Fraktal icon
             if (ImGui::BeginMenu("File"))
             {
-                if (ImGui::MenuItem("Load model kernel##MainMenu")) open_model_popup = true;
-                if (ImGui::MenuItem("Load color kernel##MainMenu")) open_color_popup = true;
+                if (ImGui::MenuItem("Load model##MainMenu"))        open_model_popup = true;
                 if (ImGui::MenuItem("Save as PNG##MainMenu", "P"))  open_screenshot_popup = true;
                 ImGui::Separator();
                 if (ImGui::MenuItem("Exit##MainMenu"))
@@ -442,7 +442,7 @@ static void update_and_render_gui(guiState &scene)
                 ImGui::BulletText("Ctrl,Space,W,A,S,D"); ImGui::NextColumn(); ImGui::Text("Translate camera"); ImGui::NextColumn();
                 ImGui::BulletText("Arrow keys");         ImGui::NextColumn(); ImGui::Text("Rotate camera"); ImGui::NextColumn();
                 ImGui::BulletText("Enter");              ImGui::NextColumn(); ImGui::Text("Auto-render"); ImGui::NextColumn();
-                ImGui::BulletText("Shift+Enter");        ImGui::NextColumn(); ImGui::Text("Reload kernel"); ImGui::NextColumn();
+                ImGui::BulletText("Alt+Enter");          ImGui::NextColumn(); ImGui::Text("Reload model"); ImGui::NextColumn();
                 ImGui::Columns(1);
 
                 ImGui::Separator();
@@ -659,13 +659,8 @@ static void update_and_render_gui(guiState &scene)
 
     {
         static char path[1024];
-        if (open_file_dialog(open_model_popup, "Open model kernel##Popup", path, sizeof(path)))
+        if (open_file_dialog(open_model_popup, "Open model##Popup", path, sizeof(path)))
             scene.new_paths.model = path;
-    }
-    {
-        static char path[1024];
-        if (open_file_dialog(open_color_popup, "Open color kernel##Popup", path, sizeof(path)))
-            scene.new_paths.color = path;
     }
     {
         static char path[1024];
@@ -808,10 +803,13 @@ static void sanitize_settings(guiState &g)
 int main(int argc, char **argv)
 {
     const char *ini_filename = "fraktal.ini";
-    g_scene.new_paths.model = "examples/vase.f";
-    g_scene.new_paths.color = "libf/publication.f";
-    g_scene.new_paths.compose = "libf/mean_and_gamma_correct.f";
+    g_scene.new_paths.model    = "examples/vase.f";
+    g_scene.new_paths.color    = "libf/publication.f";
     g_scene.new_paths.geometry = "libf/geometry.f";
+    g_scene.new_paths.compose  = "libf/mean_and_gamma_correct.f";
+    g_scene.new_resolution.x   = 200;
+    g_scene.new_resolution.y   = 200;
+    g_scene.new_mode           = guiPreviewMode_Color;
 
     fraktal_create_context();
 
@@ -879,7 +877,9 @@ int main(int argc, char **argv)
         io.Fonts->AddFontFromMemoryCompressedTTF(data, sizeof_data, math_size, &config, glyph_ranges.Data);
     }
 
-    glfwShowWindow(fraktal_context);
+    // reminder for future: these must be called in order before the main loop below
+    // fraktal_ensure_context();
+    // glfwShowWindow(fraktal_context);
 
     while (!glfwWindowShouldClose(fraktal_context) && !g_scene.should_exit)
     {
