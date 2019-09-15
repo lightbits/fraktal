@@ -44,6 +44,7 @@ struct guiKeys
     guiKey Left,Right,Up,Down;
     guiKey W,A,S,D,P;
     guiKey PrintScreen;
+    guiKey Num[10];
 };
 typedef int guiPreviewMode;
 enum guiPreviewMode_ {
@@ -362,6 +363,15 @@ static void update_and_render_gui(guiState &scene)
             scene.got_error = true;
         else
             scene.got_error = false;
+    }
+
+    for (int i = 0; i <= 9; i++)
+    {
+        if (scene.keys.Num[i].pressed)
+        {
+            scene.preset = &scene.presets[i];
+            scene.should_clear = true;
+        }
     }
 
     allocate_or_resize_buffers(scene);
@@ -950,6 +960,12 @@ int main(int argc, char **argv)
             copy_key_event(D, GLFW_KEY_D);
             copy_key_event(P, GLFW_KEY_P);
             copy_key_event(PrintScreen, GLFW_KEY_PRINT_SCREEN);
+            for (int i = 0; i <= 9; i++)
+            {
+                g_scene.keys.Num[i].pressed = glfw_keys[GLFW_KEY_0 + i].was_pressed && !ImGui::GetIO().WantCaptureKeyboard;
+                g_scene.keys.Num[i].released = glfw_keys[GLFW_KEY_0 + i].was_released && !ImGui::GetIO().WantCaptureKeyboard;
+                g_scene.keys.Num[i].down = glfw_keys[GLFW_KEY_0 + i].is_down && !ImGui::GetIO().WantCaptureKeyboard;
+            }
             mark_key_events_as_processed();
 
             glfwMakeContextCurrent(fraktal_context);
