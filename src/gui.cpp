@@ -380,7 +380,7 @@ static void update_and_render_gui(guiState &scene)
 
     if (!scene.preset)
     {
-        scene.preset = &scene.presets[0];
+        scene.preset = &scene.presets[1];
         scene.should_clear = true;
     }
 
@@ -421,6 +421,7 @@ static void update_and_render_gui(guiState &scene)
     pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
     pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
 
+    pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.825f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.325f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(1.0f, 1.0f, 1.0f, 0.078f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
@@ -502,9 +503,8 @@ static void update_and_render_gui(guiState &scene)
         side_panel_width = ImGui::GetWindowWidth();
         side_panel_height = ImGui::GetWindowHeight();
 
-        // display preset swap buttons
-        // ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2.0f, 0.0f));
-        for (int i = 0; i <= 9; i++)
+        // buttons for swapping presets
+        for (int i = 1; i <= 10; i++)
         {
             static const char *label[] = {
                 "0##preset buttons",
@@ -518,7 +518,8 @@ static void update_and_render_gui(guiState &scene)
                 "8##preset buttons",
                 "9##preset buttons"
             };
-            if (scene.preset == &scene.presets[i])
+            int j = i % 10;
+            if (scene.preset == &scene.presets[j])
             {
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.078f));
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -529,16 +530,15 @@ static void update_and_render_gui(guiState &scene)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
             }
 
-            if (ImGui::Button(label[i]))
-                scene.next_preset = &scene.presets[i];
+            if (ImGui::Button(label[j]))
+                scene.next_preset = &scene.presets[j];
 
             ImGui::PopStyleColor();
             ImGui::PopStyleColor();
 
-            if (i < 9)
+            if (i < 10)
                 ImGui::SameLine();
         }
-        // ImGui::PopStyleVar();
 
         assert(scene.preset);
         for (int i = 0; i < scene.preset->num_widgets; i++)
@@ -900,7 +900,7 @@ int main(int argc, char **argv)
         for (int i = 0; i < p.num_widgets; i++)
             p.widgets[i]->default_values();
     }
-    g_scene.preset = &g_scene.presets[0];
+    g_scene.preset = &g_scene.presets[1];
 
     default_settings(g_scene);
     read_settings_from_disk(ini_filename, g_scene);
