@@ -95,7 +95,8 @@ struct guiState
     guiKeys keys;
     guiPreviewMode mode;
     guiSettings settings;
-    guiPreset preset;
+    guiPreset *preset;
+    guiPreset presets[NUM_PRESETS];
 
     bool got_error;
 };
@@ -168,9 +169,12 @@ static bool load_gui(guiState &g)
     }
 
     // Refetch uniform offsets
-    assert(g.preset.widgets);
-    for (int i = 0; i < g.preset.num_widgets; i++)
-        g.preset.widgets[i]->get_param_offsets(render);
+    for (int preset = 0; preset < NUM_PRESETS; preset++)
+    for (int widget = 0; widget < g.presets[preset].num_widgets; widget++)
+    {
+        assert(g.presets[preset].widgets[widget]);
+        g.presets[preset].widgets[widget]->get_param_offsets(render);
+    }
 
     // Destroy old state and update to newly loaded state
     fraktal_destroy_kernel(g.render_kernel);
@@ -218,10 +222,11 @@ static void render_color(guiState &scene)
         fraktal_param_2f(loc_iResolution, (float)width, (float)height);
         fraktal_param_1i(loc_iSamples, scene.samples);
 
-        for (int i = 0; i < scene.preset.num_widgets; i++)
+        assert(scene.preset);
+        for (int i = 0; i < scene.preset->num_widgets; i++)
         {
-            if (scene.preset.widgets[i]->is_active())
-                scene.preset.widgets[i]->set_params(scene);
+            if (scene.preset->widgets[i]->is_active())
+                scene.preset->widgets[i]->set_params(scene);
         }
 
         fraktal_run_kernel(out);
@@ -276,10 +281,11 @@ static void render_geometry(guiState &scene)
         else if (scene.mode == guiPreviewMode_GBuffer) glUniform1i(loc_iDrawMode, 3);
         else assert(false);
 
-        for (int i = 0; i < scene.preset.num_widgets; i++)
+        assert(scene.preset);
+        for (int i = 0; i < scene.preset->num_widgets; i++)
         {
-            if (scene.preset.widgets[i]->is_active())
-                scene.preset.widgets[i]->set_params(scene);
+            if (scene.preset->widgets[i]->is_active())
+                scene.preset->widgets[i]->set_params(scene);
         }
 
         fraktal_zero_array(out);
@@ -476,10 +482,11 @@ static void update_and_render_gui(guiState &scene)
         side_panel_width = ImGui::GetWindowWidth();
         side_panel_height = ImGui::GetWindowHeight();
 
-        for (int i = 0; i < scene.preset.num_widgets; i++)
+        assert(scene.preset);
+        for (int i = 0; i < scene.preset->num_widgets; i++)
         {
-            if (scene.preset.widgets[i]->is_active())
-                scene.should_clear |= scene.preset.widgets[i]->update(scene);
+            if (scene.preset->widgets[i]->is_active())
+                scene.should_clear |= scene.preset->widgets[i]->update(scene);
         }
 
         ImGui::End();
@@ -826,12 +833,16 @@ int main(int argc, char **argv)
     ImGui::GetStyle().WindowBorderSize = 0.0f;
     ImGui::GetIO().IniFilename = NULL; // override ImGui load/save ini behavior with our own
 
-    // add widgets
-    assert(g_scene.preset.widgets);
-    g_scene.preset.num_widgets = 0;
-    g_scene.preset.widgets[g_scene.preset.num_widgets++] = new Widget_Camera;
-    for (int i = 0; i < g_scene.preset.num_widgets; i++)
-        g_scene.preset.widgets[i]->default_values(g_scene);
+    // add default widgets
+    for (int preset = 0; preset < NUM_PRESETS; preset++)
+    {
+        guiPreset &p = g_scene.presets[preset];
+        p.num_widgets = 0;
+        p.widgets[p.num_widgets++] = new Widget_Camera;
+        for (int i = 0; i < p.num_widgets; i++)
+            p.widgets[i]->default_values(g_scene);
+    }
+    g_scene.preset = &g_scene.presets[0];
 
     default_settings(g_scene);
     read_settings_from_disk(ini_filename, g_scene);
