@@ -792,28 +792,6 @@ static void write_settings_to_disk(const char *ini_filename, guiState s)
     fprintf(f, "\twindow_size=(%d, %d),\n", s.settings.width, s.settings.height);
     fprintf(f, "\twindow_position=(%d, %d),\n", s.settings.x, s.settings.y);
     fprintf(f, "\tui_scale=%g\n", s.settings.ui_scale);
-
-    #if 0
-    for (int preset = 0; preset < NUM_PRESETS; preset++)
-    {
-        fprintf(f, "\tpreset%d = \n\t(\n", preset);
-        for (int widget = 0; widget < s.presets[preset].num_widgets; widget++)
-        {
-            fprintf(f, "\t\t");
-            s.presets[preset].widgets[widget]->serialize(f);
-            if (widget < s.presets[preset].num_widgets - 1)
-                fprintf(f, ",\n");
-            else
-                fprintf(f, "\n");
-        }
-        fprintf(f, "\t)");
-        if (preset < NUM_PRESETS - 1)
-            fprintf(f, ",\n");
-        else
-            fprintf(f, "\n");
-    }
-    #endif
-
     fprintf(f, ")\n\n");
 
     size_t imgui_ini_size = 0;
@@ -828,8 +806,6 @@ static void read_settings_from_disk(const char *ini_filename, guiState &g)
     char *f = read_file(ini_filename);
     if (!f)
         return;
-
-    printf("%llu\n", (uint64_t)f);
 
     parse_error_start = f;
     parse_error_name = "settings";
