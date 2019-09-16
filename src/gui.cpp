@@ -356,9 +356,14 @@ static void allocate_or_resize_buffers(guiState &g)
 static void update_and_render_gui(guiState &scene)
 {
     bool reload_key = scene.keys.Alt.down && scene.keys.Enter.pressed;
+    static bool reload_request = true;
 
-    if (reload_key)
+    if (scene.new_mode != scene.mode)
+        reload_request = true;
+
+    if (reload_key || (reload_request && !scene.got_error))
     {
+        reload_request = false;
         log_clear();
         if (!load_gui(scene))
             scene.got_error = true;
@@ -438,6 +443,7 @@ static void update_and_render_gui(guiState &scene)
     float main_menu_bar_height = 0.0f;
     bool open_screenshot_popup = false;
     bool open_model_popup = false;
+    bool open_color_popup = false;
     {
         ImGui::BeginMainMenuBar();
         {
@@ -446,6 +452,7 @@ static void update_and_render_gui(guiState &scene)
             if (ImGui::BeginMenu("File"))
             {
                 if (ImGui::MenuItem("Load model##MainMenu"))        open_model_popup = true;
+                if (ImGui::MenuItem("Load color shader##MainMenu")) open_color_popup = true;
                 if (ImGui::MenuItem("Save as PNG##MainMenu", "P"))  open_screenshot_popup = true;
                 ImGui::Separator();
                 if (ImGui::MenuItem("Exit##MainMenu"))
@@ -723,7 +730,18 @@ static void update_and_render_gui(guiState &scene)
     {
         static char path[1024];
         if (open_file_dialog(open_model_popup, "Open model##Popup", path, sizeof(path)))
+        {
             scene.new_paths.model = path;
+            reload_request = true;
+        }
+    }
+    {
+        static char path[1024];
+        if (open_file_dialog(open_color_popup, "Load color shader##Popup", path, sizeof(path)))
+        {
+            scene.new_paths.color = path;
+            reload_request = true;
+        }
     }
     {
         static char path[1024];
