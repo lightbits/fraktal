@@ -22,7 +22,7 @@ struct Widget_Ground : Widget
     int loc_iGroundSpecularExponent;
     int loc_iGroundReflectivity;
 
-    Widget_Ground(guiSceneParams *params, const char **cc)
+    virtual void default_values()
     {
         isolines_enabled = false;
         isolines_color.x = 0.3f;
@@ -36,6 +36,9 @@ struct Widget_Ground : Widget
         ground_specular_exponent = 500.0f;
         ground_reflectivity = 0.6f;
 
+    }
+    virtual void deserialize(const char **cc)
+    {
         while (parse_next_in_list(cc)) {
             if (parse_argument_float3(cc, "isolines_color", &isolines_color)) ;
             else if (parse_argument_bool(cc, "draw_isolines", &isolines_enabled)) ;
@@ -47,6 +50,10 @@ struct Widget_Ground : Widget
             else if (parse_argument_float(cc, "reflectivity", &ground_reflectivity)) ;
             else parse_list_unexpected();
         }
+    }
+    virtual void serialize(FILE *f)
+    {
+
     }
     virtual void get_param_offsets(fKernel *f)
     {
@@ -60,7 +67,20 @@ struct Widget_Ground : Widget
         loc_iGroundSpecularExponent = fraktal_get_param_offset(f, "iGroundSpecularExponent");
         loc_iGroundReflectivity = fraktal_get_param_offset(f, "iGroundReflectivity");
     }
-    virtual bool update(guiState g)
+    virtual bool is_active()
+    {
+        if (loc_iDrawIsolines < 0) return false;
+        if (loc_iIsolineColor < 0) return false;
+        if (loc_iIsolineThickness < 0) return false;
+        if (loc_iIsolineSpacing < 0) return false;
+        if (loc_iIsolineMax < 0) return false;
+        if (loc_iGroundReflective < 0) return false;
+        if (loc_iGroundHeight < 0) return false;
+        if (loc_iGroundSpecularExponent < 0) return false;
+        if (loc_iGroundReflectivity < 0) return false;
+        return true;
+    }
+    virtual bool update(guiState &g)
     {
         bool changed = false;
         if (ImGui::CollapsingHeader("Ground"))
@@ -87,7 +107,7 @@ struct Widget_Ground : Widget
         }
         return changed;
     }
-    virtual void set_params()
+    virtual void set_params(guiState &g)
     {
         fraktal_param_1i(loc_iDrawIsolines, isolines_enabled ? 1 : 0);
         fraktal_param_3f(loc_iIsolineColor, isolines_color.x, isolines_color.y, isolines_color.z);

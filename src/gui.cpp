@@ -107,9 +107,9 @@ struct guiState
 #include "widgets/Widget.h"
 #include "widgets/Sun.h"
 #include "widgets/Camera.h"
-// #include "widgets/Ground.h"
+#include "widgets/Ground.h"
 #include "widgets/Material.h"
-// #include "widgets/Geometry.h"
+#include "widgets/Geometry.h"
 
 static void save_screenshot(const char *filename, fArray *f)
 {
@@ -913,6 +913,8 @@ int main(int argc, char **argv)
         p.widgets[p.num_widgets++] = new Widget_Camera;
         p.widgets[p.num_widgets++] = new Widget_Sun;
         p.widgets[p.num_widgets++] = new Widget_Material;
+        p.widgets[p.num_widgets++] = new Widget_Ground;
+        p.widgets[p.num_widgets++] = new Widget_Geometry;
         for (int i = 0; i < p.num_widgets; i++)
             p.widgets[i]->default_values();
     }

@@ -17,7 +17,7 @@ struct Widget_Geometry : Widget
     int loc_iApplyColormap;
     int loc_iColormap;
 
-    Widget_Geometry(guiSceneParams *params, const char **cc)
+    virtual void default_values()
     {
         min_distance = 10.0f;
         max_distance = 30.0f;
@@ -38,6 +38,9 @@ struct Widget_Geometry : Widget
             assert(f_colormap_inferno);
         }
 
+    }
+    virtual void deserialize(const char **cc)
+    {
         while (parse_next_in_list(cc)) {
             if (parse_argument_float(cc, "min_distance", &min_distance)) ;
             else if (parse_argument_float(cc, "max_distance", &max_distance)) ;
@@ -46,6 +49,10 @@ struct Widget_Geometry : Widget
             else if (parse_argument_bool(cc, "apply_colormap", &apply_colormap)) ;
             else parse_list_unexpected();
         }
+    }
+    virtual void serialize(FILE *f)
+    {
+
     }
     virtual void get_param_offsets(fKernel *f)
     {
@@ -56,7 +63,17 @@ struct Widget_Geometry : Widget
         loc_iApplyColormap = fraktal_get_param_offset(f, "iApplyColormap");
         loc_iColormap = fraktal_get_param_offset(f, "iColormap");
     }
-    virtual bool update(guiState g)
+    virtual bool is_active()
+    {
+        if (loc_iMinDistance < 0) return false;
+        if (loc_iMaxDistance < 0) return false;
+        if (loc_iMinThickness < 0) return false;
+        if (loc_iMaxThickness < 0) return false;
+        if (loc_iApplyColormap < 0) return false;
+        if (loc_iColormap < 0) return false;
+        return true;
+    }
+    virtual bool update(guiState &g)
     {
         bool changed = false;
         if (ImGui::CollapsingHeader("Geometry"))
@@ -69,7 +86,7 @@ struct Widget_Geometry : Widget
         }
         return changed;
     }
-    virtual void set_params()
+    virtual void set_params(guiState &g)
     {
         fraktal_param_1f(loc_iMinDistance, min_distance);
         fraktal_param_1f(loc_iMaxDistance, max_distance);
