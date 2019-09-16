@@ -51,11 +51,11 @@ struct Widget_Sun : Widget
         bool changed = false;
         if (ImGui::CollapsingHeader("Sun"))
         {
-            changed |= ImGui::SliderFloat("size##sun_size", &size, 0.0f, 180.0f, "%.0f deg", 2.0f);
+            changed |= ImGui::SliderFloat("Size##sun_size", &size, 0.0f, 180.0f, "%.0f deg", 2.0f);
             changed |= ImGui::SliderFloat("\xce\xb8##sun_dir", &dir.theta, -90.0f, +90.0f, "%.0f deg");
             changed |= ImGui::SliderFloat("\xcf\x86##sun_dir", &dir.phi, -180.0f, +180.0f, "%.0f deg");
-            changed |= ImGui::SliderFloat3("color##sun_color", &color.x, 0.0f, 1.0f);
-            changed |= ImGui::DragFloat("intensity##sun_intensity", &intensity);
+            changed |= ImGui::SliderFloat3("Color##sun_color", &color.x, 0.0f, 1.0f);
+            changed |= ImGui::DragFloat("Intensity##sun_intensity", &intensity);
         }
         return changed;
     }
