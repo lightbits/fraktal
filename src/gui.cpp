@@ -1006,7 +1006,7 @@ int main(int argc, char **argv)
     while (!glfwWindowShouldClose(fraktal_context) && !g_scene.should_exit)
     {
         static int settle_frames = 5;
-        if (g_scene.auto_render || settle_frames > 0)
+        if ((g_scene.auto_render && g_scene.samples < g_scene.max_samples) || settle_frames > 0)
         {
             glfwPollEvents();
         }
