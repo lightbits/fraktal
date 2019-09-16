@@ -25,24 +25,8 @@ The core library provides GPU-acceleration on the major hardware platforms: NVID
 The interactive FRep viewer:
 
 <a href="https://lightbits.github.io/fraktal/gui1.png"><img src="https://lightbits.github.io/fraktal/gui1.png" style="display:inline-block;width:45%;"></a>
-<a href="https://lightbits.github.io/fraktal/gui2.png"><img src="https://lightbits.github.io/fraktal/gui2.png" style="display:inline-block;width:45%;"></a>
-<div style="padding:0;margin:0;">
-    <div style="display:inline-block;width:45%;text-align:center;">Creating a figure with custom settings</div>
-    <div style="display:inline-block;width:45%;text-align:center;">Creating an alpha-masked depth image</div>
-</div>
 
-Example of multi-channel image output:
-
-<img src="https://lightbits.github.io/fraktal/example_color.png" style="display:inline-block;width:23%;">
-<img src="https://lightbits.github.io/fraktal/example_normals.png" style="display:inline-block;width:23%;">
-<img src="https://lightbits.github.io/fraktal/example_thickness.png" style="display:inline-block;width:23%;">
-<img src="https://lightbits.github.io/fraktal/example_depth.png" style="display:inline-block;width:23%;">
-<div style="padding:0;margin:0;">
-    <div style="display:inline-block;width:23%;text-align:center;">Color</div>
-    <div style="display:inline-block;width:23%;text-align:center;">Normals</div>
-    <div style="display:inline-block;width:23%;text-align:center;">Thickness</div>
-    <div style="display:inline-block;width:23%;text-align:center;">Depth</div>
-</div>
+<a href="https://lightbits.github.io/fraktal/example_output.png"><img src="https://lightbits.github.io/fraktal/example_output.png" style="display:inline-block;width:45%;"></a>
 
 Note that the core library is not limited to evaluating the function densely over an image, but can also be run on arbitrary input sets, such as point clouds or sparse pixels.
 
