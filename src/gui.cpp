@@ -143,9 +143,11 @@ static fKernel *load_render_shader(const char *model_path, const char *render_pa
             fraktal_destroy_link(link);
             return NULL;
         }
-        char *concat = (char*)malloc(strlen(hg_sdf) + strlen(model) + 1);
+        static const char *line_0 = "#line 0\n";
+        char *concat = (char*)malloc(strlen(hg_sdf) + strlen(line_0) + strlen(model) + 1);
         fraktal_assert(concat);
         strcpy(concat, hg_sdf);
+        strcat(concat, line_0);
         strcat(concat, model);
         free(model);
         if (!fraktal_add_link_data(link, concat, strlen(concat), model_path))
