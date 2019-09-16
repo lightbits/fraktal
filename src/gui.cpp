@@ -87,6 +87,7 @@ struct guiState
     bool render_kernel_is_new;
     bool compose_kernel_is_new;
     int samples;
+    int max_samples;
     bool should_clear;
     bool should_exit;
     bool initialized;
@@ -392,7 +393,9 @@ static void update_and_render_gui(guiState &scene)
     {
         if (!scene.keys.Alt.down && scene.keys.Enter.pressed)
             scene.auto_render = !scene.auto_render;
-        if (scene.auto_render || scene.should_clear)
+        if (scene.auto_render && scene.samples < scene.max_samples)
+            render_color(scene);
+        else if (scene.should_clear)
             render_color(scene);
     }
     else
@@ -643,7 +646,11 @@ static void update_and_render_gui(guiState &scene)
                 if (scene.mode == guiPreviewMode_Color)
                 {
                     ImGui::Separator();
-                    ImGui::Text("Samples: %d", scene.samples);
+                    ImGui::Text("Samples: %d / ", scene.samples);
+                    ImGui::PushItemWidth(64.0f);
+                    if (ImGui::DragInt("##max_samples", &scene.max_samples, 1.0f, 1, 2048))
+                        scene.should_clear = true;
+                    ImGui::PopItemWidth();
                 }
             }
             ImGui::EndMenuBar();
@@ -862,6 +869,7 @@ static void default_settings(guiState &g)
     g.settings.x = -1;
     g.settings.y = -1;
     g.settings.ui_scale = 1.0f;
+    g.max_samples = 128;
 }
 
 static void sanitize_settings(guiState &g)
