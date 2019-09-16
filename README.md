@@ -1,21 +1,18 @@
 <img width="128" height="128" src="res/fraktal-logo.svg">
 
-Fraktal is a software library for procedural function-based representations (FRep) aimed at facilitating computer vision and machine learning research. It is designed to aid researchers interested in using the FRep in such applications as:
+Fraktal is a software library for procedural function-based representations (FRep) aimed at facilitating computer vision and machine learning research. It is designed to aid research in using the FRep in such applications as:
 
-* Scene reconstruction
+* 3D reconstruction
 * Inverse rendering / procedural modeling / program synthesis
 * Learning generative models
 * Generating ground-truth synthetic datasets
 
-The core library is a GPU-accelerated function evaluator bundled with a rich standard library utilities, such as:
+The core library is a GPU-accelerated FRep evaluator bundled with several utilities:
 
-* Primitives
-* Transformations and deformations
-* Boolean operators
-* Accelerated ray-surface intersection
-* Surface normal evaluation
-* Physically-based path tracer
-* (Depth + Normals + Thickness) map rendering
+* Procedures for common primitives, transformations and CSG operators
+* Procedures for surface normal evaluation and accelerated ray-surface intersection
+* Physically-based path tracer for FReps
+* Multi-target (Depth + Normals + Thickness) rendering
 
 Fraktal also comes with a graphical application, which lets you visualize and live-edit FReps or adjust camera and scene parameters. The bundled renderer uses a novel de-noising algorithm that lets you create publication-quality figures quickly.
 
@@ -27,8 +24,8 @@ The core library provides GPU-acceleration on the major hardware platforms: NVID
 
 The interactive FRep viewer:
 
-<a href="res/mocks/gui.png"><img src="res/mocks/gui.png" style="display:inline-block;width:45%;"></a>
-<a href="res/mocks/gui2.png"><img src="res/mocks/gui2.png" style="display:inline-block;width:45%;"></a>
+<a href="https://lightbits.github.io/fraktal/gui1.png"><img src="https://lightbits.github.io/fraktal/gui1.png" style="display:inline-block;width:45%;"></a>
+<a href="https://lightbits.github.io/fraktal/gui2.png"><img src="https://lightbits.github.io/fraktal/gui2.png" style="display:inline-block;width:45%;"></a>
 <div style="padding:0;margin:0;">
     <div style="display:inline-block;width:45%;text-align:center;">Creating a figure with custom settings</div>
     <div style="display:inline-block;width:45%;text-align:center;">Creating an alpha-masked depth image</div>
@@ -36,10 +33,10 @@ The interactive FRep viewer:
 
 Example of multi-channel image output:
 
-<img src="res/example_color.png" style="display:inline-block;width:23%;">
-<img src="res/example_normals.png" style="display:inline-block;width:23%;">
-<img src="res/example_thickness.png" style="display:inline-block;width:23%;">
-<img src="res/example_depth.png" style="display:inline-block;width:23%;">
+<img src="https://lightbits.github.io/fraktal/example_color.png" style="display:inline-block;width:23%;">
+<img src="https://lightbits.github.io/fraktal/example_normals.png" style="display:inline-block;width:23%;">
+<img src="https://lightbits.github.io/fraktal/example_thickness.png" style="display:inline-block;width:23%;">
+<img src="https://lightbits.github.io/fraktal/example_depth.png" style="display:inline-block;width:23%;">
 <div style="padding:0;margin:0;">
     <div style="display:inline-block;width:23%;text-align:center;">Color</div>
     <div style="display:inline-block;width:23%;text-align:center;">Normals</div>
@@ -62,17 +59,6 @@ The GUI application can be compiled from source using the appropriate build scri
 
 * Windows: build_gui.bat
 * Linux/MacOS: make
-
-
-### GUI command line options
-
-The GUI accepts the following command line options:
-
-* `-width`: X resolution of rendered image
-* `-height`: Y resolution of rendered image
-* `-model`: Path to file containing model kernel definition (default: `libf/vase.f`)
-* `-color`: Path to file containing color renderer (default: `libf/publication.f`)
-* `-geometry`: Path to file containing geometry renderer (default: `libf/geometry.f`)
 
 ### Python bindings
 Python bindings can be found in the [python](python) directory. See that directory's readme for installation instructions.

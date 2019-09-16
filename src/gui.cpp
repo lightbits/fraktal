@@ -880,7 +880,7 @@ int main(int argc, char **argv)
     g_scene.new_paths.model    = "examples/vase.f";
     g_scene.new_paths.color    = "libf/publication.f";
     g_scene.new_paths.geometry = "libf/geometry.f";
-    g_scene.new_paths.compose  = "libf/mean_and_gamma_correct.f";
+    g_scene.new_paths.compose  = "libf/compose.f";
     g_scene.new_resolution.x   = 320;
     g_scene.new_resolution.y   = 240;
     g_scene.new_mode           = guiPreviewMode_Color;
