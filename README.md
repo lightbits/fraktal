@@ -1,4 +1,6 @@
-<img width="128" height="128" src="res/fraktal-logo.svg">
+<p align="center">
+    <img width="128" height="128" src="res/fraktal-logo.svg">
+</p>
 
 Fraktal is a software library for procedural function-based representations (FRep) aimed at facilitating computer vision and machine learning research. It is designed to aid research in using the FRep in such applications as:
 
@@ -24,9 +26,13 @@ The core library provides GPU-acceleration on the major hardware platforms: NVID
 
 The interactive FRep viewer:
 
-<a href="https://lightbits.github.io/fraktal/gui1.png"><img src="https://lightbits.github.io/fraktal/gui1.png" style="display:inline-block;width:45%;"></a>
+<p align="center">
+    <img src="https://lightbits.github.io/fraktal/gui1.png">
+</p>
 
-<a href="https://lightbits.github.io/fraktal/example_output.png"><img src="https://lightbits.github.io/fraktal/example_output.png" style="display:inline-block;width:45%;"></a>
+<p align="center">
+    <img src="https://lightbits.github.io/fraktal/example_output.png">
+</p>
 
 Note that the core library is not limited to evaluating the function densely over an image, but can also be run on arbitrary input sets, such as point clouds or sparse pixels.
 
