@@ -1,28 +1,6 @@
 // Developed by Simen Haugo.
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
-float fCylinder(vec3 p, float r, float height) {
-    vec2 d = abs(vec2(length(p.xz),p.y)) - vec2(r, height);
-    return min(max(d.x,d.y),0.0) + length(max(d,0.0));
-}
-
-float fSphere(vec3 p, float r) {
-    return length(p) - r;
-}
-
-float fBoxCheap(vec3 p, vec3 b) {
-    return max(abs(p.x) - b.x, max(abs(p.y) - b.y, abs(p.z) - b.z));
-}
-
-vec2 pOpRotate(vec2 p, float a) {
-    return cos(a)*p + sin(a)*vec2(p.y, -p.x);
-}
-
-float fOpUnionSoft(float a, float b, float r) {
-    float e = max(r - abs(a - b), 0);
-    return min(a, b) - e*e*0.25/r;
-}
-
 float model(vec3 p) {
     float d = fSphere(p, 0.5);
 

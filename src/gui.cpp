@@ -130,11 +130,41 @@ static fKernel *load_render_shader(const char *model_path, const char *render_pa
 {
     fLinkState *link = fraktal_create_link();
 
-    if (!fraktal_add_link_file(link, model_path))
+    static char *hg_sdf = read_file("libf/hg_sdf.f");
+    if (!hg_sdf)
+        log_err("Failed to load hg_sdf: file is corrupt or not in the expected directory (libf/hg_sdf.f)\n");
+
+    if (hg_sdf)
     {
-        log_err("Failed to load render kernel: error compiling model.\n");
-        fraktal_destroy_link(link);
-        return NULL;
+        char *model = read_file(model_path);
+        if (!model)
+        {
+            log_err("Failed to load render kernel: error compiling model.\n");
+            fraktal_destroy_link(link);
+            return NULL;
+        }
+        char *concat = (char*)malloc(strlen(hg_sdf) + strlen(model) + 1);
+        fraktal_assert(concat);
+        strcpy(concat, hg_sdf);
+        strcat(concat, model);
+        free(model);
+        if (!fraktal_add_link_data(link, concat, strlen(concat), model_path))
+        {
+            log_err("Failed to load render kernel: error compiling model.\n");
+            fraktal_destroy_link(link);
+            free(concat);
+            return NULL;
+        }
+        free(concat);
+    }
+    else
+    {
+        if (!fraktal_add_link_file(link, model_path))
+        {
+            log_err("Failed to load render kernel: error compiling model.\n");
+            fraktal_destroy_link(link);
+            return NULL;
+        }
     }
 
     if (!fraktal_add_link_file(link, render_path))
