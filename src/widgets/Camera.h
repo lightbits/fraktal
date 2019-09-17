@@ -108,14 +108,14 @@ struct Widget_Camera : Widget
 
             if (loc_iView != -1)
             {
-                changed |= ImGui::SliderFloat("\xce\xb8##view_dir", &dir.theta, -90.0f, +90.0f, "%.0f deg");
-                changed |= ImGui::SliderFloat("\xcf\x86##view_dir", &dir.phi, -180.0f, +180.0f, "%.0f deg");
+                changed |= ImGui::DragFloat("\xce\xb8##view_dir", &dir.theta, 1.0f, -90.0f, +90.0f, "%.0f deg");
+                changed |= ImGui::DragFloat("\xcf\x86##view_dir", &dir.phi, 1.0f, -180.0f, +180.0f, "%.0f deg");
                 changed |= ImGui::DragFloat3("Position##view_pos", &pos.x, &drag_speeds.x);
             }
             if (loc_iCameraF != -1)
-                changed |= ImGui::DragFloat("Field of view##camera_yfov", &camera_yfov);
+                changed |= ImGui::DragFloat("Field of view##camera_yfov", &camera_yfov, 0.1f, 1.0f, 90.0f, "%.1f deg");
             if (loc_iCameraCenter != -1)
-                changed |= ImGui::SliderFloat2("Shift##camera_shift", &camera_shift.x, -1.0f, +1.0f);
+                changed |= ImGui::DragFloat2("Shift##camera_shift", &camera_shift.x, 0.01f, -1.0f, +1.0f);
         }
 
         return changed;

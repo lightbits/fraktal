@@ -464,9 +464,9 @@ static void update_and_render_gui(guiState &scene)
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.14f, 0.14f, 0.14f, 1.0f));
-    pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
-    pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
-    pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
+    pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
+    pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
+    pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 1.0f, 1.0f, 0.325f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.0f,0.0f,0.0f,0.0f));
     pushed_style_col++; ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(1.0f,1.0f,1.0f,0.25f));
@@ -638,7 +638,7 @@ static void update_and_render_gui(guiState &scene)
             ImGuiWindowFlags_NoCollapse |
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_MenuBar;
-        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.3f, 0.38f, 0.51f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.28f, 0.28f, 0.28f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.69f, 0.69f, 0.69f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f,0.0f));
         ImGui::SetNextWindowSize(ImVec2(width, height));
