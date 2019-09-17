@@ -840,17 +840,34 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
     }
 }
 
+#include <jsmn.h>
+#include <string.h>
+#include <stdlib.h>
+
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s)
+{
+    if (tok->type == JSMN_STRING &&
+        (int)strlen(s) == tok->end - tok->start &&
+        strncmp(json + tok->start, s, tok->end - tok->start) == 0)
+    {
+        return 0;
+    }
+    return -1;
+}
+
 static void write_settings_to_disk(const char *ini_filename, guiState s)
 {
     FILE *f = fopen(ini_filename, "wt");
     if (!f)
         return;
 
-    fprintf(f, "fraktal = \n(\n");
-    fprintf(f, "\twindow_size=(%d, %d),\n", s.settings.width, s.settings.height);
-    fprintf(f, "\twindow_position=(%d, %d),\n", s.settings.x, s.settings.y);
-    fprintf(f, "\tui_scale=%g\n", s.settings.ui_scale);
-    fprintf(f, ")\n\n");
+    fprintf(f, "{\n");
+    fprintf(f, "\t\"window_size.x\": %d,\n", s.settings.width);
+    fprintf(f, "\t\"window_size.y\": %d,\n", s.settings.height);
+    fprintf(f, "\t\"window_position.x\": %d,\n", s.settings.x);
+    fprintf(f, "\t\"window_position.y\": %d,\n", s.settings.y);
+    fprintf(f, "\t\"ui_scale\": %g\n", s.settings.ui_scale);
+    fprintf(f, "}\n");
 
     #if 0
     size_t imgui_ini_size = 0;
@@ -867,35 +884,33 @@ static void read_settings_from_disk(const char *ini_filename, guiState &g)
     if (!f)
         return;
 
-    parse_error_start = f;
-    parse_error_name = "settings";
+    jsmn_parser p;
+    static jsmntok_t t[1024]; // We expect no more than 1024 tokens
 
-    const char *cc = f;
-    const char **c = &cc;
-    parse_blank(c);
-    if (!parse_match(c, "fraktal")) return;
-    parse_blank(c);
-    if (!parse_char(c, '=')) return;
-    parse_blank(c);
-    if (!parse_begin_list(c)) return;
-    while (parse_next_in_list(c))
+    jsmn_init(&p);
+    int r = jsmn_parse(&p, f, strlen(f), t, sizeof(t) / sizeof(t[0]));
+    if (r < 0)
+        goto error;
+
+    // top-level element must be an object
+    if (r < 1 || t[0].type != JSMN_OBJECT)
+        goto error;
+
+    #define parse_int(name, ptr)   if (jsoneq(f, &t[i], name) == 0) { *(ptr) = strtol(f + t[i + 1].start, NULL, 0); }
+    #define parse_float(name, ptr) if (jsoneq(f, &t[i], name) == 0) { *(ptr) = strtof(f + t[i + 1].start, NULL); }
+    for (int i = 1; i < r; i++)
     {
-        int2 window_size;
-        int2 window_position;
-        float ui_scale;
-        if (parse_argument_int2(c, "window_size", &window_size)) { g.settings.width = window_size.x; g.settings.height = window_size.y; }
-        else if (parse_argument_int2(c, "window_position", &window_position)) { g.settings.x = window_position.x; g.settings.y = window_position.y; }
-        else if (parse_argument_float(c, "ui_scale", &ui_scale)) { g.settings.ui_scale = ui_scale; }
-        else parse_list_unexpected();
+             parse_int("window_size.x", &g.settings.width)
+        else parse_int("window_size.y", &g.settings.height)
+        else parse_int("window_position.x", &g.settings.x)
+        else parse_int("window_position.y", &g.settings.y)
+        else parse_float("ui_scale", &g.settings.ui_scale)
     }
-    parse_end_list(c);
-    parse_blank(c);
 
-    #if 0
-    // the rest of the ini file is ImGui settings
-    ImGui::LoadIniSettingsFromMemory(*c);
-    #endif
+    #undef parse_int
+    #undef parse_float
 
+error:
     free(f);
 }
 
