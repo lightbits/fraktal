@@ -1005,7 +1005,7 @@ int main(int argc, char **argv)
 
     while (!glfwWindowShouldClose(fraktal_context) && !g_scene.should_exit)
     {
-        static int settle_frames = 5;
+        static int settle_frames = 10;
         if ((g_scene.auto_render && g_scene.samples < g_scene.max_samples) || settle_frames > 0)
         {
             glfwPollEvents();
@@ -1013,7 +1013,7 @@ int main(int argc, char **argv)
         else
         {
             glfwWaitEvents();
-            settle_frames = 5;
+            settle_frames = 10;
         }
 
         // update settings
