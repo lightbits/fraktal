@@ -852,9 +852,11 @@ static void write_settings_to_disk(const char *ini_filename, guiState s)
     fprintf(f, "\tui_scale=%g\n", s.settings.ui_scale);
     fprintf(f, ")\n\n");
 
+    #if 0
     size_t imgui_ini_size = 0;
     const char *imgui_ini_data = ImGui::SaveIniSettingsToMemory(&imgui_ini_size);
     fwrite(imgui_ini_data, sizeof(char), imgui_ini_size, f);
+    #endif
 
     fclose(f);
 }
@@ -889,8 +891,10 @@ static void read_settings_from_disk(const char *ini_filename, guiState &g)
     parse_end_list(c);
     parse_blank(c);
 
+    #if 0
     // the rest of the ini file is ImGui settings
     ImGui::LoadIniSettingsFromMemory(*c);
+    #endif
 
     free(f);
 }
