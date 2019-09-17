@@ -454,7 +454,8 @@ static void update_and_render_gui(guiState &scene)
 
     pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-    pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 4.0f);
+    pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f);
+    pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize, 4.0f);
     pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
     pushed_style_var++; ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 12.0f);
 
