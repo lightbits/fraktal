@@ -53,10 +53,14 @@ float model(vec3 p) {
         q.x -= 0.5;
         d = min(d, fBox(q, vec3(0.1,0.1,4.0)));
     }
-    d = min(d, p.y + 0.5);
     d = min(d, p.x + 0.5);
+    d = max(d, -p.x - 3.0);
     d = min(d, p.z + 4.0);
+    d = max(d, p0.z - 2.0);
+    // d = max(d, p0.x - 2.0);
+    // d = max(d, -p0.x - 2.0);
     d = max(d, p.y - 2.0);
+    d = min(d, p.y + 0.5);
     // {
     //     d = min(d, p.y + 0.4);
     // }
