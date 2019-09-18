@@ -25,7 +25,7 @@ uniform float     iGroundSpecularExponent;
 uniform float     iGroundReflectivity;
 out vec4          fragColor;
 
-#define EPSILON 0.0001
+#define EPSILON 0.0007
 #define STEPS 512
 #define M_PI 3.1415926535897932384626433832795
 #define MAX_DISTANCE 100.0
