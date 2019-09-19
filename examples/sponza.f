@@ -13,7 +13,6 @@ float model(vec3 p) {
         d = min(d, fCylinder(q.yzx, 0.5, 3.8));
         d = max(d, -p.y);
         q.y -= 0.32;
-        // d = min(d, fBox(q, vec3(0.48, 0.3, 3.78)));
         d = max(fBox(q, vec3(0.6, 0.3, 4.0)), -d);
     }
     {
@@ -25,6 +24,7 @@ float model(vec3 p) {
         q.y += 0.25;
         d = min(d, fCylinder(q, 0.06, 0.25));
     }
+
     {
         q = p;
         q.y -= 1.25;
@@ -53,26 +53,18 @@ float model(vec3 p) {
         q.x -= 0.5;
         d = min(d, fBox(q, vec3(0.1,0.1,4.0)));
     }
-    d = min(d, p.x + 0.5);
-    d = max(d, -p.x - 3.0);
-    d = min(d, p.z + 4.0);
-    d = max(d, p0.z - 2.0);
-    // d = max(d, p0.x - 2.0);
-    // d = max(d, -p0.x - 2.0);
-    d = max(d, p.y - 2.0);
-    d = min(d, p.y + 0.5);
-    // {
-    //     d = min(d, p.y + 0.4);
-    // }
-    // {
-    //     q = p;
-    //     q.z -= 0.5;
-    //     q.x -= 0.5;
-    //     q.y += 0.3;
-    //     d = min(d, fCylinder(q, 0.1, 0.2));
-    // }
+    {
+        d = min(d, p.x + 0.5);
+        d = max(d, -p.x - 3.0);
+        d = min(d, p.z + 4.0);
+        d = max(d, p0.z - 2.0);
+        d = max(d, p.y - 2.0);
+        d = min(d, p.y + 0.5);
+    }
 
-    d = fOpUnionSoft(d, length(p0) - 0.5, 0.1);
+    d = fOpUnionSoft(d, length(p0 - vec3(0.0,0.6,0.0)) - 0.5, 0.5);
+    p0.y -= 0.6;
+    d = max(d, -fCylinder(p0.yzx, 0.3, 2.0));
 
     return d;
 }
