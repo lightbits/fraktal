@@ -13,11 +13,30 @@ void compute_view_matrix(float dst[4*4], float3 t, float3 r)
     float dty = t.y*(cx*cz + sx*sy*sz) - t.z*(cz*sx - cx*sy*sz) + t.x*cy*sz;
     float dtz = t.z*cx*cy              - t.x*sy                 + t.y*cy*sx;
 
-    // T(tx,ty,tz)Rz(rz)Ry(ry)Rx(rx)
+    // q = R*(p + t)
     dst[ 0] = cy*cz; dst[ 1] = cz*sx*sy - cx*sz; dst[ 2] = sx*sz + cx*cz*sy; dst[ 3] = dtx;
     dst[ 4] = cy*sz; dst[ 5] = cx*cz + sx*sy*sz; dst[ 6] = cx*sy*sz - cz*sx; dst[ 7] = dty;
     dst[ 8] = -sy;   dst[ 9] = cy*sx;            dst[10] = cx*cy;            dst[11] = dtz;
     dst[12] = 0.0f;  dst[13] = 0.0f;             dst[14] = 0.0f;             dst[15] = 0.0f;
+}
+
+void invert_view_matrix(float dst[4*4], float src[4*4])
+{
+    dst[ 0] = src[ 0]; dst[ 1] = src[4]; dst[ 2] = src[8];  dst[ 3] = -(src[0]*src[3] + src[4]*src[7] + src[8]*src[11]);
+    dst[ 4] = src[ 1]; dst[ 5] = src[5]; dst[ 6] = src[9];  dst[ 7] = -(src[1]*src[3] + src[5]*src[7] + src[9]*src[11]);
+    dst[ 8] = src[ 2]; dst[ 9] = src[6]; dst[10] = src[10]; dst[11] = -(src[2]*src[3] + src[6]*src[7] + src[10]*src[11]);
+    dst[12] = 0.0f;    dst[13] = 0.0f;   dst[14] = 0.0f;    dst[15] = 0.0f;
+}
+
+float3 transform_point(float m[4*4], float3 v)
+{
+    float3 r =
+    {
+        m[0]*v.x + m[1]*v.y + m[2]*v.z + m[3],
+        m[4]*v.x + m[5]*v.y + m[6]*v.z + m[7],
+        m[8]*v.x + m[9]*v.y + m[10]*v.z + m[11]
+    };
+    return r;
 }
 
 struct Widget_Camera : Widget

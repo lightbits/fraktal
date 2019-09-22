@@ -71,6 +71,7 @@ struct guiPaths
     const char *geometry;
     const char *compose;
 };
+struct Widget_Camera;
 struct guiState
 {
     guiPaths new_paths;
@@ -758,6 +759,57 @@ static void update_and_render_gui(guiState &scene)
                 ImVec2 uv0 = ImVec2(0.0f,0.0f);
                 ImVec2 uv1 = ImVec2(1.0f,1.0f);
                 draw->AddImage((void*)(intptr_t)texture, pos0, pos1, uv0, uv1, tint);
+            }
+
+            // draw camera widget
+            {
+                ImVec2 box0 = ImGui::GetCursorScreenPos();
+                ImVec2 box1 = ImVec2(box0.x + 128.0f, box0.y + 128.0f);
+
+                fraktal_assert(scene.preset->num_widgets > 0);
+                Widget_Camera *camera = (Widget_Camera*)scene.preset->widgets[0];
+
+                float3 r =
+                {
+                    deg2rad(camera->dir.theta),
+                    deg2rad(camera->dir.phi),
+                    0.0f
+                };
+                static float3 t = { 0.0f, 0.0f, 8.0f };
+                float view[4*4];
+                float inv[4*4];
+                compute_view_matrix(view, t, r);
+                invert_view_matrix(inv, view);
+
+                float u0 = 0.5f*(box0.x + box1.x);
+                float v0 = 0.5f*(box0.y + box1.y);
+                float f = 5.0f*(box1.x - u0);
+
+                float3 p[] =
+                {
+                    { 0.0f, 0.0f, 0.0f },
+                    { +1.0f, 0.0f, 0.0f },
+                    { 0.0f, +1.0f, 0.0f },
+                    { 0.0f, 0.0f, +1.0f }
+                };
+                ImVec2 s[sizeof(p)/sizeof(p[0])];
+
+                for (int i = 0; i < sizeof(p)/sizeof(p[0]); i++)
+                {
+                    p[i] = transform_point(inv, p[i]);
+                    s[i].x = u0 - f*p[i].x/(p[i].z);
+                    s[i].y = v0 + f*p[i].y/(p[i].z);
+                }
+
+                ImU32 cr = IM_COL32(182, 12, 25, 255);
+                ImU32 cg = IM_COL32(111, 163, 101, 255);
+                ImU32 cb = IM_COL32(75, 128, 170, 255);
+                draw->AddLine(s[0], s[1], cr, 2.0f);
+                draw->AddLine(s[0], s[2], cg, 2.0f);
+                draw->AddLine(s[0], s[3], cb, 2.0f);
+                draw->AddCircleFilled(s[1], -f*0.2f/p[1].z, cr);
+                draw->AddCircleFilled(s[2], -f*0.2f/p[2].z, cg);
+                draw->AddCircleFilled(s[3], -f*0.2f/p[3].z, cb);
             }
         }
 
