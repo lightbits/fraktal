@@ -69,15 +69,7 @@ struct Widget_Ground : Widget
     }
     virtual bool is_active()
     {
-        if (loc_iDrawIsolines < 0) return false;
-        if (loc_iIsolineColor < 0) return false;
-        if (loc_iIsolineThickness < 0) return false;
-        if (loc_iIsolineSpacing < 0) return false;
-        if (loc_iIsolineMax < 0) return false;
-        if (loc_iGroundReflective < 0) return false;
         if (loc_iGroundHeight < 0) return false;
-        if (loc_iGroundSpecularExponent < 0) return false;
-        if (loc_iGroundReflectivity < 0) return false;
         return true;
     }
     virtual bool update(guiState &g)
@@ -87,7 +79,7 @@ struct Widget_Ground : Widget
         {
             changed |= ImGui::DragFloat("Height", &ground_height, 0.01f);
 
-            if (ImGui::TreeNode("Isolines"))
+            if (loc_iDrawIsolines >= 0 && ImGui::TreeNode("Isolines"))
             {
                 changed |= ImGui::Checkbox("Enabled##Isolines", &isolines_enabled);
                 changed |= ImGui::ColorEdit3("Color", &isolines_color.x);
@@ -97,7 +89,7 @@ struct Widget_Ground : Widget
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNode("Reflection"))
+            if (loc_iGroundReflective >= 0 && ImGui::TreeNode("Reflection"))
             {
                 changed |= ImGui::Checkbox("Enabled##Reflection", &ground_reflective);
                 changed |= ImGui::DragFloat("Exponent", &ground_specular_exponent, 1.0f, 0.0f, 10000.0f);
