@@ -242,8 +242,8 @@ static void render_color(guiState &scene)
     assert(fraktal_is_valid_array(scene.compose_buffer));
 
     // todo: handle aspect ratio
-    static int t_buffer_width = 32;
-    static int t_buffer_height = 24;
+    static int t_buffer_width = 16;
+    static int t_buffer_height = 12;
     static fArray *t_buffer = fraktal_create_array(NULL, t_buffer_width, t_buffer_height, 1, FRAKTAL_FLOAT, FRAKTAL_READ_WRITE);
     assert(t_buffer);
 
@@ -278,10 +278,6 @@ static void render_color(guiState &scene)
         }
 
         // accumulation pass
-        fraktal_param_1i(loc_iMode, 0);
-        fraktal_param_1i(loc_iSamples, scene.samples);
-        fraktal_param_array(loc_iChannel0, t_buffer);
-
         if (scene.should_clear)
         {
             fraktal_zero_array(scene.render_buffer);
@@ -289,6 +285,9 @@ static void render_color(guiState &scene)
             scene.should_clear = false;
         }
 
+        fraktal_param_1i(loc_iMode, 0);
+        fraktal_param_1i(loc_iSamples, scene.samples);
+        fraktal_param_array(loc_iChannel0, t_buffer);
         fraktal_run_kernel(scene.render_buffer);
         scene.samples++;
     }
