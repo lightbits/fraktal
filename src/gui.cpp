@@ -28,6 +28,8 @@
 
 #include <open_sans_semi_bold.h>
 
+#define ENABLE_CONE_TRACING_OPTIMIZATION 0
+
 enum { MAX_WIDGETS = 128 };
 enum { NUM_PRESETS = 10 };
 struct Widget;
@@ -229,6 +231,91 @@ static bool load_gui(guiState &g)
 
 #define fetch_uniform(kernel, name) static int loc_##name; if (scene.kernel##_is_new) loc_##name = fraktal_get_param_offset(scene.kernel, #name);
 
+#if ENABLE_CONE_TRACING_OPTIMIZATION
+static void render_color(guiState &scene)
+{
+    if (!scene.render_kernel || !scene.compose_kernel)
+        return;
+    assert(scene.render_kernel);
+    assert(scene.compose_kernel);
+    assert(fraktal_is_valid_array(scene.render_buffer));
+    assert(fraktal_is_valid_array(scene.compose_buffer));
+
+    // todo: handle aspect ratio
+    static int t_buffer_width = 32;
+    static int t_buffer_height = 24;
+    static fArray *t_buffer = fraktal_create_array(NULL, t_buffer_width, t_buffer_height, 1, FRAKTAL_FLOAT, FRAKTAL_READ_WRITE);
+    assert(t_buffer);
+
+    fraktal_use_kernel(scene.render_kernel);
+    {
+        fetch_uniform(render_kernel, iLowResolution);
+        fetch_uniform(render_kernel, iResolution);
+        fetch_uniform(render_kernel, iChannel0);
+        fetch_uniform(render_kernel, iMode);
+        fetch_uniform(render_kernel, iSamples);
+        scene.render_kernel_is_new = false;
+
+        int width,height;
+        fraktal_array_size(scene.render_buffer, &width, &height);
+
+        fraktal_param_2f(loc_iResolution, (float)width, (float)height);
+        fraktal_param_2f(loc_iLowResolution, (float)t_buffer_width, (float)t_buffer_height);
+
+        assert(scene.preset);
+        for (int i = 0; i < scene.preset->num_widgets; i++)
+        {
+            if (scene.preset->widgets[i]->is_active())
+                scene.preset->widgets[i]->set_params(scene);
+        }
+
+        // cone tracing pass
+        if (scene.should_clear)
+        {
+            fraktal_param_1i(loc_iMode, 1);
+            fraktal_zero_array(t_buffer);
+            fraktal_run_kernel(t_buffer);
+        }
+
+        // accumulation pass
+        fraktal_param_1i(loc_iMode, 0);
+        fraktal_param_1i(loc_iSamples, scene.samples);
+        fraktal_param_array(loc_iChannel0, t_buffer);
+
+        if (scene.should_clear)
+        {
+            fraktal_zero_array(scene.render_buffer);
+            scene.samples = 0;
+            scene.should_clear = false;
+        }
+
+        fraktal_run_kernel(scene.render_buffer);
+        scene.samples++;
+    }
+
+    // compose pass
+    fraktal_use_kernel(scene.compose_kernel);
+    {
+        fetch_uniform(compose_kernel, iResolution);
+        fetch_uniform(compose_kernel, iChannel0);
+        fetch_uniform(compose_kernel, iSamples);
+        scene.compose_kernel_is_new = false;
+
+        fArray *out = scene.compose_buffer;
+        fArray *in = scene.render_buffer;
+        int width,height;
+        fraktal_array_size(out, &width, &height);
+        fraktal_param_2f(loc_iResolution, (float)width, (float)height);
+        fraktal_param_1i(loc_iSamples, scene.samples);
+        fraktal_param_array(loc_iChannel0, in);
+
+        fraktal_zero_array(out);
+        fraktal_run_kernel(out);
+    }
+
+    fraktal_use_kernel(NULL);
+}
+#else
 static void render_color(guiState &scene)
 {
     if (!scene.render_kernel || !scene.compose_kernel)
@@ -291,6 +378,7 @@ static void render_color(guiState &scene)
 
     fraktal_use_kernel(NULL);
 }
+#endif
 
 static void render_geometry(guiState &scene)
 {
