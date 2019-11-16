@@ -20,7 +20,7 @@ Fraktal also comes with a graphical application, which lets you visualize and li
 
 ## Requirements
 
-The core library provides GPU-acceleration on the major hardware platforms: NVIDIA, AMD and Intel integrated graphics. At minimum, you need a GPU and a driver with OpenGL 3.1 support (most platforms, including MacBook laptops, meet these requirements).
+The core library provides GPU-acceleration on the major hardware platforms: NVIDIA, AMD and Intel integrated graphics. At minimum, you need a GPU, a driver with OpenGL 3.1 support (most platforms, including MacBook laptops, meet these requirements) and [glfw](https://www.glfw.org/) installed.
 
 ## Screenshots
 
