@@ -4,7 +4,7 @@
 #pragma once
 #include <string.h>
 #include <stdio.h>
-#include <log.h>
+#include "reuse/log.h"
 
 static const char *parse_error_start = NULL;
 static const char *parse_error_name = NULL;

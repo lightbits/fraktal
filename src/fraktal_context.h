@@ -2,8 +2,8 @@
 // See LICENSE.txt for copyright and licensing details (standard MIT License).
 
 #pragma once
-#include <log.h>
-#include <GLFW/glfw3.h>
+#include "reuse/log.h"
+#include "reuse/glfw/include/GLFW/glfw3.h"
 
 // Required to link with vc2010 GLFW
 #if defined(_MSC_VER) && (_MSC_VER >= 1900)

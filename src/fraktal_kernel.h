@@ -1,7 +1,7 @@
 #pragma once
 #include <stdlib.h>
-#include <log.h>
 #include <string.h>
+#include "reuse/log.h"
 
 struct fKernel
 {
