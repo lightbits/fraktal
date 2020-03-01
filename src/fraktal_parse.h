@@ -39,7 +39,8 @@ static bool parse_is_alpha(char c)
 {
     return (c >= 'a' && c <= 'z') ||
            (c >= 'A' && c <= 'Z') ||
-           (c >= '0' && c <= '9');
+           (c >= '0' && c <= '9') ||
+           (c == '_');
 }
 
 static void parse_alpha(const char **c)
@@ -572,6 +573,7 @@ static bool parse_param(const char **c, fParams *p, int param)
     if (!parse_char(c, ';'))
     {
         parse_error(*c, "unexpected symbol after parameter name.\n");
+        printf("%s\n", *c);
         return false;
     }
 
