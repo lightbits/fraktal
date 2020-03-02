@@ -7,6 +7,7 @@ struct fArray
     GLuint color0;
     int width;
     int height;
+    int depth;
     int channels;
     fEnum format;
     fEnum access;
@@ -37,23 +38,37 @@ static bool fraktal_format_to_gl_format(int channels,
 
 fArray *fraktal_create_array(
     const void *data,
+    int channels,
     int width,
     int height,
-    int channels,
+    int depth,
     fEnum format,
     fEnum access)
 {
     fraktal_ensure_context();
     fraktal_check_gl_error();
     fraktal_assert(channels > 0 && channels <= 4);
-    fraktal_assert(width > 0 && height > 0);
+    fraktal_assert(width > 0 && height > 0 && depth > 0);
     fraktal_assert(access == FRAKTAL_READ_ONLY || access == FRAKTAL_READ_WRITE);
     fraktal_assert(channels == 1 || channels == 2 || channels == 4);
 
     GLenum internal_format,data_format,data_type;
     fraktal_assert(fraktal_format_to_gl_format(channels, format, &internal_format, &data_format, &data_type) && "Invalid array format");
 
-    GLenum target = height == 1 ? GL_TEXTURE_1D : GL_TEXTURE_2D;
+    GLenum target;
+    if (width > 1 && height > 1 && depth > 1)
+    {
+        fraktal_assert(access == FRAKTAL_READ_ONLY && "3D arrays must be read-only.");
+        target = GL_TEXTURE_3D;
+    }
+    else if (width > 1 && height > 1)
+    {
+        target = GL_TEXTURE_2D;
+    }
+    else
+    {
+        target = GL_TEXTURE_1D;
+    }
 
     GLuint color0 = 0;
     {
@@ -69,6 +84,13 @@ fArray *fraktal_create_array(
             glTexImage2D(target, 0, internal_format, width, height, 0, data_format, data_type, data);
             glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
+        else if (target == GL_TEXTURE_3D)
+        {
+            glTexImage3D(target, 0, internal_format, width, height, depth, 0, data_format, data_type, data);
+            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         }
         glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -86,6 +108,7 @@ fArray *fraktal_create_array(
     {
         glGenFramebuffers(1, &fbo);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        fraktal_assert(target == GL_TEXTURE_1D || target == GL_TEXTURE_2D);
         if (target == GL_TEXTURE_1D)
             glFramebufferTexture1D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, color0, 0);
         else if (target == GL_TEXTURE_2D)
@@ -103,9 +126,10 @@ fArray *fraktal_create_array(
     fArray *a = (fArray*)calloc(1, sizeof(fArray));
     a->color0 = color0;
     a->fbo = fbo;
+    a->channels = channels;
     a->width = width;
     a->height = height;
-    a->channels = channels;
+    a->depth = depth;
     a->format = format;
     a->access = access;
     fraktal_check_gl_error();
@@ -158,12 +182,13 @@ void fraktal_to_cpu(void *cpu_memory, fArray *a)
     fraktal_check_gl_error();
 }
 
-void fraktal_array_size(fArray *a, int *width, int *height)
+void fraktal_array_size(fArray *a, int *width, int *height, int *depth)
 {
     if (a)
     {
         if (width) *width = a->width;
         if (height) *height = a->height;
+        if (depth) *depth = a->depth;
     }
 }
 
@@ -184,6 +209,7 @@ bool fraktal_is_valid_array(fArray *a)
     return a &&
            a->width > 0 &&
            a->height > 0 &&
+           a->depth > 0 &&
            (a->channels == 1 || a->channels == 2 || a->channels == 4) &&
            (a->access == FRAKTAL_READ_ONLY || (a->access == FRAKTAL_READ_WRITE && a->fbo)) &&
            (a->format == FRAKTAL_FLOAT || a->format == FRAKTAL_UINT8);

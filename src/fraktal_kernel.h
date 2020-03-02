@@ -165,7 +165,7 @@ void fraktal_param_array(int offset, fArray *a)
 {
     fraktal_assert(a);
     fraktal_assert(a->color0);
-    fraktal_assert(a->width > 0 && a->height > 0 && "Array has invalid dimensions.");
+    fraktal_assert(a->width > 0 && a->height > 0 && a->depth > 0 && "Array has invalid dimensions.");
     fraktal_assert(fraktal_current_kernel);
     if (offset < 0)
         return;
@@ -179,10 +179,14 @@ void fraktal_param_array(int offset, fArray *a)
     }
     glUniform1i(offset, tex_unit);
     glActiveTexture(GL_TEXTURE0 + tex_unit);
-    if (a->height == 1)
+    if (a->width > 1 && a->height > 1 && a->depth > 1)
+        glBindTexture(GL_TEXTURE_3D, a->color0);
+    else if (a->width > 1 && a->height > 1)
+        glBindTexture(GL_TEXTURE_2D, a->color0);
+    else if (a->width > 1)
         glBindTexture(GL_TEXTURE_1D, a->color0);
     else
-        glBindTexture(GL_TEXTURE_2D, a->color0);
+        fraktal_assert(false && "Invalid array dimensions");
 }
 
 void fraktal_run_kernel(fArray *out)
@@ -191,6 +195,7 @@ void fraktal_run_kernel(fArray *out)
     fraktal_assert(out);
     fraktal_assert(out->width > 0);
     fraktal_assert(out->height > 0);
+    fraktal_assert(out->depth == 1 && "Output array must be 1D or 2D.");
     fraktal_assert(out->fbo && "The output array's access mode cannot be read-only.");
     fraktal_assert(out->color0);
     fraktal_ensure_context();

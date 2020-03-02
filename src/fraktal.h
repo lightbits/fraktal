@@ -96,10 +96,12 @@ struct fLinkState;
                 to initialize the array. The CPU memory must be a
                 contiguous array of packed float or uint8 vector
                 values matching the given channels and dimensions.
+    'channels': The number of vector components. Must be 1, 2 or 4.
     'width'   : The number of array values along x.
     'height'  : The number of array values along y. If 1, the array
                 is a 1D array, otherwise the array is a 2D array.
-    'channels': The number of vector components. Must be 1, 2 or 4.
+    'depth'   : The number of array values along z. If width, height
+                and depth are all > 1 the array is a 3D array.
     'format'  : Must be FRAKTAL_FLOAT or FRAKTAL_UINT8.
     'access'  : Must be FRAKTAL_READ_ONLY or FRAKTAL_READ_WRITE.
 
@@ -112,9 +114,10 @@ struct fLinkState;
 */
 FRAKTALAPI fArray *fraktal_create_array(
     const void *data,
+    int channels,
     int width,
     int height,
-    int channels,
+    int depth,
     fEnum format,
     fEnum access);
 
@@ -145,7 +148,7 @@ FRAKTALAPI void fraktal_to_cpu(void *cpu_memory, fArray *a);
 /*
     These methods return information about an array.
 */
-FRAKTALAPI void fraktal_array_size(fArray *a, int *width, int *height);
+FRAKTALAPI void fraktal_array_size(fArray *a, int *width, int *height, int *depth);
 FRAKTALAPI fEnum fraktal_array_format(fArray *a); // -1 if 'a' is NULL
 FRAKTALAPI int fraktal_array_channels(fArray *a); // 0 is 'a' is NULL
 

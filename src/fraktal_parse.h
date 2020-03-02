@@ -441,7 +441,8 @@ static bool parse_param_meta(const char **c, fParams *p, int param)
         }
 
         if (type == FRAKTAL_PARAM_SAMPLER1D ||
-            type == FRAKTAL_PARAM_SAMPLER2D)
+            type == FRAKTAL_PARAM_SAMPLER2D ||
+            type == FRAKTAL_PARAM_SAMPLER3D)
         {
             const char *v = NULL;
             size_t len = 0;
@@ -490,6 +491,7 @@ static bool parse_param(const char **c, fParams *p, int param)
         else if (parse_match(c, "ivec4"))     { type = FRAKTAL_PARAM_INT_VEC4;   type_size = 4; base_alignment = 4; }
         else if (parse_match(c, "sampler1D")) { type = FRAKTAL_PARAM_SAMPLER1D; p->assigned_tex_unit[param] = p->sampler_count++; }
         else if (parse_match(c, "sampler2D")) { type = FRAKTAL_PARAM_SAMPLER2D; p->assigned_tex_unit[param] = p->sampler_count++; }
+        else if (parse_match(c, "sampler3D")) { type = FRAKTAL_PARAM_SAMPLER3D; p->assigned_tex_unit[param] = p->sampler_count++; }
         else
         {
             parse_error(*c, "invalid parameter type.\n");
